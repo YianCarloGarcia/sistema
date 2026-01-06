@@ -9,14 +9,16 @@ from urllib.parse import quote_plus
 import csv
 from io import TextIOWrapper
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
 # Create your views here.
-
+@login_required
 def inicio(request):
     return render(request, 'paginas/inicio.html')
-
+@login_required
 def nosotros(request):
     return render(request, 'paginas/nosotros.html')
-
+@login_required
 def estudiantes(request):
     estudiantes = Estudiante.objects.all()
     #print(estudiantes)
@@ -24,14 +26,14 @@ def estudiantes(request):
 
 
     return render(request, 'estudiantes/index.html', {'estudiantes': estudiantes})
-
+@login_required
 def crear(request):
     formulario = EstudianteForm(request.POST or None, request.FILES or None)
     if formulario.is_valid():
         formulario.save()
         return redirect('estudiantes')
     return render(request, 'estudiantes/crear.html', {'formulario': formulario})
-
+@login_required
 def editar(request, id):
     estudiante = Estudiante.objects.get(id=id)
     formulario = EstudianteForm(request.POST or None, request.FILES or None, instance=estudiante, )
@@ -39,18 +41,18 @@ def editar(request, id):
         formulario.save()
         return redirect('estudiantes')
     return render(request, 'estudiantes/editar.html', {'formulario': formulario})
-
+@login_required
 def eliminar(request, id):
     estudiante = Estudiante.objects.get(id=id)
     estudiante.delete()
     return redirect('estudiantes')
-
+@login_required
 def detalle(request, id):
     estudiante = Estudiante.objects.get(id=id)
     return render(request, 'estudiantes/detalle.html', {'estudiante': estudiante})
 
 BLOQUEO_SEGUNDOS = 5
-
+@login_required
 def almuerzo(request):
     mensaje = None
     contador = None
@@ -91,4 +93,6 @@ def almuerzo(request):
 
     return render(request, 'estudiantes/almuerzo.html', {'mensaje': mensaje, 'contador': contador, 'nombre': nombre})
 
-
+def exit (request):
+    logout (request)
+    return redirect ('inicio')
