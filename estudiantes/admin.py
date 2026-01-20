@@ -10,12 +10,33 @@ from import_export.admin import ImportExportMixin
 from django.http import HttpResponse
 from .utils.pdf import generar_certificado_pdf
 from import_export.admin import ImportExportModelAdmin
-
+from .utils.carnet import generar_carnet_pdf
+from django.http import HttpResponse
 
 #admin.site.register(Estudiante)
 #admin.site.register(Asistencia)
 #@admin.register(Asistencia)
 #@admin.register(Asistencia)
+
+def generar_carnet(modeladmin, request, queryset):
+
+    if not request.user.is_superuser:
+        modeladmin.message_user(request, "Sin permisos", level='error')
+        return
+
+    if queryset.count() != 1:
+        modeladmin.message_user(request, "Seleccione un solo estudiante", level='warning')
+        return
+
+    estudiante = queryset.first()
+    pdf = generar_carnet_pdf(estudiante)
+
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response['Content-Disposition'] = f'attachment; filename=carnet_{estudiante.documento}.pdf'
+    return response
+
+generar_carnet.short_description = "🪪 Generar carnet"
+
 
 def generar_certificado(modeladmin, request, queryset):
 
@@ -161,7 +182,8 @@ class EstudianteAdmin(ImportExportModelAdmin):
         'linea',
     )
 
-    actions = [generar_certificado]
+    actions = [generar_certificado, generar_carnet]
+    
 
     def get_actions(self, request):
         actions = super().get_actions(request)
