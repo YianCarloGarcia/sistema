@@ -8,7 +8,7 @@ from django.conf import settings
 
 
 FONDOS_CARNET = {
-    'DIS': 'fondo_diseño.png',
+    'DIS': 'fondo_diseno.png',
     'ROB': 'fondo_robotica.png',  # por si viene sin tilde
     'BIO': 'fondo_biotecnologia.png',
     'COM': 'fondo_comunicacion.png',

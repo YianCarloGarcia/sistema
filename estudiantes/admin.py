@@ -12,6 +12,8 @@ from .utils.pdf import generar_certificado_pdf
 from import_export.admin import ImportExportModelAdmin
 from .utils.carnet import generar_carnet_pdf
 from django.http import HttpResponse
+import zipfile
+import io
 
 #admin.site.register(Estudiante)
 #admin.site.register(Asistencia)
@@ -56,6 +58,36 @@ def generar_certificado(modeladmin, request, queryset):
     return response
 
 generar_certificado.short_description = "📄 Generar certificado PDF"
+
+def generar_carnets_por_linea(modeladmin, request, queryset):
+    if not request.user.is_superuser:
+        modeladmin.message_user(request, "No tiene permisos", level='error')
+        return
+
+    buffer_zip = io.BytesIO()
+    linea = None
+
+    with zipfile.ZipFile(buffer_zip, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for estudiante in queryset:
+            linea = estudiante.linea
+            pdf = generar_carnet_pdf(estudiante)
+            nombre_archivo = f"carnet_{estudiante.documento}.pdf"
+            zip_file.writestr(nombre_archivo, pdf)
+
+    buffer_zip.seek(0)
+
+    nombre_linea = linea.replace(" ", "_") if linea else "linea"
+
+    response = HttpResponse(
+        buffer_zip,
+        content_type='application/zip'
+    )
+    response['Content-Disposition'] = (
+        f'attachment; filename=carnets_{nombre_linea}.zip'
+    )
+    return response
+
+generar_carnets_por_linea.short_description = "🪪 Generar carnets por línea (ZIP)"
 
 
 class AsistenciaResource(resources.ModelResource):
@@ -182,12 +214,15 @@ class EstudianteAdmin(ImportExportModelAdmin):
         'linea',
     )
 
-    actions = [generar_certificado, generar_carnet]
+    actions = [generar_certificado, generar_carnet, generar_carnets_por_linea,
+]
     
 
     def get_actions(self, request):
         actions = super().get_actions(request)
         if not request.user.is_superuser:
             actions.pop('generar_certificado', None)
+            actions.pop('generar_carnet', None)
+            actions.pop('generar_carnets_por_linea', None)
         return actions
 
