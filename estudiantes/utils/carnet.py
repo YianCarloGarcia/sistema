@@ -7,17 +7,41 @@ import os
 from django.conf import settings
 
 
+FONDOS_CARNET = {
+    'DIS': 'fondo_diseño.png',
+    'ROB': 'fondo_robotica.png',  # por si viene sin tilde
+    'BIO': 'fondo_biotecnologia.png',
+    'COM': 'fondo_comunicacion.png',
+    'TPS': 'fondo_programacion.png',
+    'AA': 'fondo_asistencia.png',
+    'ISERC': 'fondo_Electricidad.png',
+    'otro': 'fondo_defalt.png',
+}
+
 def generar_carnet_pdf(estudiante):
     buffer = io.BytesIO()
 
-    width = 8.6 * cm
-    height = 5.4 * cm
+    width = 5.4 * cm
+    height = 8.6 * cm
     c = canvas.Canvas(buffer, pagesize=(width, height))
 
     # ---------- FONDO ----------
-    fondo_path = os.path.join(settings.BASE_DIR, 'static', 'carnet', 'fondo_carnet.png')
-    c.drawImage(fondo_path, 0, 0, width=width, height=height, mask='auto')
+    linea = estudiante.linea.upper().strip()
 
+    nombre_fondo = FONDOS_CARNET.get(linea, 'fondo_default.png')
+
+    fondo_path = os.path.join(
+        settings.BASE_DIR,
+        'static',
+        'carnet',
+        nombre_fondo
+    )
+
+    c.drawImage( fondo_path, 0, 0,
+        width=width,
+        height=height,
+        mask='auto'
+    )
     # ---------- FOTO ROTADA 90° IZQUIERDA ----------
     if estudiante.foto:
         foto_path = os.path.join(settings.MEDIA_ROOT, estudiante.foto.name)
@@ -26,8 +50,8 @@ def generar_carnet_pdf(estudiante):
             c.saveState()
 
             # Punto donde irá la foto
-            x = 0.05 * cm
-            y = 1.0 * cm
+            x = 0.27 * cm
+            y = 4.05 * cm
 
             # Rotar
             c.translate(x, y)
@@ -37,8 +61,8 @@ def generar_carnet_pdf(estudiante):
                 foto_path,
                 0,
                 -2.65 * cm,
-                width=3.1 * cm,
-                height=2.5 * cm,
+                width=3.15 * cm,
+                height=2.6 * cm,
                 preserveAspectRatio=True,
                 mask='auto'
             )
@@ -48,17 +72,24 @@ def generar_carnet_pdf(estudiante):
     # ---------- TEXTO ----------
     c.setFillColorRGB(0, 0, 0)
 
-    c.setFont("Arial-Bold", 8)
-    c.drawCentredString(
-        5.1 * cm,
-        3.7 * cm,
-        f"{estudiante.apellidos.upper()} {estudiante.nombres.upper()}"
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(
+        0.5 * cm,
+        2.8 * cm,
+        f"{estudiante.apellidos.upper()}"
     )
 
-    c.setFont("Arial-Bold", 8)
-    c.drawAlignedString(
-        4.9 * cm,
-        3.1 * cm,
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(
+        0.5 * cm,
+        3.3 * cm,
+        f"{estudiante.nombres.upper()}"
+    )
+
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(
+        0.5 * cm,
+        2.4 * cm,
         f"Doc: {estudiante.documento.upper()}"
     )
 
@@ -85,14 +116,15 @@ def generar_carnet_pdf(estudiante):
 
     c.drawImage(
         qr_reader,
-        3.0 * cm,
-        1.09 * cm,
+        0.5 * cm,
+        0.5 * cm,
         width=1.8 * cm,
         height=1.8 * cm,
         mask='auto'
     )
 
     # ---------- FINAL ----------
+    print("LÍNEA DEL ESTUDIANTE >>>", estudiante.linea)
     c.showPage()
     c.save()
     buffer.seek(0)
