@@ -7,6 +7,9 @@ import os
 from django.conf import settings
 
 
+from reportlab.graphics import renderPM
+from reportlab.graphics.shapes import Drawing
+
 FONDOS_CARNET = {
     'DIS': 'fondo_diseno.png',
     'ROB': 'fondo_robotica.png',  # por si viene sin tilde

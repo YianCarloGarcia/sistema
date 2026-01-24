@@ -14,6 +14,7 @@ from .utils.carnet import generar_carnet_pdf
 from django.http import HttpResponse
 import zipfile
 import io
+from .utils.carnet_png import generar_carnet_png
 
 #admin.site.register(Estudiante)
 #admin.site.register(Asistencia)
@@ -88,6 +89,33 @@ def generar_carnets_por_linea(modeladmin, request, queryset):
     return response
 
 generar_carnets_por_linea.short_description = "🪪 Generar carnets por línea (ZIP)"
+
+def generar_carnets_png_zip(modeladmin, request, queryset):
+
+    if not request.user.is_superuser:
+        modeladmin.message_user(request, "Sin permisos", level='error')
+        return
+
+    buffer_zip = io.BytesIO()
+
+    with zipfile.ZipFile(buffer_zip, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for estudiante in queryset:
+            img = generar_carnet_png(estudiante)
+
+            img_buffer = io.BytesIO()
+            img.save(img_buffer, format="PNG")
+            img_buffer.seek(0)
+
+            nombre = f"carnet_{estudiante.documento}.png"
+            zip_file.writestr(nombre, img_buffer.getvalue())
+
+    buffer_zip.seek(0)
+
+    response = HttpResponse(buffer_zip, content_type="application/zip")
+    response['Content-Disposition'] = 'attachment; filename=carnets_png.zip'
+    return response
+
+generar_carnets_png_zip.short_description = "🖼️ Carnets en PNG (ZIP)"
 
 class AsistenciaResource(resources.ModelResource):
     nombres = resources.Field()
@@ -213,7 +241,7 @@ class EstudianteAdmin(ImportExportModelAdmin):
         'linea',
     )
 
-    actions = [generar_certificado, generar_carnet, generar_carnets_por_linea, 
+    actions = [generar_certificado, generar_carnet, generar_carnets_por_linea, generar_carnets_png_zip,
 ]
     
 
