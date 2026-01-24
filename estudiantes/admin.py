@@ -89,7 +89,6 @@ def generar_carnets_por_linea(modeladmin, request, queryset):
 
 generar_carnets_por_linea.short_description = "🪪 Generar carnets por línea (ZIP)"
 
-
 class AsistenciaResource(resources.ModelResource):
     nombres = resources.Field()
     apellidos = resources.Field()
@@ -214,7 +213,7 @@ class EstudianteAdmin(ImportExportModelAdmin):
         'linea',
     )
 
-    actions = [generar_certificado, generar_carnet, generar_carnets_por_linea,
+    actions = [generar_certificado, generar_carnet, generar_carnets_por_linea, 
 ]
     
 

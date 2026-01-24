@@ -18,6 +18,7 @@ FONDOS_CARNET = {
     'otro': 'fondo_defalt.png',
 }
 
+
 def generar_carnet_pdf(estudiante):
     buffer = io.BytesIO()
 
@@ -130,3 +131,4 @@ def generar_carnet_pdf(estudiante):
     buffer.seek(0)
 
     return buffer.getvalue()
+
