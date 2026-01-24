@@ -93,7 +93,7 @@ def generar_carnets_por_linea(modeladmin, request, queryset):
 
 generar_carnets_por_linea.short_description = "🪪 Generar carnets por línea (ZIP)"
 
-<<<<<<< HEAD
+
 def generar_carnets_png_zip(modeladmin, request, queryset):
 
     if not request.user.is_superuser:
