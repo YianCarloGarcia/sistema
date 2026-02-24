@@ -41,6 +41,8 @@ def generar_carnet_pdf(estudiante):
         nombre_fondo
     )
 
+   
+
     c.drawImage( fondo_path, 0, 0,
         width=width,
         height=height,

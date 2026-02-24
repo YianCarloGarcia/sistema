@@ -16,7 +16,7 @@ import zipfile
 import io
 
 from .utils.carnet_png import generar_carnet_png
-
+from .utils.mosaico_pdf import generar_mosaico_pdf_por_linea
 
 
 #admin.site.register(Estudiante)
@@ -120,6 +120,22 @@ def generar_carnets_png_zip(modeladmin, request, queryset):
     return response
 
 generar_carnets_png_zip.short_description = "🖼️ Carnets en PNG (ZIP)"
+
+def generar_mosaico_linea(modeladmin, request, queryset):
+    if not request.user.is_superuser:
+        modeladmin.message_user(request, "Sin permisos", level='error')
+        return
+
+    linea = queryset.first().linea
+    estudiantes = queryset.filter(linea=linea)
+
+    pdf = generar_mosaico_pdf_por_linea(estudiantes, linea)
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = (
+        f'attachment; filename=mosaico_{linea}.pdf'
+    )
+    return response
 
 
 class AsistenciaResource(resources.ModelResource):
@@ -247,9 +263,7 @@ class EstudianteAdmin(ImportExportModelAdmin):
     )
 
 
-    actions = [generar_certificado, generar_carnet, generar_carnets_por_linea, generar_carnets_png_zip,
-
-    
+    actions = [generar_certificado, generar_carnet, generar_carnets_por_linea, generar_carnets_png_zip, generar_mosaico_linea
 
 ]
     
@@ -260,5 +274,7 @@ class EstudianteAdmin(ImportExportModelAdmin):
             actions.pop('generar_certificado', None)
             actions.pop('generar_carnet', None)
             actions.pop('generar_carnets_por_linea', None)
+            actions.pop('generar_carnets_png_zip', None)
+            actions.pop('generar_mosaico_linea', None)
         return actions
 
