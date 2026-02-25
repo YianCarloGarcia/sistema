@@ -73,7 +73,7 @@ def generar_carnet_png(estudiante):
             MARCO_ALTO = 260 + 45 
 
             foto = Image.open(foto_path).resize((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
-            foto = foto.rotate(90, expand=True)
+           # foto = foto.rotate(90, expand=True)
 # Escalar manteniendo proporción
             foto.thumbnail((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
             x = int(0.27 * PX_POR_CM + 20)

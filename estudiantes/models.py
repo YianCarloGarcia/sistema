@@ -42,7 +42,7 @@ class Estudiante(models.Model):
     ocupacion_acudiente = models.CharField(max_length=100, verbose_name="Ocupación Acudiente", null=True, blank=True)
     eps = models.CharField(max_length=100, verbose_name="EPS", null=True, blank=True)
     observaciones = models.TextField(verbose_name="Observaciones", null=True, blank=True)
-    foto = models.ImageField(upload_to='fotos/', null=True, blank=True)
+    foto = models.ImageField(upload_to='fotos/', null=True, blank=True, default='fotos/foto_default.png')
 
     
     # mostrrar datos en el admin
