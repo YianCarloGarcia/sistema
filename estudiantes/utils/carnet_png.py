@@ -36,13 +36,13 @@ def generar_carnet_png(estudiante):
 
     # ---------- FUENTES ----------
     font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'arialbd.ttf')
-    font_nombre = ImageFont.truetype(font_path, 30)
-    font_doc = ImageFont.truetype(font_path, 30)
+    font_nombre = ImageFont.truetype(font_path, 35)
+    font_doc = ImageFont.truetype(font_path, 35)
 
     # ---------- TEXTO (MISMAS POSICIONES DEL PDF) ----------
     # Apellidos → 0.5 cm, 2.8 cm
     draw.text(
-        (0.5 * PX_POR_CM, ALTO - (2.4 * PX_POR_CM) - 30),
+        (0.5 * PX_POR_CM, ALTO - (2.4 * PX_POR_CM) + 20),
         estudiante.apellidos.upper(),
         fill="black",
         font=font_nombre
@@ -50,7 +50,7 @@ def generar_carnet_png(estudiante):
 
     # Nombres → 0.5 cm, 3.3 cm
     draw.text(
-        (0.5 * PX_POR_CM, ALTO - (2.9 * PX_POR_CM) - 30),
+        (0.5 * PX_POR_CM, ALTO - (2.9 * PX_POR_CM) + 20),
         estudiante.nombres.upper(),
         fill="black",
         font=font_nombre
@@ -58,7 +58,7 @@ def generar_carnet_png(estudiante):
 
     # Documento → 0.5 cm, 2.4 cm
     draw.text(
-        (0.5 * PX_POR_CM, ALTO - (2.0 * PX_POR_CM) - 30),
+        (0.5 * PX_POR_CM, ALTO - (2.0 * PX_POR_CM) + 30),
         f"Doc: {estudiante.documento}",
         fill="black",
         font=font_doc
@@ -69,15 +69,15 @@ def generar_carnet_png(estudiante):
         foto_path = os.path.join(settings.MEDIA_ROOT, estudiante.foto.name)
         if os.path.exists(foto_path):
 
-            MARCO_ANCHO = 315 + 45 + 15
-            MARCO_ALTO = 260 + 45 
+            MARCO_ANCHO = 280 
+            MARCO_ALTO = 340
 
             foto = Image.open(foto_path).resize((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
-           # foto = foto.rotate(90, expand=True)
+            foto = foto.rotate(0, expand=True)
 # Escalar manteniendo proporción
             foto.thumbnail((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
-            x = int(0.27 * PX_POR_CM + 20)
-            y = int(ALTO - (4.05 * PX_POR_CM) - foto.height + 20)
+            x = int(0.27 * PX_POR_CM + 27)
+            y = int(ALTO - (4.05 * PX_POR_CM) - foto.height + 80)
 
             img.paste(foto, (x, y))
 
@@ -94,10 +94,10 @@ def generar_carnet_png(estudiante):
     qr_img = qr.make_image(
         fill_color="black",
         back_color="transparent"
-    ).resize((180, 180))
+    ).resize((250, 250))
 
     qr_x = int(0.7 * PX_POR_CM - 15)
-    qr_y = int(ALTO - (0.5 * PX_POR_CM) - 100)
+    qr_y = int(ALTO - (0.5 * PX_POR_CM) - 50)
 
     img.paste(qr_img, (qr_x, qr_y), qr_img)
 
