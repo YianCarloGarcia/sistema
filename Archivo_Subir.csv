@@ -1,4 +1,4 @@
-﻿id,jornada,tipo,documento,apellidos,nombres,curso,linea,celular,email,acudiente,parentesco,tel_acudiente,tel2_acudiente,direccion,ocupacion_acudiente,eps,observaciones,foto
+﻿﻿id,jornada,tipo,documento,apellidos,nombres,curso,linea,celular,email,acudiente,parentesco,tel_acudiente,tel2_acudiente,direccion,ocupacion_acudiente,eps,observaciones,foto
 ,JT,TI,1014672057,ALARCON OSPINA,SARA ALEJANDRA,1005,ISERC,,,,,,,,,,,fotos/foto_default.png
 ,JT,TI,1141122146,ALBARRACIN OSPINA,SHARA SOFIA,1004,AA,,,,,,,,,,,fotos/foto_default.png
 ,JT,TI,1013127318,ALDANA MONTES,MICHAEL TOMAS,1006,AA,,,,,,,,,,,fotos/foto_default.png
@@ -204,4 +204,3 @@
 ,JT,TI,1023915541,VITOLA MALDONADO,KEVIN SANTIAGO,1002,TPS,,,,,,,,,,,fotos/foto_default.png
 ,JT,TI,1032942637,YOLIS PUERTA,SANTIAGO ,1003,COM,,,,,,,,,,,fotos/foto_default.png
 ,JT,TI,1100017456,ZAPATA VARGAS,JOSE MANUEL,1004,ROB,,,,,,,,,,,fotos/foto_default.png
-,,,,,,,,,,,,,,,,,,
