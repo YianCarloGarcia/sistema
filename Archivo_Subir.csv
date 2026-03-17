@@ -1,206 +1,206 @@
-﻿﻿id,jornada,tipo,documento,apellidos,nombres,curso,linea,celular,email,acudiente,parentesco,tel_acudiente,tel2_acudiente,direccion,ocupacion_acudiente,eps,observaciones,foto
-,JT,TI,1014672057,ALARCON OSPINA,SARA ALEJANDRA,1005,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141122146,ALBARRACIN OSPINA,SHARA SOFIA,1004,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013127318,ALDANA MONTES,MICHAEL TOMAS,1006,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1097694287,MORENO ACUÑA,MARIA SALOME,1003,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1012370663,ALVARADO QUIROZ,YULIANA ,1003,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1032438980,ANGULO GRANADO,JOHAN EDUARDO,1005,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141330594,ARENAS LANCHEROS,LUISA ALEXANDRA,1002,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1030610583,ARIAS BORJA,VICTOR MANUEL,1006,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1029284541,ARIAS SUSPES,LAURA SOFIA,1004,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141331404,BACHILLER CAMACHO,JOSUE ALFREDO,1004,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013638670,MONTOYA AMADOR,VALENTINA ,1002,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1031820642,BARANDICA CAMARGO,VALERIE ,1004,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1085177895,BARANDICA PULIDO,HENRY GABRIEL,1001,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1031826460,BARON BARON,KEVYN STIVEN,1006,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013131668,BARRIOS CRISTANCHO,JULIAN ESTEBAN,1001,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028842682,CADENA AREIZA,MARIA ALEJANDRA,1003,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141319890,BAUTISTA MORENO,DANNA DURLEY,1001,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1024534223,BAUTISTA SALAMANCA,MARIANA ,1003,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013126768,BAYONA ORTIZ,JUAN ANDRES,1006,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1030627105,BELTRAN MONSALVE,SHARICK LUZMILA,1003,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141326855,BERMUDEZ SUAREZ,DEIVID SANTIAGO,1001,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1067895734,BERRIO BETANCURT,YEISON STIVEN,1006,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028720879,BOGOTA ZUBIETA,ISABEL GABRIELA,1004,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028720878,BOGOTA ZUBIETA,JUAN DAVID,1004,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1029146679,BONILLA VILLAMIL,MELANIE NATALIA,1002,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1012383130,BUITRAGO ALVAREZ,DANA SOFIA,1001,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1011099696,BURGOS PEREA,DIEGO ALEXANDER,1005,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1031815647,VERGARA BLANQUICET,ANDREA VALENTINA,1001,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1102851245,BURGOS VITAL,EVELYD ,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1066290134,CANTILLO QUINTERO,DULCE MARIA,1003,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1025143959,CAPERA FONQUE,ANGEL STEVEN,1001,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1067604629,JOSEPO BURGOS,BRITNEY LORAINE,1005,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1029148753,CARDENAS GARCIA,JUAN SEBASTIAN,1004,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141330482,CARO BOCANEGRA,SARA YULIETH,1006,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1083039610,CARRASCAL ASIGBO,ALEJANDRA ELENA,1003,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1018524466,CARVAJAL CARDOZO,JUNIOR ALFREDO,1004,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1054287981,CARVAJAL VILLAMIL,LAURA VALENTINA,1005,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1031817738,CASTAÑEDA TIQUE,JOHAN ANDRES,1001,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1033746206,CASTAÑO RINCON,MICHEL DAYANA,1003,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013130898,CASTIBLANCO SANTOS,HECTOR MATIAS,1006,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1034666141,MARTINEZ CASTRO,SHAMMANTHA ,1004,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1011209661,CASTRO ESCOBAR,CAROL SOFIA,1004,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,1389802,CHIRINOS MONTILLA,JUAN DAVID,1006,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141327078,CORDOBA AVIRAMA,JUAN PABLO,1002,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1014877125,CORTAZAR LOZADA,JUAN DAVID,1003,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013127603,CORTES JIMENEZ,JUAN MANUEL,1001,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1029147854,CRUZ RODRIGUEZ,JOAN SEBASTIAN,1001,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013007966,CUBILLOS PRIETO,JUAN SEBASTIAN,1006,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1233699042,CUELLO SOLARTE,JULIO ALEJANDRO,1003,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,6809107,DE LEON MARCANO,DIEGO SEBASTIAN,1001,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1151472402,DEULOFEUT SANCHEZ,EDUANYELIS DE LOS ANGELES,1004,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1048822171,VELOZA CUEVAS,WENDY NATHALY,1001,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013127195,BEJARANO DIAZ,ANA MARIA,1004,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141329555,CERON DIAZ,SEBASTIAN ,1004,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1012394374,DIAZ GARCIA,JULIAN DAVID,1004,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1021679115,DIAZ RODRIGUEZ,SHARON GABRIELA,1004,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1011212344,DUARTE CORNELIO,JUAN PABLO,1002,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1034578272,DUCUARA CORZO,MANUEL DAVID,1001,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1081282289,ERAZO ORTIZ,ASHLY YULIETH,1001,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1055524515,ESPITIA CORREDOR,CESAR ANDRES,1001,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,RC,1013134649,FAJARDO CELY,VALERY NICOL,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1025544897,FERNANDEZ RODRIGUEZ,KAROL NICOL,1004,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1026570783,FORERO SOGAMOSO,GABRIELA ,1006,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1042974778,GRANADO GARCIA,ALESSIA VIRGINIA,1005,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,CC,1012354801,GALINDO TORRALBA,BRAYAN ESTIVEN,1004,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028492776,GALLEGO ORTEGA,SAMUEL FERNANDO,1006,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1012389726,GAMBOA PINEDA,JULIAN ANDRES,1002,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1016953873,GARCIA ACERO,DERLY CAMILA,1005,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1024533495,GARCIA MORENO,JUAN SEBASTIAN,1001,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028889829,GARCIA VARGAS,ORIANTHI ISABEL,1006,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013127942,GARZON SANDOVAL,JOEL SANTIAGO,1003,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1021316022,GAVIRIA HERNANDEZ,ANGEL ANDRES,1001,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1142930032,REDONDO ISAZA,BRILLIT VANESSA,1002,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141323788,GIRALDO LONDOÑO,KEVYN ESTEBAN,1004,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1012385519,GOMEZ ARCINIEGAS,JEIDER ESMIT,1006,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1030603322,GOMEZ LEON,CARLOS SANTIAGO,1006,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,6270316,GOMEZ SANDOVAL,SEBASTIAN JESUS,1001,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,NE,N37664600336,GOMEZ SOLORZANO,JESUS MANUEL,1003,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1020773386,GONZALEZ GARZON,JOHAN DANIEL,1001,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1014670685,GONZALEZ MORA,ANGEL MAURICIO,1004,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1119214540,LOZANO LOPEZ,KAREN MICHELL,1002,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028800583,GONZALEZ SALCEDO,SHAIRA VANESA,1006,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1101453661,GUEVARA ORTIZ,KORINA ,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,RC,1189213526,GUTIERREZ BOCANEGRA,JUAN KAMILO,1001,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141323626,GUZMAN MONTAÑA,SHARON NAOMI,1006,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1188214704,HERNANDEZ COLORADO,DEIVY ANDREY,1006,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,8082396,HERNANDEZ MADUEÑO,CARLOS ALBERTO,1001,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141116938,BURGOS MANRIQUE,MICHEL FILIPH,1003,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1011210232,HERNANDEZ ZABALA,DIEGO FERNANDO,1004,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1011204164,FORIGUA MARTINEZ,VALERIA  ,1005,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1082128354,HERRADA CARO,JUAN SEBASTIAN,1006,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1032183699,HIGUITA HINESTROZA,GREISY JULIETH,1001,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023391879,PEREZ MARTINEZ,CRISTIAN CAMILO,1002,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1096220610,HOYOS TORRES,HANNA YALENA,1006,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1127588026,HURTADO REYES,ALEXANDER JUNIOR,1002,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023387808,TRUJILLO MARTINEZ,MARIA CAMILA,1005,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141329099,CARRILLO MEDINA,LAURA DANIELA,1002,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1030609419,JIMENEZ OSORIO,NICOLE THALIANA,1002,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,NE,N37664243981,JIMENEZ PAREDES,KAROLINE ELIZABETH,1002,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1070966237,JIMENEZ SIERRA,JADE MAYLIN,1005,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,7746614,LEON AGUILAR,YONATHAN ALEXANDER,1002,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1012397186,LONDOÑO MEJIA,DIEGO ALEXANDER,1001,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028493808,LOPEZ GACHA,LAUREN MARIANA,1003,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013124863,LOPEZ MURILLO,LAURA NICOL,1002,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1016723908,LOPEZ ORDOÑEZ,MARIA CAMILA,1003,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023900582,MONTOYA MONTOYA,HANNAH VALERIA,1001,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1029960329,LOPEZ TOLEDO,ANA SOFIA,1001,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1120841475,LUNA CESPEDES,JULIETH ALEXANDRA,1003,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1021679986,MANA BARRAGAN,NIKOL CAMILA,1005,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1030606522,MARTINEZ DUARTE,NARUTH AMAURY,1006,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1033104205,MARTINEZ HERRERA,YARIS YURANY,1003,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023390873,MARTINEZ RESTREPO,YURI VALENTINA,1001,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028889991,MENDEZ BARRERA,MARLON STEBAN,1006,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1206214220,MENDIVELSO ,JUAN KAMILO,1001,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1049937643,MERCADO RODRIGUEZ,LAUREN SOFIA,1005,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1016957801,MERCHAN RAMOS,ADRIANA PAOLA,1004,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,RC,1062970104,MIGUEZ CABALLERO,SARA ANGELLY,1005,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1069053281,MIRANDA MARTINEZ,YOJAN ALEXIS,1002,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1111265205,MOLINA MENDOZA,VALERIA ,1002,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1085009189,MOLINA TAMARA,MARIA ISABEL,1003,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1031135887,MONTOYA MONTOYA,MARIA FERNANDA,1003,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1022966363,MORA CADENA,LAURA SOFIA,1005,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1127956341,MORALES AYALA,BAUCIS SOPHIA,1002,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1062438963,MORELO ROSSO,DANNA ISABEL,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,7826999,MORENO LINARES,KAORY NAHIARA,1003,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1034298223,MORENO PERDOMO,THOMAS PHILIPPE,1003,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1051821335,MORENO RODRIGUEZ,TALIANA DEL CARMEN,1006,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013132554,MORENO ROMERO,DANIEL STIVEN,1002,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,6700126,MUJICA TORRES,VANESSA DEL VALLE,1006,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1072427025,MURCIA AMAYA,MARIA JOSE,1003,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1024530909,NARANJO ANDAPINA,JULIAN CAMILO,1004,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023389208,NARANJO PORTELA,LUDDY MARIANA,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1044635466,MORALES PEREZ,DEINER KALET,1002,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1033106624,NIGRINIS PALACIOS,JUAN PABLO,1004,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023389208,NARANJO PORTELA,LUDDY MARIANA,1005,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023389703,OBANDO FERNANDEZ,NICOL CAMILA,1003,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028820989,OLAVE ARCE,BENJAMIN ALEJANDRO,1002,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,7001720,ORTIZ MARTINEZ,ANGEL DAVID,1006,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013130796,ORTIZ TIBAQUIRA,ERIK SANTIAGO,1001,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,5382164,ORTIZ TORREALBA,ROSBEL EDUARDO JOSE,1006,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1110532919,OSORIO AVILA,CARLOS JULIAN,1002,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013132615,OSORIO TAPIAS,LAURA ALEJANDRA,1005,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028820693,OSPINA ORTIZ,SANTIAGO ,1001,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1073694203,OSUNA HERREÑO,PAULA ANDREA,1002,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1057892889,PAEZ REYES,SHARITT TATIANA,1004,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028887838,MOSTACILLA RENTERIA,SARA MANUELA,1001,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023382829,PAEZ RODRIGUEZ,ANGEL SANTIAGO,1003,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1077456173,PALACIOS MOSQUERA,JENIFER DAYANA,1006,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1052981735,PALENCIA ARRIETA,CAROL MICHEL,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013116585,PALLARES RODRIGUEZ,DAVID ALFONSO,1004,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1030549802,PARRA JARAMILLO,LAURA NATALI,1006,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,5899051,PARRA YEPES,YEISLI VALENTINA,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1032877880,PERALTA AGUILLON,JOEL ANDRES,1002,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1073688732,PINILLA MALAGON,ANDREY DAVID,1006,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023386586,PINZON ALARCON,JUAN CAMILO,1001,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023385060,PIÑA HERNANDEZ,CRISTIAN DANIEL,1003,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028842771,POVEDA DONCEL,JAKINZON DAMIAN,1001,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1034666431,PRIETO LOZANO,WBEIMAR EVANDER,1003,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1063724295,QUINTANA PEÑA,JILVER ANDRES,1004,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028890883,QUIROGA ALVAREZ,JUAN CAMILO,1002,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1147488048,HERRERA RUIZ,YORYETH ,1004,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,PP,6581729,RABELO JIMENEZ,NORGELIS ANDREINA,1006,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1146127087,RAMOS GRANADOS,TOMAS ,1004,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1055128188,REINA RAMOS,MARCO ANTONIO,1006,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1016956879,RENTERIA PARDO,BRAYAN ESTEBAN,1002,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1025147489,REYES ACOSTA,NICOL ,1004,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023380519,REYES VILLALOBOS,JUAN MANUEL,1002,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013009277,RIAÑO AVILA,KEVIN DAVID,1005,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1099741950,RINCON PATIÑO,JOHAN SEBASTIAN,1001,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1097194035,MONCALEANO SIERRA,LUISA ALEJANDRA,1006,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1146126335,RIVERA OSPINA,VALERIA ,1003,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013133355,RODRIGUEZ CHAVARRO,MARTIN EDUARDO,1004,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1011205876,RODRIGUEZ OTAVO,PAULA ALEJANDRA,1003,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028842370,RODRIGUEZ TORRES,ANDREY LEONARDO,1005,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141328137,RODRIGUEZ VELEZ,KAREN DANIELA,1006,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1032942230,ROJAS MENDEZ,PAULA XIMENA,1003,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1025146160,ROMERO PEÑA,JENNIFER LIZETH,1006,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1018512318,ROSAS DOMINGUEZ,PAUL EZEQUIEL,1002,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1140924232,SABOGAL ZAMORA,KAROL VALENTINA,1006,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1054680254,SALAS MORENO,HELEN DAJANA,1006,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1025066567,SALAS REYES,JUAN ESTEBAN,1006,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013133849,SANABRIA SANABRIA,HENRRY SEBASTIAN,1002,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028665843,SANCHEZ MENDIVELSO,DAVID CAMILO,1005,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1146125949,SERRANO MANOVACIA,LAURA DAYANA,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1014871842,SOSA ALVAREZ,LAURA GABRIELA,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1111199096,SUAREZ REAL,HALLY YOJANNA,1005,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028887519,PEÑA TRIANA,ESMERALDA ,1004,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1025547001,MORENO VALERO,SHAMUELL ,1005,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1022972105,SUAREZ VASQUEZ,MARIA VALENTINA,1002,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1114120764,TABARES CANAS,EMANUEL ,1005,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1010842228,TIQUE TIQUE,EVELIN JULIANA,1003,DIS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1074133155,VANEGAS VELASQUEZ,KAREN SOFIA,1002,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013114033,TOLOZA BURGOS,SANTIAGO ALEJANDRO,1001,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1012377231,TORRES MARTINEZ,KEENITH SMIT,1004,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1012398379,TORRES MARTINEZ,LLERILIN ,1004,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1012399051,TUNJO VILLALOBOS,EYMY LUCIA,1002,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1013008804,ULLOA PRIETO,SERGIO ARTURO,1001,ROB,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1028491480,URIBE BERMUDEZ,MARIA ISABEL,1002,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1141330927,VARGAS CELY,ALEJANDRO ,1002,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1025147598,VEJARANO ACOSTA,HELEN MARIANA,1006,AA,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1024534758,JIMENEZ ZAMBRANO,JUAN CAMILO,1002,BIO,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1016952517,VIDES CORDOBA,JUAN ANDRES,1005,ISERC,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1023915541,VITOLA MALDONADO,KEVIN SANTIAGO,1002,TPS,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1032942637,YOLIS PUERTA,SANTIAGO ,1003,COM,,,,,,,,,,,fotos/foto_default.png
-,JT,TI,1100017456,ZAPATA VARGAS,JOSE MANUEL,1004,ROB,,,,,,,,,,,fotos/foto_default.png
+﻿id,jornada,tipo,documento,apellidos,nombres,curso,linea,celular,email,acudiente,parentesco,tel_acudiente,tel2_acudiente,direccion,ocupacion_acudiente,eps,observaciones,foto,,,,
+,JT,TI,1027283671,ALVAREZ ARTUNDUAGA,MIGUEL ANGEL,1105,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,NE,N37666901947,ALVAREZ CARVAJAL,PAULO CESAR,1102,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1020763012,ANGULO TOVAR,ANA CAMILA,1101,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1025534577,APONTE MERCHAN,DYLAN ANDREY,1104,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028889929,ARCE RODALLEGA,TAIRA ALEJANDRA,1102,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028866943,BELTRAN GALVIS,SANTIAGO ,1101,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028841456,BOCANEGRA ALVARADO,NICOLE ,1101,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1043024687,CHARRIS NAVARRO,RAYMONTH DAVID,1105,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1011103702,COY GUERRERO,CAROL VALERIA,1102,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013130059,ESCORCIA CASTRO,MARIA JOSE,1101,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1019992337,FRANCO BARRAGAN,ALISON DAYANA,1101,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1025540749,GOMEZ ARCINIEGAS,MICHELL ESTIVEN,1101,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1058200403,HENRIQUE BUSTOS,JHON MANUEL,1105,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1019997708,HERNANDEZ GARCIA,HEIDY SOFIA,1103,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1062607634,HERNANDEZ SOTO,ANDREA LUCIA,1101,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,#N/D,HERRERA FERNANDEZ,#N/D,#N/D,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1014866650,IBAÑEZ GONZALEZ,WILSON STIVEN,1101,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1149463080,MARIN ROMERO,YUNESKY LIZETH,1105,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012388119,MUÑOZ MUÑOZ,JOAN LEANDRO,1104,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1021679298,ORJUELA BERNAL,DIEGO ARMANDO,1102,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1024496494,OYOLA MURCIA,SANTIAGO ,1105,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1070598928,PIÑEROS RODRIGUEZ,LAURA VALENTINA,1102,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1141320192,RICO OCORO,ROSNY ALBERTO,1105,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012367839,ROMERO CALDERON,MICHEL ESTEFANIA,1104,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013118980,SUAREZ CASTILLO,AURA TATIANA,1105,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1031810187,TINJACA RODRIGUEZ,DAVID SANTIAGO,1103,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1024525559,TORRES GONZALEZ,LUISA FERNANDA,1101,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012378070,TRIANA BELTRAN,DANNA GABRIELA,1103,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012380140,VACA GUAYARA,TALIANA ,1102,DIS,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1141521096,REY ENRIQUEZ,ANDRES CAMILO,1101,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028820985,CORTEZ SICHACA,DANNA MICHELLE,1101,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1146125865,LEON BETANCUR,ERICK DAMIAN,1105,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1141327223,VIVEROS GONZALEZ,JHOAN SEBASTIAN,1101,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1023382316,BERNAL VELASCO,ANNY LORENA,1102,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1023382064,SALCEDO GOMEZ,ALEJANDRO ,1105,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1141321256,GOMEZ LACHE,ANGELY NATALY,1102,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028841630,HERNANDEZ ARIAS,MARIA CAMILA,1102,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028887969,JIMENEZ ROJAS,SHEYLA VALENTINA,1102,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028887858,ARENAS SALAMANCA,KAREN LORENA,1103,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028868636,ARIZA ESCAMILLA,LUIS JAVIER,1103,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028820990,DUARTE VARGAS,NIKOL SLENDHY,1103,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1032182824,ESPITIA USUGA,VALENTINA ,1103,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012377860,SANCHEZ GARCIA,DAYANA MICHEL,1103,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1074959890,USECHE GUATEROS,#N/D,1103,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,PP,5225455,BRIÑEZ SALGUERA,ABRIL VALENTINA,1104,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1034664985,CUCUNUBA CONTRERAS,ANGIE LORENA,1104,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1019993901,FANDIÑO FRANCO,JHONATAN DAVID,1104,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1025650490,GOMEZ RAMIREZ,ISABELA ,1104,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1127657286,ROMERO SIBAJA,ESLENDY MARIA,1104,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1028865867,ZULETA CHALA,#N/D,1104,BIO,,,,,,,,,,,,,,fotos/foto_default.png,
+,JT,TI,1014871664,GOMEZ ACUÑA,DANIEL ALEJANDRO,1105,BIO,,,,,,,,,,,,,,,fotos/foto_default.png
+,JT,#N/D,1025144306,RODRIGUES GAMEZ,#N/D,1102,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1025538012,CRUZ RODRIGUEZ,#N/D,1101,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1077726058,ESCOBAR CUELLAR,#N/D,1101,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,PP,6571764,MOLINA TOVAR,ARLIANYS LICETH,1105,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1011102068,TAPIA DIAZ,#N/D,1105,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1141324769,VARELA LADINO,JULIANA ,1102,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1175713603,GARCIA SOTO,#N/D,1101,BIO,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013129272,AGUIRRE JIMENEZ,MARIA ALEJANDRA,1104,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1031128125,ANGEL GARZÓN,#N/D,1105,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1013129246,BLANCO CADENA,#N/D,1102,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013126600,CANTOR CHOLO,MALORY DANITZA,1105,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,PP,7923633,CHACON HERNANDEZ,JULIANA DEL CARMEN,1103,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1027526047,CORREA CASTRO,KEVIN DAVID,1102,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013122809,DUEÑAS ROJAS,KAREN VALENTINA,1104,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1141320842,GAITAN PEREZ,LAURA DANIELA,1101,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1068586155,GALINDO SOLANO,#N/D,1103,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,PP,1141231,GONCALVES VILLAFRANCA,GENESIS GABRIELA,1104,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1141320452,HIGUERA ACOSTA,NICOLLE DAYANA,1104,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1057463950,JOYA GUERRERO,SARA MELISA,1101,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,,LAURA SOFÍA,#N/D,,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012383515,MARTINEZ HERMOSA,LAURA MICHEL,1104,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1087812094,MONTAÑO ANGULO,MARIA CAMILA,1105,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1087812092,MONTAÑO ANGULO,MARIA DEL SOL,1104,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1087812093,MONTAÑO ANGULO,MARIA VALENTINA,1103,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012476754,MONTERO RAMIREZ,SARAHY YULIETH,1105,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1097912898,OJEDA VILLAMIZAR,SMITH ANTONIO,1103,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1016029118,PARDO ORDOÑEZ,LUISA JULIANA,1101,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1034665362,PERDIGON GOMEZ,IVY MARIANA,1102,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1013127497,RIQUETT SERRANO,#N/D,1104,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,,RODRIGUEZ PARRA,#N/D,,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013129154,RODRIGUEZ RUBIO,ANGELA SOFIA,1103,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1024526634,TRUJILLO GUATAQUI,MARIA JOSE,1102,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1034662973,TRUJILLO PUENTES,DAMARA SOFIA,1101,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1023380951,VILLARREAL CLAVIJO,ALISON SOFIA,1103,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,,YEIDI ALEJANDRA,#N/D,,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,PP,6295502,ZABALA SANCHEZ,CAMILA VICTORIA,1102,COM,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1073691567,BAUTISTA URREGO,JOAN ALEJANDRO,1102,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1018449028,BEDOYA TRIANA,TANIA SHARICK,1104,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1089511975,CAICEDO TENORIO,ERIKA PAOLA,1105,ROB,,,,,,,,,,,,,,fotos/foto_default.png,
+,JT,#N/D,1030594606,CALLE CARDOZO,#N/D,1101,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1016035461,CARBAJAL PULIDO,CRISTIAN ARMANDO,1104,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1061743783,CHAGUEZA TANIGAMA,LUISA FERNANDA,1103,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1034782447,CUAN FORERO,MARIA ALEJANDRA,1105,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1026270896,ESPINOSA RUBIO,JOSE ALEJANDRO,1102,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,#N/D,1012383499,FLOREZ MEJIA,#N/D,1105,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028867244,FORERO ANGARITA,SEBASTIAN ,1105,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1011203620,GALVIS GARCIA,JUAN ESTEBAN,1101,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1025065224,GOMEZ PRADA,JULIAN SANTIAGO,1105,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012386547,GUALTERO GARCIA,ANGY LORENA,1103,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012386549,GUALTERO GARCIA,LUISA FERNANDA,1104,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028866421,GUTIERREZ QUINTERO,LAURA SOFIA,1103,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013118101,HERNANDEZ RODRIGUEZ,ANDRES CAMILO,1104,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1032181267,HIGUITA HINESTROZA,HAROLD STIVEN,1104,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013116483,LOZANO SALINAS,JUAN SEBASTIAN,1101,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1031813945,MAHECHA VILLAMIL,DARLY MARIANA,1105,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1034665109,MARTINEZ CASTRO,SHAMMUEL ,1104,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1030572791,SANTAMARIA RINCON,DINNA GISELLE,1101,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1031815652,TELLO SALAMANCA,JULIAN DAVID,1101,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1141325701,TOBO CABRA,DANIEL SANTIAGO,1105,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1028663822,TORRES HEREDIA,KAROL YULIETH,1105,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1012386380,VILLALOBOS VELOSA,MELANNIE SOFIA,1102,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1011103621,YATE AROCA,EVELYN YAIDIN,1101,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013006832,ZABALA BULLA,JUAN FELIPE,1105,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,JT,TI,1013129775,ZULUAGA DIAZ,DANNA GABRIELA,1101,ROB,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
+,,,,,,,,,,,,,,,,,,,,fotos/foto_default.png,,
