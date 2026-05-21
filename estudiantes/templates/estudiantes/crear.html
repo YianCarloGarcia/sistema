@@ -1,18 +1,238 @@
 {% extends "base.html" %}
 
-{% block Título %} Agregar Nuevo Estudiante {% endblock %}
+{% block Titulo %}Agregar Estudiante{% endblock %}
 
-{% block contenido %}   
+{% block contenido %}
 
- <div class="card">
-    <div class="card-header">Crear Nuevo</div>
-    <div class="card-body">
-        <h4 class="card-title">Datos</h4>
-    
-        {% include 'estudiantes/form.html' %}
-        
+<style>
+  .edit-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; align-items: start; }
+  @media (max-width: 768px) { .edit-layout { grid-template-columns: 1fr; } }
+  .foto-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    padding: 1.75rem 1.5rem; text-align: center;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); position: sticky; top: 1rem;
+  }
+  .foto-placeholder {
+    width: 140px; height: 140px; border-radius: 50%;
+    background: #f1f5f9; border: 4px solid #e2e8f0;
+    margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; color: #94a3b8;
+  }
+  .foto-preview {
+    width: 140px; height: 140px; border-radius: 50%;
+    object-fit: cover; border: 4px solid #e2e8f0;
+    margin: 0 auto 1rem; display: none;
+  }
+  .foto-upload-label {
+    display: block; cursor: pointer;
+    border: 2px dashed #cbd5e1; border-radius: 10px;
+    padding: 0.65rem; font-size: 0.8rem; color: #64748b;
+    transition: all 0.2s; text-align: center;
+  }
+  .foto-upload-label:hover { border-color: #1a3a6e; color: #1a3a6e; background: #f8fafc; }
+  #id_foto { display: none; }
+  .foto-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 0.75rem; }
+
+  .form-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden;
+  }
+  .form-card-header {
+    padding: 1.1rem 1.5rem; border-bottom: 1px solid #f1f5f9;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .form-card-header h6 { margin: 0; font-weight: 700; color: #0f172a; font-size: 0.95rem; }
+  .section-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+  .form-section { padding: 1.25rem 1.5rem; border-bottom: 1px solid #f8fafc; }
+  .form-section:last-child { border-bottom: none; }
+  .section-title {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #94a3b8; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
+  .field-group { margin-bottom: 1rem; }
+  .field-group:last-child { margin-bottom: 0; }
+  .field-label { font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem; display: block; }
+  .field-label .req { color: #e63946; margin-left: 2px; }
+  .form-control, .form-select { border-color: #e2e8f0; border-radius: 9px; font-size: 0.875rem; padding: 0.55rem 0.85rem; transition: all 0.2s; color: #0f172a; }
+  .form-control:focus, .form-select:focus { border-color: #1a3a6e; box-shadow: 0 0 0 3px rgba(26,58,110,0.1); }
+  .field-error { font-size: 0.78rem; color: #e63946; margin-top: 0.3rem; }
+  .fields-row { display: grid; gap: 1rem; }
+  .fields-row.col-2 { grid-template-columns: 1fr 1fr; }
+  .fields-row.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 640px) { .fields-row.col-2, .fields-row.col-3 { grid-template-columns: 1fr; } }
+  .form-actions { padding: 1rem 1.5rem; border-top: 1px solid #f1f5f9; display: flex; gap: 0.75rem; align-items: center; }
+  .btn-guardar {
+    background: #16a34a; color: #fff; border: none; border-radius: 9px;
+    font-size: 0.875rem; font-weight: 700; padding: 0.6rem 1.5rem;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-guardar:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,0.25); }
+  .btn-cancelar {
+    border: 1px solid #e2e8f0; border-radius: 9px; background: #fff;
+    color: #64748b; font-size: 0.875rem; font-weight: 600;
+    padding: 0.6rem 1.25rem; text-decoration: none; transition: all 0.2s;
+  }
+  .btn-cancelar:hover { background: #f8fafc; color: #334155; }
+</style>
+
+<nav style="font-size:0.8rem; color:#94a3b8; margin-bottom:1rem;">
+  <a href="{% url 'estudiantes' %}" style="color:#64748b; text-decoration:none;">Estudiantes</a>
+  <span style="margin:0 0.4rem;">/</span>
+  <span style="color:#0f172a; font-weight:600;">Agregar estudiante</span>
+</nav>
+
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+
+<div class="edit-layout">
+
+  <div>
+    <div class="foto-card">
+      <div class="foto-placeholder" id="foto-placeholder">&#128100;</div>
+      <img src="" class="foto-preview" id="foto-preview" alt="Foto">
+      <label class="foto-upload-label" for="id_foto">&#128247; Subir foto</label>
+      {{ formulario.foto }}
+      <p class="foto-hint">JPG o PNG. La foto aparecerá en el carnet.</p>
     </div>
-    <div class="card-footer text-muted">Footer</div>
- </div>
+  </div>
+
+  <div class="form-card">
+    <div class="form-card-header">
+      <div class="section-icon" style="background:#dcfce7;">&#10133;</div>
+      <h6>Nuevo estudiante</h6>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Identificación</div>
+      <div class="fields-row col-3">
+        <div class="field-group">
+          <label class="field-label">Tipo de doc.<span class="req">*</span></label>
+          {{ formulario.tipo }}
+          {% if formulario.tipo.errors %}<div class="field-error">{{ formulario.tipo.errors }}</div>{% endif %}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Número de documento<span class="req">*</span></label>
+          {{ formulario.documento }}
+          {% if formulario.documento.errors %}<div class="field-error">{{ formulario.documento.errors }}</div>{% endif %}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Jornada<span class="req">*</span></label>
+          {{ formulario.jornada }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Datos personales</div>
+      <div class="fields-row col-2" style="margin-bottom:1rem;">
+        <div class="field-group">
+          <label class="field-label">Apellidos<span class="req">*</span></label>
+          {{ formulario.apellidos }}
+          {% if formulario.apellidos.errors %}<div class="field-error">{{ formulario.apellidos.errors }}</div>{% endif %}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Nombres<span class="req">*</span></label>
+          {{ formulario.nombres }}
+          {% if formulario.nombres.errors %}<div class="field-error">{{ formulario.nombres.errors }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="fields-row col-2">
+        <div class="field-group">
+          <label class="field-label">Celular</label>
+          {{ formulario.celular }}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Email</label>
+          {{ formulario.email }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Información académica</div>
+      <div class="fields-row col-2">
+        <div class="field-group">
+          <label class="field-label">Curso<span class="req">*</span></label>
+          {{ formulario.curso }}
+          {% if formulario.curso.errors %}<div class="field-error">{{ formulario.curso.errors }}</div>{% endif %}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Línea de media<span class="req">*</span></label>
+          {{ formulario.linea }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Acudiente</div>
+      <div class="fields-row col-2" style="margin-bottom:1rem;">
+        <div class="field-group">
+          <label class="field-label">Nombre del acudiente</label>
+          {{ formulario.acudiente }}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Parentesco</label>
+          {{ formulario.parentesco }}
+        </div>
+      </div>
+      <div class="fields-row col-3" style="margin-bottom:1rem;">
+        <div class="field-group">
+          <label class="field-label">Teléfono 1</label>
+          {{ formulario.tel_acudiente }}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Teléfono 2</label>
+          {{ formulario.tel2_acudiente }}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Ocupación</label>
+          {{ formulario.ocupacion_acudiente }}
+        </div>
+      </div>
+      <div class="fields-row col-2">
+        <div class="field-group">
+          <label class="field-label">Dirección</label>
+          {{ formulario.direccion }}
+        </div>
+        <div class="field-group">
+          <label class="field-label">EPS</label>
+          {{ formulario.eps }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Observaciones</div>
+      <div class="field-group">{{ formulario.observaciones }}</div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-guardar">&#10003; Guardar estudiante</button>
+      <a href="{% url 'estudiantes' %}" class="btn-cancelar">&#8592; Cancelar</a>
+      {% if formulario.errors %}
+        <span style="font-size:0.8rem; color:#e63946; margin-left:auto;">&#9888; Revise los campos marcados</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+</form>
+
+<script>
+document.getElementById('id_foto').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const preview = document.getElementById('foto-preview');
+    const placeholder = document.getElementById('foto-placeholder');
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    placeholder.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+});
+</script>
 
 {% endblock %}

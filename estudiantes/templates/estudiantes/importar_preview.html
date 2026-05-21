@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block Titulo %}Previsualización de importación{% endblock %}
+
+{% block contenido %}
+
+<style>
+  .preview-header { margin-bottom: 1.25rem; }
+  .preview-header h5 { font-weight: 700; color: #0f172a; margin: 0; }
+
+  .stats-row { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .stat-pill {
+    padding: 0.5rem 1.1rem; border-radius: 10px; font-size: 0.85rem; font-weight: 700;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .pill-total   { background: #f1f5f9; color: #334155; }
+  .pill-new     { background: #dcfce7; color: #166534; }
+  .pill-update  { background: #dbeafe; color: #1e40af; }
+  .pill-error   { background: #fee2e2; color: #991b1b; }
+
+  .preview-table-wrap {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+    overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.05); margin-bottom: 1.25rem;
+  }
+  .preview-table-wrap table { margin: 0; font-size: 0.82rem; }
+  .preview-table-wrap thead th {
+    background: #1a3a6e; color: #fff; font-weight: 600;
+    font-size: 0.75rem; padding: 0.6rem 0.75rem; white-space: nowrap; border: none;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .preview-table-wrap tbody td { padding: 0.55rem 0.75rem; vertical-align: middle; border-color: #f1f5f9; color: #334155; }
+  .row-new    { background: #f0fdf4; }
+  .row-update { background: #eff6ff; }
+  .row-error  { background: #fff5f5; }
+
+  .badge-new    { background: #dcfce7; color: #166534; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 6px; }
+  .badge-update { background: #dbeafe; color: #1e40af; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 6px; }
+  .badge-error  { background: #fee2e2; color: #991b1b; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 6px; }
+
+  .error-list { font-size: 0.75rem; color: #dc2626; margin: 0; padding: 0; list-style: none; }
+  .error-list li::before { content: "⚠ "; }
+
+  .actions-bar {
+    display: flex; gap: 0.75rem; align-items: center;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 1rem 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .btn-confirmar {
+    background: #16a34a; color: #fff; border: none; border-radius: 9px;
+    font-size: 0.875rem; font-weight: 700; padding: 0.65rem 1.5rem;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-confirmar:hover { background: #15803d; }
+  .btn-confirmar:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-cancelar-imp {
+    border: 1px solid #e2e8f0; border-radius: 9px; background: #fff;
+    color: #64748b; font-size: 0.875rem; font-weight: 600;
+    padding: 0.65rem 1.25rem; text-decoration: none; transition: all 0.2s;
+  }
+  .btn-cancelar-imp:hover { background: #f8fafc; color: #334155; }
+</style>
+
+<nav style="font-size:0.8rem;color:#94a3b8;margin-bottom:1rem;">
+  <a href="{% url 'estudiantes' %}" style="color:#64748b;text-decoration:none;">Estudiantes</a>
+  <span style="margin:0 0.4rem;">/</span>
+  <a href="{% url 'gestion_masiva' %}" style="color:#64748b;text-decoration:none;">Gestión masiva</a>
+  <span style="margin:0 0.4rem;">/</span>
+  <span style="color:#0f172a;font-weight:600;">Previsualización</span>
+</nav>
+
+<div class="preview-header">
+  <h5>&#128269; Previsualización de importación</h5>
+  <p style="color:#64748b;font-size:0.85rem;margin:0.25rem 0 0;">Revise los datos antes de confirmar. Solo se guardarán las filas sin errores.</p>
+</div>
+
+<!-- Stats -->
+{% with total=preview|length nuevos=0 %}
+<div class="stats-row">
+  <span class="stat-pill pill-total">&#128196; {{ preview|length }} fila{{ preview|length|pluralize:"s" }} en el archivo</span>
+  <span class="stat-pill pill-new">&#10133; {{ validos }} válida{{ validos|pluralize:"s" }}</span>
+  {% if invalidos > 0 %}
+    <span class="stat-pill pill-error">&#9888; {{ invalidos }} con error{{ invalidos|pluralize:"es" }} (se omitirán)</span>
+  {% endif %}
+</div>
+{% endwith %}
+
+<!-- Tabla preview -->
+<div class="preview-table-wrap">
+  <div style="overflow-x:auto;">
+    <table class="table table-bordered mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Estado</th>
+          <th>Documento</th>
+          <th>Apellidos</th>
+          <th>Nombres</th>
+          <th>Jornada</th>
+          <th>Curso</th>
+          <th>Línea</th>
+          <th>Errores</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in preview %}
+        <tr class="{% if row._error %}row-error{% elif row._existe %}row-update{% else %}row-new{% endif %}">
+          <td style="color:#94a3b8;">{{ row._fila }}</td>
+          <td>
+            {% if row._error %}
+              <span class="badge-error">Error</span>
+            {% elif row._existe %}
+              <span class="badge-update">Actualizar</span>
+            {% else %}
+              <span class="badge-new">Nuevo</span>
+            {% endif %}
+          </td>
+          <td style="font-family:monospace;">{{ row.documento }}</td>
+          <td>{{ row.apellidos }}</td>
+          <td>{{ row.nombres }}</td>
+          <td>{{ row.jornada }}</td>
+          <td>{{ row.curso }}</td>
+          <td>{{ row.linea }}</td>
+          <td>
+            {% if row._errores %}
+              <ul class="error-list">
+                {% for e in row._errores %}<li>{{ e }}</li>{% endfor %}
+              </ul>
+            {% else %}
+              <span style="color:#94a3b8;font-size:0.75rem;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Barra de acción -->
+<div class="actions-bar">
+  {% if validos > 0 %}
+    <form method="post" action="{% url 'importar_estudiantes' %}">
+      {% csrf_token %}
+      <input type="hidden" name="confirm" value="1">
+      <input type="hidden" name="filas_json" value="{{ filas_json|escapejs }}">
+      <button type="submit" class="btn-confirmar">
+        &#10003; Confirmar importación ({{ validos }} registro{{ validos|pluralize:"s" }})
+      </button>
+    </form>
+  {% else %}
+    <button class="btn-confirmar" disabled>Sin registros válidos para importar</button>
+  {% endif %}
+  <a href="{% url 'gestion_masiva' %}" class="btn-cancelar-imp">&#8592; Cancelar</a>
+  {% if invalidos > 0 %}
+    <span style="font-size:0.8rem;color:#dc2626;margin-left:auto;">
+      &#9888; {{ invalidos }} fila{{ invalidos|pluralize:"s" }} con errores serán omitidas.
+    </span>
+  {% endif %}
+</div>
+
+{% endblock %}
