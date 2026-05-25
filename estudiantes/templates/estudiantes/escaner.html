@@ -163,6 +163,16 @@
 
                 <div class="panel active" id="panel-qr">
                     <div id="reader"></div>
+
+                    <!-- Zoom — solo aparece si la cámara lo soporta -->
+                    <div id="zoom-wrap" style="display:none; align-items:center; gap:0.6rem; margin-top:0.75rem; padding:0 0.25rem;">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.5); white-space:nowrap;">&#128269; Zoom</span>
+                        <input type="range" id="zoom-slider"
+                               style="flex:1; accent-color:var(--accent);"
+                               oninput="ajustarZoom(this.value)">
+                        <span id="zoom-valor" style="font-size:0.75rem; color:rgba(255,255,255,0.6); width:2.5rem; text-align:right;">1.0x</span>
+                    </div>
+
                     <p class="scan-hint">Apunte la cámara al código QR del carnet</p>
                 </div>
 
@@ -231,23 +241,92 @@ function switchTab(mode) {
 }
 
 let html5QrCode = null;
-let bloqueado   = false;
+let bloqueado     = false;
 let scannerActive = false;
+let videoTrack    = null;  // para controlar zoom y enfoque
 
 function startScanner() {
     if (scannerActive) return;
     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+
+    const config = {
+        fps: 20,                   // más intentos por segundo
+        qrbox: { width: 280, height: 280 },  // zona más amplia
+        aspectRatio: 1.0,          // ventana cuadrada, mejor para QR
+        formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
+        experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true  // usa API nativa si está disponible (más rápido)
+        }
+    };
+
+    const videoConstraints = {
+        facingMode: "environment",
+        width:  { ideal: 1280 },
+        height: { ideal: 720 },
+        focusMode: "continuous",   // enfoque automático continuo
+        advanced: [{ focusMode: "continuous" }]
+    };
+
     html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 220 },
+        { facingMode: videoConstraints },
+        config,
         onScanSuccess,
         () => {}
-    ).then(() => { scannerActive = true; }).catch(err => console.warn("Cámara no disponible:", err));
+    ).then(() => {
+        scannerActive = true;
+        // Capturar el track de video para controlar zoom
+        setTimeout(capturarTrack, 800);
+    }).catch(err => {
+        // Fallback sin constraints avanzadas si el navegador no las soporta
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            onScanSuccess,
+            () => {}
+        ).then(() => {
+            scannerActive = true;
+            setTimeout(capturarTrack, 800);
+        }).catch(e => console.warn("Cámara no disponible:", e));
+    });
+}
+
+function capturarTrack() {
+    // Obtiene el track de video activo para poder controlar zoom
+    const video = document.querySelector("#reader video");
+    if (!video) return;
+    const stream = video.srcObject;
+    if (!stream) return;
+    const tracks = stream.getVideoTracks();
+    if (tracks.length > 0) {
+        videoTrack = tracks[0];
+        const caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+        // Mostrar el slider de zoom solo si la cámara lo soporta
+        if (caps.zoom) {
+            const wrap = document.getElementById('zoom-wrap');
+            const slider = document.getElementById('zoom-slider');
+            slider.min   = caps.zoom.min;
+            slider.max   = caps.zoom.max;
+            slider.step  = caps.zoom.step || 0.1;
+            slider.value = caps.zoom.min;
+            wrap.style.display = 'flex';
+        }
+        // Activar enfoque continuo si es posible
+        if (caps.focusMode && caps.focusMode.includes('continuous')) {
+            videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+        }
+    }
+}
+
+function ajustarZoom(val) {
+    document.getElementById('zoom-valor').textContent = parseFloat(val).toFixed(1) + 'x';
+    if (videoTrack) {
+        videoTrack.applyConstraints({ advanced: [{ zoom: parseFloat(val) }] }).catch(() => {});
+    }
 }
 
 function stopScanner() {
     if (html5QrCode && scannerActive) {
-        html5QrCode.stop().then(() => { scannerActive = false; }).catch(() => {});
+        html5QrCode.stop().then(() => { scannerActive = false; videoTrack = null; }).catch(() => {});
     }
 }
 
