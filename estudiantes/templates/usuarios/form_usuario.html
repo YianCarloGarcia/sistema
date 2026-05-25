@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block Titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+
+<style>
+  .form-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); overflow:hidden; max-width:640px; margin:0 auto; }
+  .form-card-header { padding:1.1rem 1.5rem; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; gap:.75rem; }
+  .form-card-header h6 { margin:0; font-weight:700; color:#0f172a; font-size:.95rem; }
+  .section-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+  .form-section { padding:1.25rem 1.5rem; border-bottom:1px solid #f8fafc; }
+  .form-section:last-child { border-bottom:none; }
+  .section-title { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:#94a3b8; margin-bottom:1rem; display:flex; align-items:center; gap:.5rem; }
+  .section-title::after { content:''; flex:1; height:1px; background:#f1f5f9; }
+  .field-group { margin-bottom:.9rem; }
+  .field-label { font-size:.8rem; font-weight:600; color:#475569; margin-bottom:.3rem; display:block; }
+  .field-label .req { color:#e63946; margin-left:2px; }
+  .form-control, .form-select { border-color:#e2e8f0; border-radius:9px; font-size:.875rem; padding:.5rem .85rem; }
+  .form-control:focus, .form-select:focus { border-color:#1a3a6e; box-shadow:0 0 0 3px rgba(26,58,110,.1); }
+  .field-help { font-size:.75rem; color:#94a3b8; margin-top:.25rem; }
+  .field-error { font-size:.78rem; color:#e63946; margin-top:.25rem; }
+  .fields-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:600px){.fields-row-2{grid-template-columns:1fr;}}
+  .form-actions { padding:1rem 1.5rem; border-top:1px solid #f1f5f9; display:flex; gap:.75rem; align-items:center; }
+  .btn-guardar { background:#1a3a6e; color:#fff; border:none; border-radius:9px; font-size:.875rem; font-weight:700; padding:.6rem 1.5rem; cursor:pointer; transition:all .2s; }
+  .btn-guardar:hover { background:#274d9e; }
+  .btn-cancelar { border:1px solid #e2e8f0; border-radius:9px; background:#fff; color:#64748b; font-size:.875rem; font-weight:600; padding:.6rem 1.25rem; text-decoration:none; transition:all .2s; }
+  .btn-cancelar:hover { background:#f8fafc; }
+  .rol-info { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:.75rem 1rem; margin-top:.5rem; }
+  .rol-info p { font-size:.78rem; color:#64748b; margin:0; }
+  .rol-info strong { color:#0f172a; }
+  .info-email { background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:.75rem 1rem; font-size:.8rem; color:#0c4a6e; margin-bottom:.75rem; }
+</style>
+
+<nav style="font-size:.8rem;color:#94a3b8;margin-bottom:1rem;">
+  <a href="{% url 'lista_usuarios' %}" style="color:#64748b;text-decoration:none;">Usuarios</a>
+  <span style="margin:0 .4rem;">/</span>
+  <span style="color:#0f172a;font-weight:600;">{{ titulo }}</span>
+</nav>
+
+<div class="form-card">
+  <div class="form-card-header">
+    <div class="section-icon" style="background:#ede9fe;">&#128100;</div>
+    <h6>{{ titulo }}</h6>
+  </div>
+
+  <form method="post">
+  {% csrf_token %}
+
+    <div class="form-section">
+      <div class="section-title">Datos de acceso</div>
+
+      <div class="field-group">
+        <label class="field-label">Nombre de usuario<span class="req">*</span></label>
+        {{ form.username }}
+        {% if form.username.help_text %}<div class="field-help">{{ form.username.help_text }}</div>{% endif %}
+        {% if form.username.errors %}<div class="field-error">{{ form.username.errors }}</div>{% endif %}
+      </div>
+
+      <div class="fields-row-2">
+        <div class="field-group">
+          <label class="field-label">Nombres<span class="req">*</span></label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<div class="field-error">{{ form.first_name.errors }}</div>{% endif %}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Apellidos<span class="req">*</span></label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<div class="field-error">{{ form.last_name.errors }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Correo electrónico<span class="req">*</span></label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="field-error">{{ form.email.errors }}</div>{% endif %}
+        {% if es_nuevo %}
+        <div class="info-email" style="margin-top:.5rem;">
+          &#128231; Se enviará un correo con las credenciales de acceso a esta dirección.
+        </div>
+        {% endif %}
+      </div>
+
+      {% if es_nuevo %}
+      <div class="fields-row-2">
+        <div class="field-group">
+          <label class="field-label">Contraseña<span class="req">*</span></label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}<div class="field-error">{{ form.password1.errors }}</div>{% endif %}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Confirmar contraseña<span class="req">*</span></label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}<div class="field-error">{{ form.password2.errors }}</div>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Rol y permisos</div>
+      <div class="field-group">
+        <label class="field-label">Rol<span class="req">*</span></label>
+        {{ form.rol }}
+      </div>
+      <div class="rol-info" id="rol-info">
+        <p id="rol-desc">Seleccione un rol para ver sus permisos.</p>
+      </div>
+
+      {% if not es_nuevo %}
+      <div class="field-group" style="margin-top:1rem;">
+        <label class="field-label d-flex align-items-center gap-2">
+          {{ form.is_active }} &nbsp;Usuario activo
+        </label>
+        <div class="field-help">Los usuarios inactivos no pueden iniciar sesión.</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-guardar">&#10003; {{ titulo }}</button>
+      <a href="{% url 'lista_usuarios' %}" class="btn-cancelar">&#8592; Cancelar</a>
+    </div>
+
+  </form>
+</div>
+
+<script>
+const rolDesc = {
+  docente:   '&#128203; <strong>Docente:</strong> puede ver y buscar estudiantes, y registrar almuerzos. <em>No puede editar, eliminar ni acceder a gestión masiva.</em>',
+  directivo: '&#11088; <strong>Directivo:</strong> acceso completo al sistema, incluyendo crear/editar/eliminar estudiantes, gestión masiva y administración de usuarios.',
+};
+const select = document.querySelector('select[name="rol"]');
+const desc   = document.getElementById('rol-desc');
+function actualizarDesc() {
+  desc.innerHTML = rolDesc[select.value] || 'Seleccione un rol.';
+}
+select.addEventListener('change', actualizarDesc);
+actualizarDesc();
+</script>
+
+{% endblock %}

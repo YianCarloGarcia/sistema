@@ -1,280 +1,119 @@
+import csv, io, zipfile
+from datetime import datetime
 from django.contrib import admin
-
-# Register your models here. usuario: yianGarcia, correo: ycgarciabogota@gmail.com, password: mathic@s
-# La base de datos se llama db.sqlite3 "estudiantes", el modelo se llama "Estudiante"
-
+from django.http import HttpResponse
 from .models import Estudiante, Asistencia
-from import_export import resources
-from import_export.admin import ExportMixin
-from import_export.admin import ImportExportMixin
-from django.http import HttpResponse
 from .utils.pdf import generar_certificado_pdf
-from import_export.admin import ImportExportModelAdmin
 from .utils.carnet import generar_carnet_pdf
-from django.http import HttpResponse
-import zipfile
-import io
-
 from .utils.carnet_png import generar_carnet_png
 from .utils.mosaico_pdf import generar_mosaico_pdf_por_linea
 
 
-#admin.site.register(Estudiante)
-#admin.site.register(Asistencia)
-#@admin.register(Asistencia)
-#@admin.register(Asistencia)
-
-def generar_carnet(modeladmin, request, queryset):
-
-    if not request.user.is_superuser:
-        modeladmin.message_user(request, "Sin permisos", level='error')
-        return
-
-    if queryset.count() != 1:
-        modeladmin.message_user(request, "Seleccione un solo estudiante", level='warning')
-        return
-
-    estudiante = queryset.first()
-    pdf = generar_carnet_pdf(estudiante)
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response['Content-Disposition'] = f'attachment; filename=carnet_{estudiante.documento}.pdf'
-    return response
-
-generar_carnet.short_description = "🪪 Generar carnet"
+def _csv_estudiantes(qs):
+    campos = [('documento','Documento'),('tipo','Tipo Doc.'),('apellidos','Apellidos'),
+              ('nombres','Nombres'),('jornada','Jornada'),('curso','Curso'),('linea','Linea'),
+              ('celular','Celular'),('email','Email'),('acudiente','Acudiente'),
+              ('parentesco','Parentesco'),('tel_acudiente','Tel. Acudiente'),
+              ('tel2_acudiente','Tel. Acudiente 2'),('direccion','Direccion'),
+              ('ocupacion_acudiente','Ocupacion Acudiente'),('eps','EPS'),('observaciones','Observaciones')]
+    ts = datetime.now().strftime('%Y%m%d_%H%M')
+    r = HttpResponse(content_type='text/csv; charset=utf-8')
+    r['Content-Disposition'] = f'attachment; filename=estudiantes_{ts}.csv'
+    r.write('\ufeff')
+    w = csv.writer(r)
+    w.writerow([l for _,l in campos])
+    for e in qs: w.writerow([getattr(e,f,''or'') for f,_ in campos])
+    return r
 
 
-def generar_certificado(modeladmin, request, queryset):
-
-    if not request.user.is_superuser:
-        modeladmin.message_user(request, "No tiene permisos", level='error')
-        return
-
-    if queryset.count() != 1:
-        modeladmin.message_user(request, "Seleccione un solo estudiante", level='warning')
-        return
-
-    estudiante = queryset.first()
-    pdf = generar_certificado_pdf(estudiante)
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response['Content-Disposition'] = f'attachment; filename=certificado_{estudiante.documento}.pdf'
-    return response
-
-generar_certificado.short_description = "📄 Generar certificado PDF"
-
-def generar_carnets_por_linea(modeladmin, request, queryset):
-    if not request.user.is_superuser:
-        modeladmin.message_user(request, "No tiene permisos", level='error')
-        return
-
-    buffer_zip = io.BytesIO()
-    linea = None
-
-    with zipfile.ZipFile(buffer_zip, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        for estudiante in queryset:
-            linea = estudiante.linea
-            pdf = generar_carnet_pdf(estudiante)
-            nombre_archivo = f"carnet_{estudiante.documento}.pdf"
-            zip_file.writestr(nombre_archivo, pdf)
-
-    buffer_zip.seek(0)
-
-    nombre_linea = linea.replace(" ", "_") if linea else "linea"
-
-    response = HttpResponse(
-        buffer_zip,
-        content_type='application/zip'
-    )
-    response['Content-Disposition'] = (
-        f'attachment; filename=carnets_{nombre_linea}.zip'
-    )
-    return response
-
-generar_carnets_por_linea.short_description = "🪪 Generar carnets por línea (ZIP)"
+def _csv_asistencia(qs):
+    ts = datetime.now().strftime('%Y%m%d_%H%M')
+    r = HttpResponse(content_type='text/csv; charset=utf-8')
+    r['Content-Disposition'] = f'attachment; filename=asistencias_{ts}.csv'
+    r.write('\ufeff')
+    w = csv.writer(r)
+    w.writerow(['Fecha','Hora','Tipo','Documento','Apellidos','Nombres','Jornada','Curso','Linea'])
+    for a in qs.select_related('estudiante'):
+        e = a.estudiante
+        w.writerow([a.fecha,a.hora,a.tipo,e.documento,e.apellidos,e.nombres,e.jornada,e.curso,e.linea])
+    return r
 
 
-def generar_carnets_png_zip(modeladmin, request, queryset):
+@admin.action(description='📥 Exportar selección a CSV')
+def exportar_estudiantes_csv(ma, request, qs): return _csv_estudiantes(qs)
 
-    if not request.user.is_superuser:
-        modeladmin.message_user(request, "Sin permisos", level='error')
-        return
+@admin.action(description='📥 Exportar selección a CSV')
+def exportar_asistencia_csv(ma, request, qs): return _csv_asistencia(qs)
 
-    buffer_zip = io.BytesIO()
+@admin.action(description='📄 Generar certificado (PDF)')
+def generar_certificado(ma, request, qs):
+    if not request.user.is_superuser: return
+    if qs.count()!=1: ma.message_user(request,"Seleccione un solo estudiante.",level='warning'); return
+    e=qs.first(); pdf=generar_certificado_pdf(e)
+    r=HttpResponse(pdf,content_type='application/pdf')
+    r['Content-Disposition']=f'attachment; filename=certificado_{e.documento}.pdf'; return r
 
-    with zipfile.ZipFile(buffer_zip, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        for estudiante in queryset:
-            img = generar_carnet_png(estudiante)
+@admin.action(description='🪪 Generar carnet (PDF)')
+def generar_carnet(ma, request, qs):
+    if not request.user.is_superuser: return
+    if qs.count()!=1: ma.message_user(request,"Seleccione un solo estudiante.",level='warning'); return
+    e=qs.first(); pdf=generar_carnet_pdf(e)
+    r=HttpResponse(pdf,content_type='application/pdf')
+    r['Content-Disposition']=f'attachment; filename=carnet_{e.documento}.pdf'; return r
 
-            img_buffer = io.BytesIO()
-            img.save(img_buffer, format="PNG")
-            img_buffer.seek(0)
+@admin.action(description='🪪 Carnets seleccionados (ZIP)')
+def generar_carnets_zip(ma, request, qs):
+    if not request.user.is_superuser: return
+    buf=io.BytesIO(); linea=None
+    with zipfile.ZipFile(buf,'w',zipfile.ZIP_DEFLATED) as zf:
+        for e in qs: linea=e.linea; zf.writestr(f'carnet_{e.documento}.pdf',generar_carnet_pdf(e))
+    buf.seek(0); nombre=(linea or'carnets').replace(' ','_')
+    r=HttpResponse(buf,content_type='application/zip')
+    r['Content-Disposition']=f'attachment; filename=carnets_{nombre}.zip'; return r
 
-            nombre = f"carnet_{estudiante.documento}.png"
-            zip_file.writestr(nombre, img_buffer.getvalue())
+@admin.action(description='🖼️ Carnets PNG (ZIP)')
+def generar_carnets_png_zip(ma, request, qs):
+    if not request.user.is_superuser: return
+    buf=io.BytesIO()
+    with zipfile.ZipFile(buf,'w',zipfile.ZIP_DEFLATED) as zf:
+        for e in qs:
+            img=generar_carnet_png(e); ib=io.BytesIO(); img.save(ib,format='PNG')
+            zf.writestr(f'carnet_{e.documento}.png',ib.getvalue())
+    buf.seek(0)
+    r=HttpResponse(buf,content_type='application/zip')
+    r['Content-Disposition']='attachment; filename=carnets_png.zip'; return r
 
-    buffer_zip.seek(0)
+@admin.action(description='🗂️ Mosaico por línea (PDF)')
+def generar_mosaico_linea(ma, request, qs):
+    if not request.user.is_superuser: return
+    linea=qs.first().linea; pdf=generar_mosaico_pdf_por_linea(qs.filter(linea=linea),linea)
+    r=HttpResponse(pdf,content_type='application/pdf')
+    r['Content-Disposition']=f'attachment; filename=mosaico_{linea}.pdf'; return r
 
-    response = HttpResponse(buffer_zip, content_type="application/zip")
-    response['Content-Disposition'] = 'attachment; filename=carnets_png.zip'
-    return response
-
-generar_carnets_png_zip.short_description = "🖼️ Carnets en PNG (ZIP)"
-
-def generar_mosaico_linea(modeladmin, request, queryset):
-    if not request.user.is_superuser:
-        modeladmin.message_user(request, "Sin permisos", level='error')
-        return
-
-    linea = queryset.first().linea
-    estudiantes = queryset.filter(linea=linea)
-
-    pdf = generar_mosaico_pdf_por_linea(estudiantes, linea)
-
-    response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = (
-        f'attachment; filename=mosaico_{linea}.pdf'
-    )
-    return response
-
-
-class AsistenciaResource(resources.ModelResource):
-    nombres = resources.Field()
-    apellidos = resources.Field()
-    jornada = resources.Field()
-    curso = resources.Field()
-    linea = resources.Field()
-
-    class Meta:
-        model = Asistencia
-        fields = (
-            'fecha',
-            'hora',
-            'nombres',
-            'apellidos',
-            'jornada',
-            'curso',
-            'linea',
-        )
-        export_order = fields
-
-    # ====== CAMPOS CALCULADOS ======
-
-    def dehydrate_nombres(self, obj):
-        return obj.estudiante.nombres
-
-    def dehydrate_apellidos(self, obj):
-        return obj.estudiante.apellidos
-
-    def dehydrate_jornada(self, obj):
-        return obj.estudiante.jornada
-
-    def dehydrate_curso(self, obj):
-        return obj.estudiante.curso
-
-    def dehydrate_linea(self, obj):
-        return obj.estudiante.linea
 
 @admin.register(Asistencia)
-class AsistenciaAdmin(ExportMixin, admin.ModelAdmin):
-    resource_class = AsistenciaResource
+class AsistenciaAdmin(admin.ModelAdmin):
+    list_display=['fecha','hora','tipo','get_nombres','get_apellidos','get_jornada','get_curso','get_linea']
+    list_filter=['fecha','tipo','estudiante__jornada','estudiante__curso','estudiante__linea']
+    search_fields=['estudiante__nombres','estudiante__apellidos','estudiante__documento']
+    ordering=['-fecha','-hora']; date_hierarchy='fecha'; actions=[exportar_asistencia_csv]
+    def get_nombres(self,o): return o.estudiante.nombres
+    def get_apellidos(self,o): return o.estudiante.apellidos
+    def get_jornada(self,o): return o.estudiante.jornada
+    def get_curso(self,o): return o.estudiante.curso
+    def get_linea(self,o): return o.estudiante.linea
+    get_nombres.short_description='Nombres'; get_apellidos.short_description='Apellidos'
+    get_jornada.short_description='Jornada'; get_curso.short_description='Curso'; get_linea.short_description='Línea'
 
-    list_display = (
-        'fecha',
-        'hora',
-        'get_nombres',
-        'get_apellidos',
-        'get_jornada',
-        'get_curso',
-        'get_linea',
-    )
 
-    list_filter = (
-        'fecha',
-        'estudiante__jornada',
-        'estudiante__curso',
-        'estudiante__linea',
-    )
-
-    search_fields = (
-        'estudiante__nombres',
-        'estudiante__apellidos',
-        'estudiante__documento',
-    )
-
-    ordering = ('-fecha', '-hora')
-    date_hierarchy = 'fecha'
-
-    # ====== MÉTODOS ======
-
-    def get_nombres(self, obj):
-        return obj.estudiante.nombres
-    get_nombres.short_description = 'Nombres'
-
-    def get_apellidos(self, obj):
-        return obj.estudiante.apellidos
-    get_apellidos.short_description = 'Apellidos'
-
-    def get_jornada(self, obj):
-        return obj.estudiante.jornada
-    get_jornada.short_description = 'Jornada'
-
-    def get_curso(self, obj):
-        return obj.estudiante.curso
-    get_curso.short_description = 'Curso'
-
-    def get_linea(self, obj):
-        return obj.estudiante.linea
-    get_linea.short_description = 'Línea'
-
-class EstudianteResource(resources.ModelResource):
-    class Meta:
-        model = Estudiante
-        import_id_fields = ('documento',)  # campo único
-        skip_unchanged = True
-        report_skipped = True
-
-# ==========================
-# ADMIN ESTUDIANTE
-# ==========================
 @admin.register(Estudiante)
-class EstudianteAdmin(ImportExportModelAdmin):
-    resource_class = EstudianteResource
-
-    list_display = (
-        'documento',
-        'nombres',
-        'apellidos',
-        'jornada',
-        'curso',
-        'linea',
-    )
-
-    search_fields = (
-        'documento',
-        'nombres',
-        'apellidos',
-    )
-
-    list_filter = (
-        'jornada',
-        'curso',
-        'linea',
-    )
-
-
-    actions = [generar_certificado, generar_carnet, generar_carnets_por_linea, generar_carnets_png_zip, generar_mosaico_linea
-
-]
-    
-
-    def get_actions(self, request):
-        actions = super().get_actions(request)
+class EstudianteAdmin(admin.ModelAdmin):
+    list_display=['documento','apellidos','nombres','jornada','curso','linea']
+    search_fields=['documento','nombres','apellidos']; list_filter=['jornada','curso','linea']
+    actions=[exportar_estudiantes_csv,generar_certificado,generar_carnet,generar_carnets_zip,generar_carnets_png_zip,generar_mosaico_linea]
+    def get_actions(self,request):
+        actions=super().get_actions(request)
         if not request.user.is_superuser:
-            actions.pop('generar_certificado', None)
-            actions.pop('generar_carnet', None)
-            actions.pop('generar_carnets_por_linea', None)
-            actions.pop('generar_carnets_png_zip', None)
-            actions.pop('generar_mosaico_linea', None)
+            for n in ['generar_certificado','generar_carnet','generar_carnets_zip','generar_carnets_png_zip','generar_mosaico_linea']:
+                actions.pop(n,None)
         return actions
-

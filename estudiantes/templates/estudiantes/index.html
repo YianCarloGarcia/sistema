@@ -1,103 +1,377 @@
 {% extends "base.html" %}
 
-{% block Título %} Lista de Estudiantes EM {% endblock %}
+{% block Titulo %}Estudiantes{% endblock %}
 
-{% block contenido %}   
-<div class="card shadow-sm">
+{% block contenido %}
 
-    <!-- HEADER -->
-    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-semibold">Listado de Estudiantes</h5>
+<style>
+  /* ---- Barra de filtros ---- */
+  .filtros-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  }
+  .filtros-card .form-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+  }
+  .filtros-card .form-control,
+  .filtros-card .form-select {
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border-color: #e2e8f0;
+  }
+  .filtros-card .form-control:focus,
+  .filtros-card .form-select:focus {
+    border-color: #1a3a6e;
+    box-shadow: 0 0 0 3px rgba(26,58,110,0.1);
+  }
+  .btn-filtrar {
+    background: #1a3a6e; color: #fff; border: none;
+    border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+    padding: 0.5rem 1.25rem; transition: background 0.2s;
+  }
+  .btn-filtrar:hover { background: #274d9e; color: #fff; }
+  .btn-limpiar {
+    border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: 0.875rem; color: #64748b; background: #fff;
+    padding: 0.5rem 1rem; transition: all 0.2s;
+  }
+  .btn-limpiar:hover { background: #f8fafc; border-color: #cbd5e1; }
 
-        <div class="d-flex gap-2">
-            <input
-                type="text"
-                id="buscador"
-                class="form-control form-control-sm"
-                style="width: 220px;"
-                placeholder="Buscar...">
+  /* ---- Badges de filtros activos ---- */
+  .badge-filtro {
+    background: #e0e7ff; color: #3730a3;
+    border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    padding: 0.3rem 0.75rem; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .badge-filtro a { color: #3730a3; text-decoration: none; font-weight: 700; }
+  .badge-filtro a:hover { color: #e63946; }
 
-            <a class="btn btn-success btn-sm" href="{% url 'crear' %}">
-                + Agregar
-            </a>
-        </div>
-    </div>
+  /* ---- Tabla ---- */
+  .tabla-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  }
+  .tabla-card thead th {
+    background: #1a3a6e;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.75rem 0.9rem;
+    border: none;
+    white-space: nowrap;
+  }
+  .tabla-card tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s;
+  }
+  .tabla-card tbody tr:hover { background: #f8fafc; }
+  .tabla-card tbody td {
+    padding: 0.65rem 0.9rem;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    color: #334155;
+  }
+  .foto-thumb {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+  }
+  .nombre-cell strong { display: block; color: #0f172a; font-size: 0.875rem; }
+  .nombre-cell span   { color: #94a3b8; font-size: 0.78rem; }
 
-    <!-- BODY -->
-    <div class="card-body p-0">
+  /* ---- Badges jornada / línea ---- */
+  .badge-jornada {
+    font-size: 0.7rem; font-weight: 700; border-radius: 6px;
+    padding: 0.2rem 0.55rem; text-transform: uppercase;
+  }
+  .jm { background: #dbeafe; color: #1e40af; }
+  .jt { background: #fef3c7; color: #92400e; }
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-primary">
-                    <tr class="text-center">
-                        <th>ID</th>
-                        <th>Jornada</th>
-                        <th>Documento</th>
-                        <th>Apellidos</th>
-                        <th>Nombres</th>
-                        <th>Curso</th>
-                        <th>Línea</th>
-                        <th>Foto</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
+  .badge-linea {
+    font-size: 0.7rem; font-weight: 600; border-radius: 6px;
+    padding: 0.2rem 0.55rem; background: #f1f5f9; color: #475569;
+    white-space: nowrap;
+  }
 
-                <tbody id="tabla-estudiantes">
-                    {% for Estudiante in estudiantes %}
-                    <tr>
-                        <td class="text-center">{{ Estudiante.id }}</td>
-                        <td>{{ Estudiante.jornada }}</td>
-                        <td>{{ Estudiante.documento }}</td>
-                        <td>{{ Estudiante.apellidos }}</td>
-                        <td>{{ Estudiante.nombres }}</td>
-                        <td>{{ Estudiante.curso }}</td>
-                        <td>{{ Estudiante.linea }}</td>
-                        <td class="text-center">
-                            <img src="{{ Estudiante.foto.url }}"
-                                 class="rounded"
-                                 style="height: 60px; object-fit: cover;">
-                        </td>
-                        <td class="text-center">
-                            <div class="btn-group btn-group-sm" role="group">
-                                <a class="btn btn-outline-info"
-                                   href="{% url 'editar' Estudiante.id %}">
-                                    Editar
-                                </a>
-                                <a class="btn btn-outline-success"
-                                   href="{% url 'detalle' Estudiante.id %}">
-                                    Ver
-                                </a>
-                        <!--    <a class="btn btn-outline-info"
-                                   href="{% url 'eliminar' Estudiante.id %}">
-                                   Eliminar
-                                </a> -->
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+  /* ---- Acciones ---- */
+  .btn-accion {
+    font-size: 0.78rem; padding: 0.3rem 0.7rem;
+    border-radius: 7px; font-weight: 600;
+    text-decoration: none; display: inline-block;
+    transition: all 0.15s;
+  }
+  .btn-ver   { background:#e0f2fe; color:#0369a1; }
+  .btn-ver:hover   { background:#bae6fd; color:#0369a1; }
+  .btn-editar { background:#dcfce7; color:#166534; }
+  .btn-editar:hover { background:#bbf7d0; color:#166534; }
 
-    </div>
+  /* ---- Paginacion ---- */
+  .pag-wrap { padding: 0.85rem 1rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+  .pag-info { font-size: 0.8rem; color: #64748b; }
+  .pag-links { display: flex; gap: 4px; flex-wrap: wrap; }
+  .pag-btn {
+    font-size: 0.8rem; padding: 0.3rem 0.65rem; border-radius: 7px;
+    border: 1px solid #e2e8f0; text-decoration: none; color: #334155;
+    background: #fff; transition: all 0.15s;
+  }
+  .pag-btn:hover { background: #f1f5f9; color: #1a3a6e; }
+  .pag-btn.active { background: #1a3a6e; color: #fff; border-color: #1a3a6e; font-weight: 700; }
+  .pag-btn.disabled { opacity: 0.4; pointer-events: none; }
 
-    <!-- FOOTER -->
-    <div class="card-footer text-muted text-center small">
-        Desarrollado por YC
-    </div>
+  /* ---- Header ---- */
+  .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+  .page-header h5 { font-weight: 700; color: #0f172a; margin: 0; font-size: 1.1rem; }
+  .conteo { font-size: 0.82rem; color: #64748b; }
+  .btn-agregar {
+    background: #16a34a; color: #fff; border: none;
+    border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+    padding: 0.5rem 1.1rem; text-decoration: none; transition: background 0.2s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn-agregar:hover { background: #15803d; color: #fff; }
+</style>
+
+<!-- ===== ENCABEZADO ===== -->
+<div class="page-header">
+  <div>
+    <h5>&#128106; Listado de Estudiantes</h5>
+    <span class="conteo">
+      {% if filtro_q or filtro_jornada or filtro_curso or filtro_linea %}
+        {{ total_filtrado }} resultado{{ total_filtrado|pluralize:"s" }} de {{ total_general }} total{{ total_general|pluralize:"es" }}
+      {% else %}
+        {{ total_general }} estudiante{{ total_general|pluralize:"s" }} en total
+      {% endif %}
+    </span>
+  </div>
+  {% if es_directivo %}<a href="{% url 'crear' %}" class="btn-agregar">&#43; Agregar estudiante</a>{% endif %}
 </div>
 
-<script>
-document.getElementById("buscador").addEventListener("keyup", function () {
-    const filtro = this.value.toLowerCase();
-    const filas = document.querySelectorAll("#tabla-estudiantes tr");
+<!-- ===== FILTROS ===== -->
+<div class="filtros-card">
+  <form method="get" id="form-filtros">
+    <div class="row g-2 align-items-end">
 
-    filas.forEach(fila => {
-        fila.style.display = fila.textContent.toLowerCase().includes(filtro)
-            ? ""
-            : "none";
-    });
+      <!-- Búsqueda texto -->
+      <div class="col-12 col-md-4">
+        <label class="form-label">&#128269; Buscar</label>
+        <input type="text" name="q" class="form-control"
+               placeholder="Nombre, apellido o documento..."
+               value="{{ filtro_q }}">
+      </div>
+
+      <!-- Jornada -->
+      <div class="col-6 col-md-2">
+        <label class="form-label">Jornada</label>
+        <select name="jornada" class="form-select">
+          <option value="">Todas</option>
+          {% for val, label in jornadas %}
+            <option value="{{ val }}" {% if filtro_jornada == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Curso -->
+      <div class="col-6 col-md-2">
+        <label class="form-label">Curso</label>
+        <select name="curso" class="form-select">
+          <option value="">Todos</option>
+          {% for c in cursos_disponibles %}
+            <option value="{{ c }}" {% if filtro_curso == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Línea -->
+      <div class="col-12 col-md-3">
+        <label class="form-label">Línea de media</label>
+        <select name="linea" class="form-select">
+          <option value="">Todas</option>
+          {% for val, label in lineas %}
+            <option value="{{ val }}" {% if filtro_linea == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Botones -->
+      <div class="col-12 col-md-1 d-flex gap-2">
+        <button type="submit" class="btn-filtrar w-100">Filtrar</button>
+      </div>
+
+    </div><!-- row -->
+  </form>
+
+  <!-- Badges de filtros activos -->
+  {% if filtro_q or filtro_jornada or filtro_curso or filtro_linea %}
+  <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+    <span style="font-size:0.75rem;color:#64748b;">Filtros activos:</span>
+    {% if filtro_q %}
+      <span class="badge-filtro">
+        "{{ filtro_q }}"
+        <a href="?{% if filtro_jornada %}jornada={{ filtro_jornada }}&{% endif %}{% if filtro_curso %}curso={{ filtro_curso }}&{% endif %}{% if filtro_linea %}linea={{ filtro_linea }}{% endif %}">&times;</a>
+      </span>
+    {% endif %}
+    {% if filtro_jornada %}
+      <span class="badge-filtro">
+        Jornada: {{ filtro_jornada }}
+        <a href="?{% if filtro_q %}q={{ filtro_q }}&{% endif %}{% if filtro_curso %}curso={{ filtro_curso }}&{% endif %}{% if filtro_linea %}linea={{ filtro_linea }}{% endif %}">&times;</a>
+      </span>
+    {% endif %}
+    {% if filtro_curso %}
+      <span class="badge-filtro">
+        Curso: {{ filtro_curso }}
+        <a href="?{% if filtro_q %}q={{ filtro_q }}&{% endif %}{% if filtro_jornada %}jornada={{ filtro_jornada }}&{% endif %}{% if filtro_linea %}linea={{ filtro_linea }}{% endif %}">&times;</a>
+      </span>
+    {% endif %}
+    {% if filtro_linea %}
+      <span class="badge-filtro">
+        Línea: {{ filtro_linea }}
+        <a href="?{% if filtro_q %}q={{ filtro_q }}&{% endif %}{% if filtro_jornada %}jornada={{ filtro_jornada }}&{% endif %}{% if filtro_curso %}curso={{ filtro_curso }}{% endif %}">&times;</a>
+      </span>
+    {% endif %}
+    <a href="{% url 'estudiantes' %}" class="btn-limpiar">&#10005; Limpiar todo</a>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ===== TABLA ===== -->
+<div class="tabla-card">
+
+  {% if page_obj.object_list %}
+  <div class="table-responsive">
+    <table class="table mb-0" style="border-collapse:separate;">
+      <thead>
+        <tr>
+          <th style="width:52px;"></th>
+          <th>Estudiante</th>
+          <th>Documento</th>
+          <th>Jornada</th>
+          <th>Curso</th>
+          <th>Línea de media</th>
+          <th style="text-align:center;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for est in page_obj %}
+        <tr>
+          <!-- Foto -->
+          <td style="padding:0.5rem 0.5rem 0.5rem 1rem;">
+            {% if est.foto %}
+              <img src="{{ est.foto.url }}" class="foto-thumb" alt="">
+            {% else %}
+              <div class="foto-thumb d-flex align-items-center justify-content-center" style="background:#e2e8f0;font-size:1.1rem;">&#128100;</div>
+            {% endif %}
+          </td>
+
+          <!-- Nombre -->
+          <td>
+            <div class="nombre-cell">
+              <strong>{{ est.apellidos }}, {{ est.nombres }}</strong>
+            </div>
+          </td>
+
+          <!-- Documento -->
+          <td>
+            <span style="font-family:monospace; font-size:0.85rem; color:#334155;">{{ est.documento }}</span>
+          </td>
+
+          <!-- Jornada -->
+          <td>
+            {% if est.jornada == 'JM' %}
+              <span class="badge-jornada jm">&#9728; Mañana</span>
+            {% else %}
+              <span class="badge-jornada jt">&#127769; Tarde</span>
+            {% endif %}
+          </td>
+
+          <!-- Curso -->
+          <td>
+            <span style="font-weight:600; color:#0f172a;">{{ est.curso }}</span>
+          </td>
+
+          <!-- Línea -->
+          <td>
+            <span class="badge-linea">{{ est.get_linea_display }}</span>
+          </td>
+
+          <!-- Acciones -->
+          <td style="text-align:center; white-space:nowrap;">
+                    <a href="{% url 'detalle' est.id %}" class="btn-accion btn-ver">Ver</a>
+                    {% if es_directivo %}
+                    <a href="{% url 'editar' est.id %}" class="btn-accion btn-editar">Editar</a>
+                    {% endif %}
+                  </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== PAGINACIÓN ===== -->
+  <div class="pag-wrap">
+    <span class="pag-info">
+      Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      &mdash; mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total_filtrado }}
+    </span>
+    <div class="pag-links">
+      {% if page_obj.has_previous %}
+        <a class="pag-btn" href="?page=1{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">&laquo;</a>
+        <a class="pag-btn" href="?page={{ page_obj.previous_page_number }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">&lsaquo; Ant.</a>
+      {% else %}
+        <span class="pag-btn disabled">&laquo;</span>
+        <span class="pag-btn disabled">&lsaquo; Ant.</span>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <span class="pag-btn active">{{ num }}</span>
+        {% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}
+          <a class="pag-btn" href="?page={{ num }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a class="pag-btn" href="?page={{ page_obj.next_page_number }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">Sig. &rsaquo;</a>
+        <a class="pag-btn" href="?page={{ page_obj.paginator.num_pages }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">&raquo;</a>
+      {% else %}
+        <span class="pag-btn disabled">Sig. &rsaquo;</span>
+        <span class="pag-btn disabled">&raquo;</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Sin resultados -->
+  <div class="text-center py-5" style="color:#94a3b8;">
+    <div style="font-size:3rem;">&#128269;</div>
+    <p class="mt-2 mb-1" style="font-weight:600;color:#475569;">Sin resultados</p>
+    <p style="font-size:0.875rem;">No se encontraron estudiantes con los filtros seleccionados.</p>
+    <a href="{% url 'estudiantes' %}" class="btn-limpiar">Limpiar filtros</a>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Atajo: Enter en el buscador envía el form -->
+<script>
+document.querySelector('input[name="q"]').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('form-filtros').submit(); }
 });
 </script>
-{% endblock %}
 
+{% endblock %}

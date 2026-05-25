@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block Titulo %}Gestión Masiva{% endblock %}
+
+{% block contenido %}
+
+<style>
+  /* Layout */
+  .gm-header { margin-bottom: 1.5rem; }
+  .gm-header h5 { font-weight: 700; font-size: 1.1rem; color: #0f172a; margin: 0; }
+  .gm-header p  { color: #64748b; font-size: 0.85rem; margin: 0.25rem 0 0; }
+
+  .gm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 900px) { .gm-grid { grid-template-columns: 1fr; } }
+
+  /* Tarjetas */
+  .gm-card {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+  }
+  .gm-card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .gm-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+  .gm-card-header h6 { margin: 0; font-weight: 700; font-size: 0.95rem; color: #0f172a; }
+  .gm-card-header p  { margin: 0; font-size: 0.78rem; color: #64748b; }
+  .gm-card-body { padding: 1.25rem; }
+
+  /* Filtros inline */
+  .filtro-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; margin-bottom: 0.75rem; }
+  @media (max-width: 600px) { .filtro-row { grid-template-columns: 1fr; } }
+
+  .flabel { font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+  .form-select, .form-control {
+    font-size: 0.85rem; border-color: #e2e8f0; border-radius: 9px;
+    padding: 0.5rem 0.75rem;
+  }
+  .form-select:focus, .form-control:focus {
+    border-color: #1a3a6e; box-shadow: 0 0 0 3px rgba(26,58,110,0.1);
+  }
+
+  /* Botones */
+  .btn-exportar {
+    background: #0369a1; color: #fff; border: none; border-radius: 9px;
+    font-size: 0.875rem; font-weight: 700; padding: 0.6rem 1.25rem;
+    cursor: pointer; width: 100%; transition: all 0.2s; text-align: center; display: block;
+    text-decoration: none;
+  }
+  .btn-exportar:hover { background: #0284c7; color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(3,105,161,0.25); }
+
+  .btn-importar {
+    background: #16a34a; color: #fff; border: none; border-radius: 9px;
+    font-size: 0.875rem; font-weight: 700; padding: 0.6rem 1.25rem;
+    cursor: pointer; width: 100%; transition: all 0.2s;
+  }
+  .btn-importar:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,0.25); }
+
+  .btn-editar-masivo {
+    background: #7c3aed; color: #fff; border: none; border-radius: 9px;
+    font-size: 0.875rem; font-weight: 700; padding: 0.6rem 1.25rem;
+    cursor: pointer; width: 100%; transition: all 0.2s;
+  }
+  .btn-editar-masivo:hover { background: #6d28d9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.25); }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed #cbd5e1; border-radius: 12px;
+    padding: 1.5rem; text-align: center; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 0.75rem; position: relative;
+  }
+  .upload-zone:hover, .upload-zone.over { border-color: #16a34a; background: #f0fdf4; }
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-zone-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+  .upload-zone-text { font-size: 0.85rem; color: #64748b; }
+  .upload-zone-name { font-size: 0.82rem; font-weight: 600; color: #16a34a; margin-top: 0.4rem; display: none; }
+
+  /* Separador sección */
+  .sect-sep {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #94a3b8; margin: 1rem 0 0.75rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .sect-sep::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
+
+  /* Tarjeta stat */
+  .stat-box {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 0.75rem 1rem; text-align: center; margin-bottom: 1rem;
+  }
+  .stat-box .num { font-size: 1.8rem; font-weight: 800; color: #1a3a6e; line-height: 1; }
+  .stat-box .lab { font-size: 0.75rem; color: #64748b; margin-top: 0.2rem; }
+
+  /* Info chips */
+  .chip {
+    display: inline-block; font-size: 0.72rem; font-weight: 600;
+    padding: 0.2rem 0.6rem; border-radius: 20px; margin: 0.15rem;
+  }
+  .chip-blue   { background: #dbeafe; color: #1e40af; }
+  .chip-green  { background: #dcfce7; color: #166534; }
+  .chip-purple { background: #ede9fe; color: #5b21b6; }
+
+  /* Advertencia edición masiva */
+  .warn-box {
+    background: #fefce8; border: 1px solid #fde047; border-radius: 10px;
+    padding: 0.75rem 1rem; font-size: 0.8rem; color: #713f12; margin-bottom: 0.75rem;
+  }
+
+  /* Plantilla hint */
+  .hint-box {
+    background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;
+    padding: 0.75rem 1rem; font-size: 0.8rem; color: #0c4a6e; margin-bottom: 0.75rem;
+  }
+</style>
+
+<!-- Encabezado -->
+<nav style="font-size:0.8rem;color:#94a3b8;margin-bottom:1rem;">
+  <a href="{% url 'estudiantes' %}" style="color:#64748b;text-decoration:none;">Estudiantes</a>
+  <span style="margin:0 0.4rem;">/</span>
+  <span style="color:#0f172a;font-weight:600;">Gestión masiva</span>
+</nav>
+
+<div class="gm-header">
+  <h5>&#9881;&#65039; Gestión masiva de estudiantes</h5>
+  <p>Exporte, importe o edite grupos de estudiantes sin pasar por el panel de administración.</p>
+</div>
+
+<!-- Stat total -->
+<div class="stat-box" style="max-width:200px; margin-bottom:1.5rem;">
+  <div class="num">{{ total }}</div>
+  <div class="lab">estudiantes en total</div>
+</div>
+
+<div class="gm-grid">
+
+  <!-- ===================== EXPORTAR ===================== -->
+  <div class="gm-card">
+    <div class="gm-card-header">
+      <div class="gm-icon" style="background:#e0f2fe;">&#128190;</div>
+      <div>
+        <h6>Exportar a Excel</h6>
+        <p>Descargue el listado completo o filtrado</p>
+      </div>
+    </div>
+    <div class="gm-card-body">
+
+      <div class="hint-box">
+        El archivo descargado puede usarse como <strong>plantilla para importar</strong>. No cambie los encabezados de columna.
+      </div>
+
+      <div class="sect-sep">Filtrar exportación (opcional)</div>
+
+      <form method="get" action="{% url 'exportar_estudiantes' %}">
+        <div class="filtro-row">
+          <div>
+            <label class="flabel">Jornada</label>
+            <select name="jornada" class="form-select">
+              <option value="">Todas</option>
+              {% for val, label in jornadas %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Curso</label>
+            <select name="curso" class="form-select">
+              <option value="">Todos</option>
+              {% for c in cursos_disponibles %}
+                <option value="{{ c }}">{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Línea</label>
+            <select name="linea" class="form-select">
+              <option value="">Todas</option>
+              {% for val, label in lineas %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-exportar">
+          &#8595; Descargar Excel (.xlsx)
+        </button>
+      </form>
+
+      <div style="margin-top:0.75rem; font-size:0.78rem; color:#64748b;">
+        Columnas incluidas:
+        {% for field, label in campos %}
+          <span class="chip chip-blue">{{ label }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== IMPORTAR ===================== -->
+  <div class="gm-card">
+    <div class="gm-card-header">
+      <div class="gm-icon" style="background:#dcfce7;">&#8679;</div>
+      <div>
+        <h6>Importar desde Excel</h6>
+        <p>Cree o actualice estudiantes en masa</p>
+      </div>
+    </div>
+    <div class="gm-card-body">
+
+      <div class="hint-box">
+        <strong>Cómo funciona:</strong> si el número de documento ya existe, el registro se <em>actualiza</em>. Si no existe, se <em>crea</em> uno nuevo. Verá una previsualización antes de confirmar.
+      </div>
+
+      <form method="post" action="{% url 'importar_estudiantes' %}" enctype="multipart/form-data" id="form-importar">
+        {% csrf_token %}
+
+        <label class="upload-zone" id="upload-zone">
+          <input type="file" name="archivo" accept=".xlsx,.xls" id="file-input">
+          <div class="upload-zone-icon">&#128196;</div>
+          <div class="upload-zone-text">Arrastre un archivo Excel aquí o haga clic para seleccionar</div>
+          <div class="upload-zone-name" id="file-name-label"></div>
+        </label>
+
+        <button type="submit" class="btn-importar">
+          &#128269; Previsualizar importación
+        </button>
+      </form>
+
+      <div style="margin-top:0.85rem; font-size:0.78rem; color:#64748b;">
+        Campos requeridos:
+        <span class="chip chip-green">Documento</span>
+        <span class="chip chip-green">Apellidos</span>
+        <span class="chip chip-green">Nombres</span>
+        <span class="chip chip-green">Jornada</span>
+        <span class="chip chip-green">Curso</span>
+        <span class="chip chip-green">Linea</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== EDICIÓN MASIVA ===================== -->
+  <div class="gm-card" style="grid-column: 1 / -1;">
+    <div class="gm-card-header">
+      <div class="gm-icon" style="background:#ede9fe;">&#9999;&#65039;</div>
+      <div>
+        <h6>Edición masiva de grupo</h6>
+        <p>Cambia uno o más campos a todos los estudiantes que coincidan con los filtros</p>
+      </div>
+    </div>
+    <div class="gm-card-body">
+
+      <div class="warn-box">
+        &#9888; Esta acción <strong>no tiene deshacer</strong>. Exporte el listado antes de aplicar cambios masivos si quiere tener una copia.
+      </div>
+
+      <form method="post" action="{% url 'editar_masivo' %}" onsubmit="return confirmarEdicion(this)">
+        {% csrf_token %}
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+
+          <!-- Columna izquierda: definir grupo -->
+          <div>
+            <div class="sect-sep">1 · Seleccionar grupo</div>
+            <div class="filtro-row">
+              <div>
+                <label class="flabel">Jornada</label>
+                <select name="filtro_jornada" class="form-select">
+                  <option value="">Cualquiera</option>
+                  {% for val, label in jornadas %}
+                    <option value="{{ val }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="flabel">Curso actual</label>
+                <select name="filtro_curso" class="form-select">
+                  <option value="">Cualquiera</option>
+                  {% for c in cursos_disponibles %}
+                    <option value="{{ c }}">{{ c }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="flabel">Línea actual</label>
+                <select name="filtro_linea" class="form-select">
+                  <option value="">Cualquiera</option>
+                  {% for val, label in lineas %}
+                    <option value="{{ val }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna derecha: nuevos valores -->
+          <div>
+            <div class="sect-sep">2 · Nuevos valores (solo los que quiera cambiar)</div>
+            <div class="filtro-row">
+              <div>
+                <label class="flabel">Nueva jornada</label>
+                <select name="nuevo_jornada" class="form-select">
+                  <option value="">No cambiar</option>
+                  {% for val, label in jornadas %}
+                    <option value="{{ val }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="flabel">Nuevo curso</label>
+                <input type="text" name="nuevo_curso" class="form-control" placeholder="Ej: 11A">
+              </div>
+              <div>
+                <label class="flabel">Nueva línea</label>
+                <select name="nuevo_linea" class="form-select">
+                  <option value="">No cambiar</option>
+                  {% for val, label in lineas %}
+                    <option value="{{ val }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <button type="submit" class="btn-editar-masivo" style="margin-top:0.5rem;">
+          &#9889; Aplicar cambios al grupo
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+</div><!-- gm-grid -->
+
+<script>
+// Preview nombre archivo
+document.getElementById('file-input').addEventListener('change', function() {
+  const label = document.getElementById('file-name-label');
+  if (this.files.length) {
+    label.textContent = '📎 ' + this.files[0].name;
+    label.style.display = 'block';
+  }
+});
+
+// Drag & drop visual
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('over');
+  const files = e.dataTransfer.files;
+  if (files.length) {
+    document.getElementById('file-input').files = files;
+    document.getElementById('file-name-label').textContent = '📎 ' + files[0].name;
+    document.getElementById('file-name-label').style.display = 'block';
+  }
+});
+
+// Confirmar edición masiva
+function confirmarEdicion(form) {
+  const filtroJ = form.filtro_jornada.value;
+  const filtroC = form.filtro_curso.value;
+  const filtroL = form.filtro_linea.value;
+  if (!filtroJ && !filtroC && !filtroL) {
+    alert('Seleccione al menos un filtro para definir el grupo.');
+    return false;
+  }
+  const nuevoJ = form.nuevo_jornada.value;
+  const nuevoC = form.nuevo_curso.value.trim();
+  const nuevoL = form.nuevo_linea.value;
+  if (!nuevoJ && !nuevoC && !nuevoL) {
+    alert('Indique al menos un campo nuevo para cambiar.');
+    return false;
+  }
+  return confirm('¿Confirma aplicar estos cambios al grupo seleccionado? Esta acción no se puede deshacer.');
+}
+</script>
+
+{% endblock %}
