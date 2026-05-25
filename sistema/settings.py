@@ -68,7 +68,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
-MEDIA_ROOT = os.path.join(BASE_DIR, '')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'fotos')
 MEDIA_URL = '/fotos/'
 
 LOGIN_URL = '/accounts/login/'

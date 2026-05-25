@@ -246,32 +246,62 @@ def detalle(request, id):
 
 BLOQUEO_SEGUNDOS = 5
 
+TIPOS_ESCANER = {
+    'ALM': {'label': 'Registro de Almuerzo',  'icono': '\U0001f37d\ufe0f', 'color': '#e63946'},
+    'TAR': {'label': 'Llegada Tarde',          'icono': '\u23f0',            'color': '#f4a261'},
+    'UNI': {'label': 'Porte de Uniforme',      'icono': '\U0001f454',        'color': '#2a9d8f'},
+    'ASI': {'label': 'Asistencia a Clase',     'icono': '\U0001f4cb',        'color': '#457b9d'},
+}
+
 @login_required
-def almuerzo(request):
+def escaner(request):
+    tipo_actual = request.GET.get('tipo', 'ALM')
+    if tipo_actual not in TIPOS_ESCANER:
+        tipo_actual = 'ALM'
+
     mensaje = contador = nombre = None
+
     if request.method == 'POST':
-        documento = request.POST.get('documento', '').strip()
+        documento   = request.POST.get('documento', '').strip()
+        tipo_actual = request.POST.get('tipo', tipo_actual)
+        if tipo_actual not in TIPOS_ESCANER:
+            tipo_actual = 'ALM'
+
         try:
             est    = Estudiante.objects.get(documento=documento)
             ahora  = timezone.now()
             limite = ahora - timedelta(seconds=BLOQUEO_SEGUNDOS)
-            ultimo = Asistencia.objects.filter(estudiante=est, tipo='ALM').order_by('-fecha', '-hora').first()
+            ultimo = Asistencia.objects.filter(estudiante=est, tipo=tipo_actual).order_by('-fecha', '-hora').first()
             if ultimo:
                 fhu = timezone.make_aware(timezone.datetime.combine(ultimo.fecha, ultimo.hora))
                 if fhu > limite:
                     mensaje = f"Espere {BLOQUEO_SEGUNDOS} segundos antes de volver a escanear"
                 else:
-                    Asistencia.objects.create(estudiante=est, tipo='ALM')
+                    Asistencia.objects.create(estudiante=est, tipo=tipo_actual)
             else:
-                Asistencia.objects.create(estudiante=est, tipo='ALM')
+                Asistencia.objects.create(estudiante=est, tipo=tipo_actual)
             hoy      = timezone.localdate()
-            contador = Asistencia.objects.filter(estudiante=est, fecha=hoy, tipo='ALM').count()
+            contador = Asistencia.objects.filter(estudiante=est, fecha=hoy, tipo=tipo_actual).count()
             nombre   = f"{est.nombres} {est.apellidos}"
-            mensaje  = f"Almuerzos registrados hoy: {contador}"
         except Estudiante.DoesNotExist:
             mensaje = "Documento no encontrado"
-    return render(request, 'estudiantes/almuerzo.html',
-                  {'mensaje': mensaje, 'contador': contador, 'nombre': nombre})
+
+    info = TIPOS_ESCANER[tipo_actual]
+    return render(request, 'estudiantes/escaner.html', {
+        'mensaje':     mensaje,
+        'contador':    contador,
+        'nombre':      nombre,
+        'tipo_actual': tipo_actual,
+        'tipos':       TIPOS_ESCANER,
+        'info':        info,
+    })
+
+
+# Redirige la URL antigua para no romper bookmarks
+@login_required
+def almuerzo(request):
+    from django.shortcuts import redirect as _redirect
+    return _redirect('/estudiantes/escaner/?tipo=ALM')
 
 
 def exit(request):

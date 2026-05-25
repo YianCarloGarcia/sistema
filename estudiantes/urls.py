@@ -15,8 +15,9 @@ urlpatterns = [
     path('estudiantes/editar/<int:id>', views.editar, name='editar'),
     path('estudiantes/detalle/<int:id>/', views.detalle, name='detalle'),
 
-    # Almuerzo / QR
-    path('estudiantes/almuerzo/', views.almuerzo, name='almuerzo'),
+    # Escáner general (Almuerzo, Tardanzas, Uniforme, Asistencia)
+    path('estudiantes/escaner/', views.escaner, name='escaner'),
+    path('estudiantes/almuerzo/', views.almuerzo, name='almuerzo'),  # alias antiguo
 
     # Gestión masiva
     path('estudiantes/gestion-masiva/', views.gestion_masiva, name='gestion_masiva'),
