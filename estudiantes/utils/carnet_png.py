@@ -21,22 +21,23 @@ FONDO_DEFAULT = 'fondo_default'
 # Diferencias exactas entre JM y JT (tomadas de los archivos originales)
 CONFIG_JORNADA = {
     'JM': {
-        'texto_offset_y': 43,
-        'doc_offset_y':   50,
-        'foto_x_offset':   8,
-        'foto_y_offset':  100,
-        'qr_size':        150,
-        'qr_x':           int(0.7 * PX_POR_CM - 35),
-        'qr_y':           int(ALTO - (0.5 * PX_POR_CM) - 37),
+        'texto_offset_y': -70,
+        'doc_offset_y':   1,
+        'foto_x_offset':   6,
+        'foto_y_offset':  10,
+    
+        'qr_size':        145,
+        'qr_x':           int(0.7 * PX_POR_CM - 50),
+        'qr_y':           int(ALTO - (0.5 * PX_POR_CM) - 200),
     },
     'JT': {
-        'texto_offset_y': 20,
-        'doc_offset_y':   30,
-        'foto_x_offset':  27,
-        'foto_y_offset':   80,
-        'qr_size':        250,
-        'qr_x':           int(0.7 * PX_POR_CM - 15),
-        'qr_y':           int(ALTO - (0.5 * PX_POR_CM) - 50),
+        'texto_offset_y': -70,
+        'doc_offset_y':   1,
+        'foto_x_offset':   6,
+        'foto_y_offset':   10,
+        'qr_size':        145,
+        'qr_x':           int(0.7 * PX_POR_CM - 50),
+        'qr_y':           int(ALTO - (0.5 * PX_POR_CM) - 200),
     },
 }
 
@@ -128,17 +129,17 @@ def generar_carnet_png(estudiante):
     oyd = cfg['doc_offset_y']
 
     draw.text(
-        (0.5 * PX_POR_CM, ALTO - (2.4 * PX_POR_CM) + oy),
+        (0.5 * PX_POR_CM, ALTO - (2.7 * PX_POR_CM) + oy), 
         estudiante.apellidos.upper(),
         fill='black', font=font_nombre
     )
     draw.text(
-        (0.5 * PX_POR_CM, ALTO - (2.9 * PX_POR_CM) + oy),
+        (0.5 * PX_POR_CM, ALTO - (3.0 * PX_POR_CM) + oy),
         estudiante.nombres.upper(),
         fill='black', font=font_nombre
     )
     draw.text(
-        (0.5 * PX_POR_CM, ALTO - (2.0 * PX_POR_CM) + oyd),
+        (0.5 * PX_POR_CM, ALTO - (3.1 * PX_POR_CM) + oyd),
         f'Doc: {estudiante.documento}',
         fill='black', font=font_doc
     )
@@ -148,8 +149,8 @@ def generar_carnet_png(estudiante):
         try:
             foto_path = os.path.join(settings.MEDIA_ROOT, estudiante.foto.name)
             if os.path.exists(foto_path):
-                MARCO_ANCHO = 280
-                MARCO_ALTO  = 340
+                MARCO_ANCHO = 230
+                MARCO_ALTO  = 280
                 foto = Image.open(foto_path).resize((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
                 foto = foto.rotate(0, expand=True)
                 foto.thumbnail((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
