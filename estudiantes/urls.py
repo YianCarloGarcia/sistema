@@ -18,6 +18,7 @@ urlpatterns = [
     # Escáner general (Almuerzo, Tardanzas, Uniforme, Asistencia)
     path('estudiantes/escaner/', views.escaner, name='escaner'),
     path('estudiantes/almuerzo/', views.almuerzo, name='almuerzo'),  # alias antiguo
+    path('estudiantes/escaner/registrar/', views.escaner_registrar, name='escaner_registrar'),
 
     # Gestión masiva
     path('estudiantes/gestion-masiva/', views.gestion_masiva, name='gestion_masiva'),

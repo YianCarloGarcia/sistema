@@ -110,6 +110,9 @@
         .result-success .counter-label { font-size: 0.8rem; opacity: 0.8; }
         .result-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35); color: #fca5a5; }
         .result-warn  { background: rgba(234,179,8,0.15);  border: 1px solid rgba(234,179,8,0.35);  color: #fde047; }
+        .result-loading { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; gap: 0.6rem; }
+        .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .panel-footer { padding: 1rem 1.75rem; border-top: 1px solid rgba(255,255,255,0.07); text-align: center; }
         .btn-back {
@@ -187,26 +190,10 @@
                     </form>
                 </div>
 
-                <!-- Formulario oculto para el escaneo QR -->
-                <form method="post" id="form-escaner" style="display:none;">
-                    {% csrf_token %}
-                    <input type="hidden" name="tipo"      id="tipo-hidden"      value="{{ tipo_actual }}">
-                    <input type="hidden" name="documento" id="documento-hidden">
-                </form>
+                <!-- tipo actual para AJAX -->
+                <input type="hidden" id="tipo-hidden" value="{{ tipo_actual }}">
 
-                {% if nombre %}
-                    <div class="result-box result-success mx-3 mb-3">
-                        <div class="student-name mb-1">{{ nombre }}</div>
-                        <span class="counter">{{ contador }}</span>
-                        <div class="counter-label">registro(s) de "{{ info.label }}" hoy</div>
-                    </div>
-                {% elif mensaje %}
-                    {% if "Espere" in mensaje %}
-                        <div class="result-box result-warn mx-3 mb-3">{{ mensaje }}</div>
-                    {% else %}
-                        <div class="result-box result-error mx-3 mb-3">{{ mensaje }}</div>
-                    {% endif %}
-                {% endif %}
+                <div id="result-box" class="result-box mx-3 mb-3" style="display:none;"></div>
 
                 <div class="panel-footer">
                     <a href="{% url 'estudiantes' %}" class="btn-back">&#8592; Volver al listado</a>
@@ -232,21 +219,21 @@ function switchTab(mode) {
 }
 
 let html5QrCode = null;
-let bloqueado     = false;
 let scannerActive = false;
+let procesando    = false;  // bloqueo mientras se procesa el AJAX
+
+const CSRF_TOKEN = document.cookie.split('; ')
+    .find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
 
 function startScanner() {
     if (scannerActive) return;
     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
-    // Primero intenta seleccionar la cámara disponible más adecuada
     Html5Qrcode.getCameras().then(cameras => {
-        if (!cameras || cameras.length === 0) {
-            console.warn("No se encontraron cámaras.");
-            return;
-        }
-        // En PC puede haber varias: preferir la que no sea "virtual" o "OBS"
-        let camId = cameras[cameras.length - 1].id; // última suele ser la webcam real
+        if (!cameras || cameras.length === 0) return;
+
+        // En PC preferir webcam real sobre cámaras virtuales
+        let camId = cameras[cameras.length - 1].id;
         for (const cam of cameras) {
             const nombre = (cam.label || '').toLowerCase();
             if (!nombre.includes('virtual') && !nombre.includes('obs') && !nombre.includes('snap')) {
@@ -257,17 +244,12 @@ function startScanner() {
 
         html5QrCode.start(
             camId,
-            {
-                fps: 15,
-                qrbox: { width: 280, height: 280 },
-                aspectRatio: 1.333,
-                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-            },
+            { fps: 15, qrbox: { width: 280, height: 280 }, aspectRatio: 1.333,
+              experimentalFeatures: { useBarCodeDetectorIfSupported: true } },
             onScanSuccess,
             () => {}
-        ).then(() => {
-            scannerActive = true;
-        }).catch(err => console.warn("Error iniciando escáner:", err));
+        ).then(() => { scannerActive = true; })
+         .catch(err => console.warn("Error iniciando escáner:", err));
 
     }).catch(err => console.warn("Error obteniendo cámaras:", err));
 }
@@ -277,18 +259,94 @@ function stopScanner() {
         html5QrCode.stop().then(() => { scannerActive = false; }).catch(() => {});
     }
 }
-
 function pararEscaner() { stopScanner(); }
 
-function onScanSuccess(decodedText) {
-    if (bloqueado) return;
-    bloqueado = true;
-    document.getElementById("documento-hidden").value = decodedText;
-    stopScanner();
-    document.getElementById("form-escaner").submit();
+// ── Registro AJAX — la cámara NO se detiene entre registros ──────────────────
+function registrar(documento) {
+    if (procesando) return;
+    procesando = true;
+
+    const tipo = document.getElementById('tipo-hidden')?.value
+               || new URLSearchParams(window.location.search).get('tipo') || 'ALM';
+
+    mostrarEstado('cargando');
+
+    fetch('/estudiantes/escaner/registrar/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': CSRF_TOKEN,
+        },
+        body: `documento=${encodeURIComponent(documento)}&tipo=${encodeURIComponent(tipo)}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        mostrarResultado(data);
+        // Limpiar resultado después de 3 s y volver a escanear
+        setTimeout(() => {
+            limpiarResultado();
+            procesando = false;
+            // Re-enfocar el input manual si estaba activo
+            const inputManual = document.getElementById('doc-manual');
+            if (inputManual && document.getElementById('panel-manual').classList.contains('active')) {
+                inputManual.value = '';
+                inputManual.focus();
+            }
+        }, 3000);
+    })
+    .catch(() => {
+        mostrarResultado({ ok: false, mensaje: 'Error de red. Intente de nuevo.' });
+        setTimeout(() => { limpiarResultado(); procesando = false; }, 3000);
+    });
 }
 
-document.addEventListener('DOMContentLoaded', () => { startScanner(); });
+function mostrarEstado(estado) {
+    const box = document.getElementById('result-box');
+    box.className = 'result-box result-loading mx-3 mb-3';
+    box.innerHTML = '<span class="spinner"></span> Registrando...';
+    box.style.display = 'block';
+}
+
+function mostrarResultado(data) {
+    const box = document.getElementById('result-box');
+    if (data.ok) {
+        box.className = 'result-box result-success mx-3 mb-3';
+        box.innerHTML = `
+            <div class="student-name mb-1">${data.nombre}</div>
+            <span class="counter">${data.contador}</span>
+            <div class="counter-label">registro(s) de "${data.label}" hoy</div>`;
+    } else if (data.tipo === 'espera') {
+        box.className = 'result-box result-warn mx-3 mb-3';
+        box.innerHTML = `<div>${data.mensaje}</div><div style="font-size:0.8rem;margin-top:4px;opacity:0.8">${data.nombre || ''}</div>`;
+    } else {
+        box.className = 'result-box result-error mx-3 mb-3';
+        box.innerHTML = data.mensaje || 'Error desconocido';
+    }
+    box.style.display = 'block';
+}
+
+function limpiarResultado() {
+    const box = document.getElementById('result-box');
+    box.style.display = 'none';
+    box.innerHTML = '';
+}
+
+// QR: llama a registrar() directamente, sin detener la cámara
+function onScanSuccess(decodedText) {
+    if (procesando) return;
+    registrar(decodedText);
+}
+
+// Formulario manual: intercepta el submit y usa AJAX
+document.addEventListener('DOMContentLoaded', () => {
+    startScanner();
+
+    document.getElementById('form-manual').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const doc = document.getElementById('doc-manual').value.trim();
+        if (doc) registrar(doc);
+    });
+});
 </script>
 
 </body>

@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.http import HttpResponse
 from django.utils import timezone
 from datetime import timedelta
@@ -302,6 +303,57 @@ def escaner(request):
 def almuerzo(request):
     from django.shortcuts import redirect as _redirect
     return _redirect('/estudiantes/escaner/?tipo=ALM')
+
+
+# ── Escáner AJAX — responde JSON, sin recargar la página ─────────────────────
+@login_required
+def escaner_registrar(request):
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'mensaje': 'Método no permitido'}, status=405)
+
+    documento   = request.POST.get('documento', '').strip()
+    tipo_actual = request.POST.get('tipo', 'ALM')
+    if tipo_actual not in TIPOS_ESCANER:
+        tipo_actual = 'ALM'
+
+    if not documento:
+        return JsonResponse({'ok': False, 'mensaje': 'Documento vacío'})
+
+    try:
+        est    = Estudiante.objects.get(documento=documento)
+        ahora  = timezone.now()
+        limite = ahora - timedelta(seconds=BLOQUEO_SEGUNDOS)
+        ultimo = Asistencia.objects.filter(
+            estudiante=est, tipo=tipo_actual
+        ).order_by('-fecha', '-hora').first()
+
+        if ultimo:
+            fhu = timezone.make_aware(
+                timezone.datetime.combine(ultimo.fecha, ultimo.hora)
+            )
+            if fhu > limite:
+                return JsonResponse({
+                    'ok': False,
+                    'tipo': 'espera',
+                    'mensaje': f'Espere {BLOQUEO_SEGUNDOS} segundos antes de volver a escanear',
+                    'nombre': f'{est.nombres} {est.apellidos}',
+                })
+
+        Asistencia.objects.create(estudiante=est, tipo=tipo_actual)
+        hoy      = timezone.localdate()
+        contador = Asistencia.objects.filter(
+            estudiante=est, fecha=hoy, tipo=tipo_actual
+        ).count()
+
+        return JsonResponse({
+            'ok':       True,
+            'nombre':   f'{est.nombres} {est.apellidos}',
+            'contador': contador,
+            'label':    TIPOS_ESCANER[tipo_actual]['label'],
+        })
+
+    except Estudiante.DoesNotExist:
+        return JsonResponse({'ok': False, 'mensaje': 'Documento no encontrado'})
 
 
 def exit(request):
