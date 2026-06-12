@@ -42,19 +42,16 @@ class Estudiante(models.Model):
     ocupacion_acudiente = models.CharField(max_length=100, verbose_name="Ocupación Acudiente", null=True, blank=True)
     eps = models.CharField(max_length=100, verbose_name="EPS", null=True, blank=True)
     observaciones = models.TextField(verbose_name="Observaciones", null=True, blank=True)
-    foto = models.ImageField(upload_to='fotos/', null=True, blank=True)
+    foto = models.ImageField(upload_to='fotos/', null=True, blank=True, default='fotos/foto_default.png')
 
     
     # mostrrar datos en el admin
     def __str__(self):
-        return f"{self.apellidos}, {self.nombres}"
-    # Borrar imagen al eliminar registro
-    def delete(self, using=None, keep_parents=False):
-        if self.foto and self.foto.name:
-            try:
-                self.foto.storage.delete(self.foto.name)
-            except Exception:
-                pass
+        fila = "Apellido: " + self.apellidos + ", Nombre: " + self.nombres + ", Jornada: " + self.jornada + ", línea: " + self.linea + ", Curso: " + self.curso
+        return fila
+    #Borrr imagen al eliminar registro
+    def delete(self, using = None, keep_parents = False):
+        self.foto.storage.delete(self.foto.name)
         super().delete()
 
 class Asistencia(models.Model):
@@ -64,9 +61,6 @@ class Asistencia(models.Model):
 
     TIPO_REGISTRO = [
         ('ALM', 'Almuerzo'),
-        ('TAR', 'Llegada tarde'),
-        ('UNI', 'Porte de uniforme'),
-        ('ASI', 'Asistencia a clase'),
     ]
     tipo = models.CharField(max_length=20, choices=TIPO_REGISTRO, default='ALM')
 
