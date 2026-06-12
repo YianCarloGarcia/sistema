@@ -158,7 +158,7 @@
       {% endif %}
     </span>
   </div>
-  <a href="{% url 'crear' %}" class="btn-agregar">&#43; Agregar estudiante</a>
+  {% if es_directivo %}<a href="{% url 'crear' %}" class="btn-agregar">&#43; Agregar estudiante</a>{% endif %}
 </div>
 
 <!-- ===== FILTROS ===== -->
@@ -311,9 +311,11 @@
 
           <!-- Acciones -->
           <td style="text-align:center; white-space:nowrap;">
-            <a href="{% url 'detalle' est.id %}" class="btn-accion btn-ver">Ver</a>
-            <a href="{% url 'editar' est.id %}" class="btn-accion btn-editar">Editar</a>
-          </td>
+                    <a href="{% url 'detalle' est.id %}" class="btn-accion btn-ver">Ver</a>
+                    {% if es_directivo %}
+                    <a href="{% url 'editar' est.id %}" class="btn-accion btn-editar">Editar</a>
+                    {% endif %}
+                  </td>
         </tr>
         {% endfor %}
       </tbody>

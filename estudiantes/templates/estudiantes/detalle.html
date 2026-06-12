@@ -1,92 +1,264 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block Título %} Agregar Nuevo Estudiante {% endblock %}
+{% block Titulo %}Detalle Estudiante{% endblock %}
 
-{% block contenido %}   
-    <!DOCTYPE html>
-<html lang="es">
-<head>
+{% block contenido %}
 
-    <div class="card">
-    <div class="card-header"></div>
-    <div class="card-body">
-        <h4 class="card-title">Datos del Estudiante</h4>
-    
-        
+<style>
+  .detalle-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1.5rem; align-items: start; }
+  @media (max-width: 768px) { .detalle-layout { grid-template-columns: 1fr; } }
 
+  /* Tarjeta lateral */
+  .foto-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    padding: 1.75rem 1.5rem; text-align: center;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); position: sticky; top: 1rem;
+  }
+  .foto-preview {
+    width: 140px; height: 140px; border-radius: 50%;
+    object-fit: cover; border: 4px solid #e2e8f0;
+    margin: 0 auto 1rem; display: block;
+  }
+  .foto-placeholder {
+    width: 140px; height: 140px; border-radius: 50%;
+    background: #f1f5f9; border: 4px solid #e2e8f0;
+    margin: 0 auto 1rem; display: flex; align-items: center;
+    justify-content: center; font-size: 3rem; color: #94a3b8;
+  }
+  .foto-nombre { font-weight: 700; font-size: 1rem; color: #0f172a; margin-bottom: 0.25rem; }
+  .foto-sub    { font-size: 0.8rem; color: #64748b; }
 
-    <meta charset="UTF-8">
-    <title>Ficha del Estudiante</title>
-    <style>
-        .ficha {
-            width: 600px;
-            margin: auto;
-            border: 5px solid #ccc;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-        }
-        .foto {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .foto img {
-            width: 100px;
-            height: 150px;
-            object-fit: cover;
-            border: 1px solid #999;
-        }
-        .campo {
-            margin-bottom: 15px;
-        }
-        .campo strong {
-            width: 180px;
-            display: inline-block;
-        }
-    </style>
-</head>
-<body>
+  .badge-jornada {
+    display: inline-block; font-size: 0.72rem; font-weight: 700;
+    border-radius: 6px; padding: 0.25rem 0.65rem; margin-top: 0.6rem;
+    text-transform: uppercase;
+  }
+  .jm { background: #dbeafe; color: #1e40af; }
+  .jt { background: #fef3c7; color: #92400e; }
 
-<div class="ficha">
-    <h2 style="text-align:left;"></h2>
+  /* Tarjeta principal */
+  .info-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden;
+  }
+  .info-card-header {
+    padding: 1rem 1.5rem; border-bottom: 1px solid #f1f5f9;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .info-card-header h6 { margin: 0; font-weight: 700; color: #0f172a; font-size: 0.95rem; }
+  .section-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
 
-    <div class="foto">
-        {% if estudiante.foto %}
-            <img src="{{ estudiante.foto.url }}" height="100">
-        {% else %}
-            <p><em>Sin foto</em></p>
-        {% endif %}
+  /* Secciones */
+  .info-section { padding: 1.1rem 1.5rem; border-bottom: 1px solid #f8fafc; }
+  .info-section:last-child { border-bottom: none; }
+  .section-title {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #94a3b8; margin-bottom: 0.9rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
+
+  /* Campos en grid */
+  .campos-grid { display: grid; gap: 0.75rem 1.5rem; }
+  .campos-grid.col-2 { grid-template-columns: 1fr 1fr; }
+  .campos-grid.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 640px) {
+    .campos-grid.col-2, .campos-grid.col-3 { grid-template-columns: 1fr; }
+  }
+
+  .campo-item {}
+  .campo-label {
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 0.2rem;
+  }
+  .campo-valor {
+    font-size: 0.875rem; color: #0f172a; font-weight: 500;
+  }
+  .campo-valor.vacio { color: #cbd5e1; font-style: italic; font-weight: 400; }
+  .campo-valor.mono  { font-family: monospace; font-size: 0.9rem; }
+
+  .badge-linea {
+    display: inline-block; font-size: 0.78rem; font-weight: 600;
+    border-radius: 6px; padding: 0.2rem 0.65rem;
+    background: #f1f5f9; color: #475569;
+  }
+
+  /* Acciones */
+  .info-footer {
+    padding: 1rem 1.5rem; border-top: 1px solid #f1f5f9;
+    display: flex; gap: 0.75rem; align-items: center;
+  }
+  .btn-volver {
+    border: 1px solid #e2e8f0; border-radius: 9px; background: #fff;
+    color: #64748b; font-size: 0.875rem; font-weight: 600;
+    padding: 0.55rem 1.25rem; text-decoration: none; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn-volver:hover { background: #f8fafc; color: #334155; }
+  .btn-editar-det {
+    background: #1a3a6e; color: #fff; border: none; border-radius: 9px;
+    font-size: 0.875rem; font-weight: 700; padding: 0.55rem 1.25rem;
+    text-decoration: none; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn-editar-det:hover { background: #274d9e; color: #fff; transform: translateY(-1px); }
+</style>
+
+<!-- Breadcrumb -->
+<nav style="font-size:0.8rem; color:#94a3b8; margin-bottom:1rem;">
+  <a href="{% url 'estudiantes' %}" style="color:#64748b; text-decoration:none;">Estudiantes</a>
+  <span style="margin:0 0.4rem;">/</span>
+  <span style="color:#0f172a; font-weight:600;">{{ estudiante.apellidos }}, {{ estudiante.nombres }}</span>
+</nav>
+
+<div class="detalle-layout">
+
+  <!-- ===== COLUMNA LATERAL: FOTO ===== -->
+  <div>
+    <div class="foto-card">
+      {% if estudiante.foto %}
+        <img src="{{ estudiante.foto.url }}" class="foto-preview" alt="Foto">
+      {% else %}
+        <div class="foto-placeholder">&#128100;</div>
+      {% endif %}
+
+      <div class="foto-nombre">{{ estudiante.apellidos }}</div>
+      <div class="foto-nombre" style="font-weight:400; color:#334155;">{{ estudiante.nombres }}</div>
+      <div class="foto-sub" style="margin-top:0.4rem;">{{ estudiante.curso }}</div>
+
+      {% if estudiante.jornada == 'JM' %}
+        <span class="badge-jornada jm">&#9728; Jornada Mañana</span>
+      {% else %}
+        <span class="badge-jornada jt">&#127769; Jornada Tarde</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ===== COLUMNA PRINCIPAL ===== -->
+  <div class="info-card">
+
+    <div class="info-card-header">
+      <div class="section-icon" style="background:#dbeafe;">&#128203;</div>
+      <h6>Ficha del estudiante</h6>
     </div>
 
-    <div class="campo"><strong>Nombres:</strong> {{ estudiante.nombres }}</div>
-    <div class="campo"><strong>Apellidos:</strong> {{ estudiante.apellidos }}</div>
-    <div class="campo"><strong>Tipo de documento:</strong> {{ estudiante.get_tipo_display }}</div>
-    <div class="campo"><strong>Número de documento:</strong> {{ estudiante.documento }}</div>
-    <div class="campo"><strong>Curso:</strong> {{ estudiante.curso }}</div>
-    <div class="campo"><strong>Jornada:</strong> {{ estudiante.jornada }}</div>
-    <div class="campo"><strong>Línea de media:</strong> {{ estudiante.get_linea_display }}</div>
-    <div class="campo"><strong>Celular:</strong> {{ estudiante.celular }}</div>
-    <div class="campo"><strong>Email:</strong> {{ estudiante.email }}</div>
-    <div class="campo"><strong>Acudiente:</strong> {{ estudiante.acudiente }}</div>
-    <div class="campo"><strong>Parentesco Acudiente:</strong> {{ estudiante.parentesco }}</div>
-    <div class="campo"><strong>Teléfono Acudiente:</strong> {{ estudiante.tel_acudiente }}</div>
-    <div class="campo"><strong>Teléfono 2 Acudiente:</strong> {{ estudiante.tel2_acudiente }}</div>
-    <div class="campo"><strong>Dirección:</strong> {{ estudiante.direccion }}</div>
-    <div class="campo"><strong>Ocupación Acudiente:</strong> {{ estudiante.ocupacion_acudiente }}</div>
-    <div class="campo"><strong>EPS:</strong> {{ estudiante.eps }}</div>
-    <div class="campo"><strong>Observaciones:</strong> {{ estudiante.observaciones }}</div>
-
-    <br>
-    <a class="btn btn-info" href="{% url 'estudiantes' %}" role="button" >
-        Volver
-    </a>
-</div>
-
-        
+    <!-- IDENTIFICACIÓN -->
+    <div class="info-section">
+      <div class="section-title">Identificación</div>
+      <div class="campos-grid col-3">
+        <div class="campo-item">
+          <div class="campo-label">Tipo de doc.</div>
+          <div class="campo-valor">{{ estudiante.get_tipo_display }}</div>
+        </div>
+        <div class="campo-item">
+          <div class="campo-label">Número de documento</div>
+          <div class="campo-valor mono">{{ estudiante.documento }}</div>
+        </div>
+        <div class="campo-item">
+          <div class="campo-label">Línea de media</div>
+          <div class="campo-valor"><span class="badge-linea">{{ estudiante.get_linea_display }}</span></div>
+        </div>
+      </div>
     </div>
-    <div class="card-footer text-muted">Footer</div>
- </div>
-</body>
-</html>
 
+    <!-- DATOS PERSONALES -->
+    <div class="info-section">
+      <div class="section-title">Datos personales</div>
+      <div class="campos-grid col-2">
+        <div class="campo-item">
+          <div class="campo-label">Celular</div>
+          <div class="campo-valor {% if not estudiante.celular %}vacio{% endif %}">
+            {{ estudiante.celular|default:"Sin registrar" }}
+          </div>
+        </div>
+        <div class="campo-item">
+          <div class="campo-label">Email</div>
+          <div class="campo-valor {% if not estudiante.email %}vacio{% endif %}">
+            {{ estudiante.email|default:"Sin registrar" }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACUDIENTE -->
+    <div class="info-section">
+      <div class="section-title">Acudiente</div>
+      <div class="campos-grid col-2" style="margin-bottom:0.75rem;">
+        <div class="campo-item">
+          <div class="campo-label">Nombre</div>
+          <div class="campo-valor {% if not estudiante.acudiente %}vacio{% endif %}">
+            {{ estudiante.acudiente|default:"Sin registrar" }}
+          </div>
+        </div>
+        <div class="campo-item">
+          <div class="campo-label">Parentesco</div>
+          <div class="campo-valor {% if not estudiante.parentesco %}vacio{% endif %}">
+            {{ estudiante.parentesco|default:"Sin registrar" }}
+          </div>
+        </div>
+      </div>
+      <div class="campos-grid col-3">
+        <div class="campo-item">
+          <div class="campo-label">Teléfono 1</div>
+          <div class="campo-valor {% if not estudiante.tel_acudiente %}vacio{% endif %}">
+            {{ estudiante.tel_acudiente|default:"—" }}
+          </div>
+        </div>
+        <div class="campo-item">
+          <div class="campo-label">Teléfono 2</div>
+          <div class="campo-valor {% if not estudiante.tel2_acudiente %}vacio{% endif %}">
+            {{ estudiante.tel2_acudiente|default:"—" }}
+          </div>
+        </div>
+        <div class="campo-item">
+          <div class="campo-label">Ocupación</div>
+          <div class="campo-valor {% if not estudiante.ocupacion_acudiente %}vacio{% endif %}">
+            {{ estudiante.ocupacion_acudiente|default:"—" }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTACTO -->
+    <div class="info-section">
+      <div class="section-title">Contacto y salud</div>
+      <div class="campos-grid col-2">
+        <div class="campo-item">
+          <div class="campo-label">Dirección</div>
+          <div class="campo-valor {% if not estudiante.direccion %}vacio{% endif %}">
+            {{ estudiante.direccion|default:"Sin registrar" }}
+          </div>
+        </div>
+        <div class="campo-item">
+          <div class="campo-label">EPS</div>
+          <div class="campo-valor {% if not estudiante.eps %}vacio{% endif %}">
+            {{ estudiante.eps|default:"Sin registrar" }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OBSERVACIONES -->
+    {% if estudiante.observaciones %}
+    <div class="info-section">
+      <div class="section-title">Observaciones</div>
+      <div class="campo-valor" style="white-space:pre-line; line-height:1.6;">{{ estudiante.observaciones }}</div>
+    </div>
+    {% endif %}
+
+    <!-- ACCIONES -->
+    <div class="info-footer">
+      <a href="{% url 'estudiantes' %}" class="btn-volver">&#8592; Volver</a>
+      {% if es_directivo %}
+        <a href="{% url 'editar' estudiante.id %}" class="btn-editar-det">&#9998; Editar</a>
+      {% endif %}
+    </div>
+
+  </div><!-- info-card -->
+</div><!-- detalle-layout -->
 
 {% endblock %}

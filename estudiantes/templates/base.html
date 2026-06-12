@@ -5,172 +5,98 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>{% block Titulo %}Sistema Escolar{% endblock %}</title>
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-
     <style>
-        :root {
-            --color-primary: #1a3a6e;
-            --color-accent: #e63946;
-        }
-
-        body {
-            background-color: #f0f2f5;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
-
-        /* NAVBAR */
-        .navbar {
-            background: linear-gradient(90deg, var(--color-primary) 0%, #274d9e 100%);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.25);
-            padding: 0.6rem 1.5rem;
-        }
-
-        .navbar-brand {
-            color: #fff !important;
-            font-weight: 700;
-            font-size: 1.1rem;
-            letter-spacing: 0.3px;
-        }
-
-        .navbar-brand span {
-            background: var(--color-accent);
-            color: white;
-            border-radius: 6px;
-            padding: 1px 7px;
-            font-size: 0.85rem;
-            margin-right: 6px;
-            vertical-align: middle;
-        }
-
-        .nav-link-custom {
-            color: rgba(255,255,255,0.8) !important;
-            font-size: 0.88rem;
-            font-weight: 500;
-            padding: 0.45rem 0.9rem !important;
-            border-radius: 8px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .nav-link-custom:hover, .nav-link-custom.active {
-            background: rgba(255,255,255,0.15);
-            color: #fff !important;
-        }
-
-        .nav-link-custom.accent {
-            background: var(--color-accent);
-            color: #fff !important;
-        }
-
-        .nav-link-custom.accent:hover {
-            background: #c1121f;
-        }
-
-        .nav-user-badge {
-            background: rgba(255,255,255,0.15);
-            color: rgba(255,255,255,0.9);
-            border-radius: 20px;
-            padding: 0.3rem 0.85rem;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* MAIN */
-        main.container {
-            padding-top: 1.75rem;
-            padding-bottom: 2.5rem;
-        }
-
-        /* MESSAGES */
-        .django-messages {
-            position: fixed;
-            top: 70px; right: 20px;
-            z-index: 9999;
-            min-width: 280px;
-        }
+        body { background-color:#f0f2f5; font-family:'Segoe UI',system-ui,sans-serif; }
+        .navbar { background:linear-gradient(90deg,#1a3a6e 0%,#274d9e 100%); box-shadow:0 2px 12px rgba(0,0,0,.25); padding:.6rem 1.5rem; }
+        .navbar-brand { color:#fff!important; font-weight:700; font-size:1.1rem; }
+        .navbar-brand span { background:#e63946; color:white; border-radius:6px; padding:1px 7px; font-size:.85rem; margin-right:6px; vertical-align:middle; }
+        .nav-link-custom { color:rgba(255,255,255,.8)!important; font-size:.88rem; font-weight:500; padding:.45rem .9rem!important; border-radius:8px; transition:all .2s; display:flex; align-items:center; gap:5px; }
+        .nav-link-custom:hover,.nav-link-custom.active { background:rgba(255,255,255,.15); color:#fff!important; }
+        .nav-link-custom.accent { background:#e63946; color:#fff!important; }
+        .nav-link-custom.accent:hover { background:#c1121f; }
+        .nav-user-badge { background:rgba(255,255,255,.15); color:rgba(255,255,255,.9); border-radius:20px; padding:.3rem .85rem; font-size:.8rem; font-weight:600; display:flex; align-items:center; gap:6px; }
+        .rol-badge { font-size:.65rem; font-weight:700; border-radius:10px; padding:.1rem .45rem; margin-left:4px; vertical-align:middle; }
+        .rol-directivo { background:#7c3aed; color:#fff; }
+        .rol-docente    { background:#0369a1; color:#fff; }
+        main.container { padding-top:1.75rem; padding-bottom:2.5rem; }
+        .django-messages { position:fixed; top:70px; right:20px; z-index:9999; min-width:280px; }
     </style>
 </head>
 <body>
 
 <nav class="navbar navbar-expand-lg">
-    <div class="container-fluid">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'inicio' %}">
+      <span>EM</span> Sistema Escolar
+    </a>
+    <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon" style="filter:invert(1);"></span>
+    </button>
 
-        <a class="navbar-brand" href="{% url 'inicio' %}">
-            <span>EM</span> Sistema Escolar
-        </a>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav me-auto ms-3 gap-1">
+        <li class="nav-item">
+          <a class="nav-link-custom" href="{% url 'inicio' %}"><i class="bi bi-house-door"></i> Inicio</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link-custom" href="{% url 'estudiantes' %}"><i class="bi bi-people"></i> Estudiantes</a>
+        </li>
+        {% if request.user.is_superuser or request.user.groups.all.0.name == 'directivo' %}
+        <li class="nav-item">
+          <a class="nav-link-custom" href="{% url 'gestion_masiva' %}"><i class="bi bi-table"></i> Gestión masiva</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link-custom" href="{% url 'lista_usuarios' %}"><i class="bi bi-person-gear"></i> Usuarios</a>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+          <a class="nav-link-custom accent" href="{% url 'almuerzo' %}"><i class="bi bi-qr-code-scan"></i> Escanear</a>
+        </li>
+      </ul>
 
-        <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-            <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navMenu">
-            <ul class="navbar-nav me-auto ms-3 gap-1">
-                <li class="nav-item">
-                    <a class="nav-link-custom" href="{% url 'inicio' %}">
-                        <i class="bi bi-house-door"></i> Inicio
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link-custom" href="{% url 'estudiantes' %}">
-                        <i class="bi bi-people"></i> Estudiantes
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link-custom" href="{% url 'gestion_masiva' %}">
-                        <i class="bi bi-table"></i> Gestión masiva
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link-custom accent" href="{% url 'almuerzo' %}">
-                        <i class="bi bi-qr-code-scan"></i> Escanear
-                    </a>
-                </li>
-            </ul>
-
-            <ul class="navbar-nav ms-auto align-items-center gap-2">
-                {% if request.user.is_authenticated %}
-                    <li class="nav-item">
-                        <span class="nav-user-badge">
-                            <i class="bi bi-person-circle"></i> {{ request.user.username|upper }}
-                        </span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link-custom" href="{% url 'exit' %}">
-                            <i class="bi bi-box-arrow-right"></i> Salir
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link-custom" href="{% url 'login' %}">
-                            <i class="bi bi-box-arrow-in-right"></i> Iniciar sesion
-                        </a>
-                    </li>
-                {% endif %}
-            </ul>
-        </div>
+      <ul class="navbar-nav ms-auto align-items-center gap-2">
+        {% if request.user.is_authenticated %}
+          <li class="nav-item">
+            <span class="nav-user-badge">
+              <i class="bi bi-person-circle"></i>
+              {{ request.user.username|upper }}
+              {% if request.user.is_superuser %}
+                <span class="rol-badge rol-directivo">Admin</span>
+              {% elif request.user.groups.all.0.name == 'directivo' %}
+                <span class="rol-badge rol-directivo">Directivo</span>
+              {% else %}
+                <span class="rol-badge rol-docente">Docente</span>
+              {% endif %}
+            </span>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-custom" href="{% url 'exit' %}"><i class="bi bi-box-arrow-right"></i> Salir</a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link-custom" href="{% url 'login' %}"><i class="bi bi-box-arrow-in-right"></i> Iniciar sesión</a>
+          </li>
+        {% endif %}
+      </ul>
     </div>
+  </div>
 </nav>
 
 {% if messages %}
 <div class="django-messages">
-    {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
+  {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
 </div>
 {% endif %}
 
 <main class="container">
-    {% block contenido %}{% endblock %}
+  {% block contenido %}{% endblock %}
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
