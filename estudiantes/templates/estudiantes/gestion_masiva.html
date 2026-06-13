@@ -215,6 +215,8 @@
 
       <div class="hint-box">
         <strong>Cómo funciona:</strong> si el número de documento ya existe, el registro se <em>actualiza</em>. Si no existe, se <em>crea</em> uno nuevo. Verá una previsualización antes de confirmar.
+        <br><br>
+        <strong>Foto:</strong> en la columna <em>"Archivo Foto"</em> escriba el nombre del archivo de imagen (ej. <code>123456789.jpg</code>). Coloque ese archivo en la carpeta <code>fotos/fotos/</code> del servidor antes de importar.
       </div>
 
       <form method="post" action="{% url 'importar_estudiantes' %}" enctype="multipart/form-data" id="form-importar">

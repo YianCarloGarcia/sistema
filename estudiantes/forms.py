@@ -27,6 +27,9 @@ class EstudianteForm(forms.ModelForm):
             'eps':                 forms.TextInput(attrs={'class': 'form-control'}),
             'observaciones':       forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'foto':                forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'en_practica':           forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'fecha_inicio_practica': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'dependencia_practica':  forms.Select(attrs={'class': 'form-select'}),
         }
 
 

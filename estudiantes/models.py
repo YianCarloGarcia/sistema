@@ -44,6 +44,18 @@ class Estudiante(models.Model):
     observaciones = models.TextField(verbose_name="Observaciones", null=True, blank=True)
     foto = models.ImageField(upload_to='fotos/', null=True, blank=True)
 
+    DEPENDENCIA_PRACTICA = [
+        ('COORD_PRIM', 'Coordinación Primaria'),
+        ('COORD_BACH', 'Coordinación Bachillerato'),
+        ('ORIENTACION', 'Orientación'),
+        ('SECRETARIA', 'Secretaría'),
+        ('BIBLIOTECA', 'Biblioteca'),
+        ('OTRO', 'Otro'),
+    ]
+    en_practica = models.BooleanField(default=False, verbose_name="¿Está haciendo práctica?")
+    fecha_inicio_practica = models.DateField(verbose_name="Fecha de inicio de práctica", null=True, blank=True)
+    dependencia_practica = models.CharField(max_length=20, choices=DEPENDENCIA_PRACTICA, verbose_name="Dependencia de práctica", null=True, blank=True)
+
     
     # mostrrar datos en el admin
     def __str__(self):

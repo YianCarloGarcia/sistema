@@ -227,6 +227,24 @@
       </div>
     </div>
 
+    <div class="form-section" id="seccion-practica" style="display:none;">
+      <div class="section-title">Práctica (Asistencia Administrativa)</div>
+      <div class="fields-row col-3">
+        <div class="field-group">
+          <label class="field-label">{{ formulario.en_practica.label }}</label><br>
+          {{ formulario.en_practica }}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Fecha de inicio</label>
+          {{ formulario.fecha_inicio_practica }}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Dependencia</label>
+          {{ formulario.dependencia_practica }}
+        </div>
+      </div>
+    </div>
+
     <!-- SECCIÓN 4: ACUDIENTE -->
     <div class="form-section">
       <div class="section-title">Acudiente</div>
@@ -309,6 +327,18 @@ document.getElementById('id_foto').addEventListener('change', function() {
   };
   reader.readAsDataURL(file);
 });
+
+(function() {
+  const lineaSelect = document.getElementById('id_linea');
+  const seccion = document.getElementById('seccion-practica');
+  function actualizar() {
+    seccion.style.display = (lineaSelect.value === 'AA') ? '' : 'none';
+  }
+  if (lineaSelect && seccion) {
+    lineaSelect.addEventListener('change', actualizar);
+    actualizar();
+  }
+})();
 </script>
 
 {% endblock %}

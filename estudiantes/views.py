@@ -11,7 +11,7 @@ from django.contrib.auth.models import User, Group
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.conf import settings
-import io, csv, zipfile, json
+import io, csv, zipfile, json, os
 from datetime import datetime
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -97,6 +97,7 @@ CAMPOS_EXPORTAR = [
     ('ocupacion_acudiente', 'Ocupacion Acudiente'),
     ('eps',                 'EPS'),
     ('observaciones',       'Observaciones'),
+    ('archivo_foto',        'Archivo Foto'),
 ]
 CAMPOS_IMPORTAR_REQUERIDOS = ['documento', 'apellidos', 'nombres', 'jornada', 'curso', 'linea']
 VALORES_JORNADA = [v for v, _ in Estudiante.JORNADA]
@@ -134,11 +135,14 @@ def _build_excel(queryset):
     alt = PatternFill("solid", fgColor="F8FAFC")
     for ri, est in enumerate(queryset, 2):
         for ci, (field, _) in enumerate(CAMPOS_EXPORTAR, 1):
-            val = getattr(est, field, '') or ''
+            if field == 'archivo_foto':
+                val = os.path.basename(est.foto.name) if est.foto else ''
+            else:
+                val = getattr(est, field, '') or ''
             c = ws.cell(row=ri, column=ci, value=str(val))
             c.alignment = Alignment(vertical="center"); c.border = border
             if ri % 2 == 0: c.fill = alt
-    anchos = [14,8,20,20,10,8,10,14,24,22,12,14,14,24,20,14,30]
+    anchos = [14,8,20,20,10,8,10,14,24,22,12,14,14,24,20,14,30,20]
     for i, w in enumerate(anchos, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = "A2"
@@ -395,10 +399,16 @@ def importar_estudiantes(request):
             filas = json.loads(request.POST.get('filas_json', '[]'))
             creados = actualizados = omitidos = 0
             for fila in filas:
-                if fila.get('_error'): omitidos += 1; continue
+                if fila.get('error'): omitidos += 1; continue
                 doc = fila.get('documento', '').strip()
                 if not doc: omitidos += 1; continue
-                campos = {k: v for k, v in fila.items() if not k.startswith('_') and k != 'documento'}
+                campos = {k: v for k, v in fila.items()
+                          if k not in ('error', 'errores', 'advertencias', 'fila', 'existe', 'documento', 'archivo_foto')}
+                archivo_foto = fila.get('archivo_foto', '').strip()
+                if archivo_foto:
+                    ruta_foto = os.path.join(settings.MEDIA_ROOT, 'fotos', archivo_foto)
+                    if os.path.isfile(ruta_foto):
+                        campos['foto'] = f'fotos/{archivo_foto}'
                 _, creado = Estudiante.objects.update_or_create(documento=doc, defaults=campos)
                 creados += 1 if creado else 0
                 actualizados += 0 if creado else 1
@@ -425,15 +435,22 @@ def importar_estudiantes(request):
                 errores.append(f"Jornada '{row['jornada']}' inválida")
             if row.get('linea') and row['linea'] not in VALORES_LINEA:
                 errores.append(f"Línea '{row['linea']}' inválida")
+            advertencias = []
+            archivo_foto = row.get('archivo_foto', '').strip()
+            if archivo_foto:
+                ruta_foto = os.path.join(settings.MEDIA_ROOT, 'fotos', archivo_foto)
+                if not os.path.isfile(ruta_foto):
+                    advertencias.append(f"Foto '{archivo_foto}' no encontrada en la carpeta de fotos")
             doc = row.get('documento', '').strip()
-            row['_fila']    = i
-            row['_errores'] = errores
-            row['_error']   = bool(errores)
-            row['_existe']  = Estudiante.objects.filter(documento=doc).exists() if doc else False
+            row['fila']    = i
+            row['errores'] = errores
+            row['advertencias'] = advertencias
+            row['error']   = bool(errores)
+            row['existe']  = Estudiante.objects.filter(documento=doc).exists() if doc else False
             preview.append(row)
 
-        validos   = sum(1 for r in preview if not r['_error'])
-        invalidos = sum(1 for r in preview if r['_error'])
+        validos   = sum(1 for r in preview if not r['error'])
+        invalidos = sum(1 for r in preview if r['error'])
         return render(request, 'estudiantes/importar_preview.html', {
             'preview': preview, 'validos': validos, 'invalidos': invalidos,
             'filas_json': json.dumps(preview),
