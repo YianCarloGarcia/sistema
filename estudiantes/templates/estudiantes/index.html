@@ -42,9 +42,24 @@
   .btn-limpiar {
     border: 1px solid #e2e8f0; border-radius: 8px;
     font-size: 0.875rem; color: #64748b; background: #fff;
-    padding: 0.5rem 1rem; transition: all 0.2s;
+    padding: 0.5rem 1rem; transition: all 0.2s; text-decoration: none;
+    display: inline-flex; align-items: center;
   }
   .btn-limpiar:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+  /* Grupos de checkbox-filtros */
+  .filtro-grupo { min-width: 110px; }
+  .filtro-grupo-titulo {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: #64748b; margin-bottom: 0.4rem;
+  }
+  .filtro-checks { display: flex; flex-direction: column; gap: 0.3rem; }
+  .filtro-checks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem 1rem; }
+  .filtro-check-label {
+    font-size: 0.82rem; color: #334155; cursor: pointer;
+    display: flex; align-items: center; gap: 0.35rem; white-space: nowrap;
+  }
+  .filtro-check-label input[type=checkbox] { accent-color: #1a3a6e; width: 14px; height: 14px; }
 
   /* ---- Badges de filtros activos ---- */
   .badge-filtro {
@@ -164,86 +179,77 @@
 <!-- ===== FILTROS ===== -->
 <div class="filtros-card">
   <form method="get" id="form-filtros">
-    <div class="row g-2 align-items-end">
 
-      <!-- Búsqueda texto -->
-      <div class="col-12 col-md-4">
-        <label class="form-label">&#128269; Buscar</label>
+    <!-- Fila 1: búsqueda + botones -->
+    <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin-bottom:0.85rem;">
+      <div style="flex:1; min-width:200px;">
         <input type="text" name="q" class="form-control"
-               placeholder="Nombre, apellido o documento..."
+               placeholder="🔍 Nombre, apellido o documento..."
                value="{{ filtro_q }}">
       </div>
+      <button type="submit" class="btn-filtrar">Filtrar</button>
+      {% if hay_filtros or filtro_q %}
+        <a href="{% url 'estudiantes' %}" class="btn-limpiar">✕ Limpiar</a>
+      {% endif %}
+    </div>
+
+    <!-- Fila 2: grupos de checkboxes -->
+    <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
 
       <!-- Jornada -->
-      <div class="col-6 col-md-2">
-        <label class="form-label">Jornada</label>
-        <select name="jornada" class="form-select">
-          <option value="">Todas</option>
-          {% for val, label in jornadas %}
-            <option value="{{ val }}" {% if filtro_jornada == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
+      <div class="filtro-grupo">
+        <div class="filtro-grupo-titulo">Jornada</div>
+        <div class="filtro-checks">
+          <label class="filtro-check-label">
+            <input type="checkbox" name="jornada" value="JM"
+              {% if "JM" in filtro_jornadas %}checked{% endif %}> ☀ Mañana
+          </label>
+          <label class="filtro-check-label">
+            <input type="checkbox" name="jornada" value="JT"
+              {% if "JT" in filtro_jornadas %}checked{% endif %}> 🌙 Tarde
+          </label>
+        </div>
       </div>
 
-      <!-- Curso -->
-      <div class="col-6 col-md-2">
-        <label class="form-label">Curso</label>
-        <select name="curso" class="form-select">
-          <option value="">Todos</option>
-          {% for c in cursos_disponibles %}
-            <option value="{{ c }}" {% if filtro_curso == c %}selected{% endif %}>{{ c }}</option>
-          {% endfor %}
-        </select>
+      <!-- Grado -->
+      <div class="filtro-grupo">
+        <div class="filtro-grupo-titulo">Grado</div>
+        <div class="filtro-checks">
+          <label class="filtro-check-label">
+            <input type="checkbox" name="grado" value="10"
+              {% if "10" in filtro_grados %}checked{% endif %}> 10°
+          </label>
+          <label class="filtro-check-label">
+            <input type="checkbox" name="grado" value="11"
+              {% if "11" in filtro_grados %}checked{% endif %}> 11°
+          </label>
+        </div>
       </div>
 
-      <!-- Línea -->
-      <div class="col-12 col-md-3">
-        <label class="form-label">Línea de media</label>
-        <select name="linea" class="form-select">
-          <option value="">Todas</option>
+      <!-- Línea de media -->
+      <div class="filtro-grupo">
+        <div class="filtro-grupo-titulo">Línea de media</div>
+        <div class="filtro-checks filtro-checks-grid">
           {% for val, label in lineas %}
-            <option value="{{ val }}" {% if filtro_linea == val %}selected{% endif %}>{{ label }}</option>
+          <label class="filtro-check-label">
+            <input type="checkbox" name="linea" value="{{ val }}"
+              {% if val in filtro_lineas %}checked{% endif %}> {{ label }}
+          </label>
           {% endfor %}
-        </select>
+        </div>
       </div>
 
-      <!-- Botones -->
-      <div class="col-12 col-md-1 d-flex gap-2">
-        <button type="submit" class="btn-filtrar w-100">Filtrar</button>
-      </div>
-
-    </div><!-- row -->
+    </div><!-- grupos -->
   </form>
 
   <!-- Badges de filtros activos -->
-  {% if filtro_q or filtro_jornada or filtro_curso or filtro_linea %}
-  <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
-    <span style="font-size:0.75rem;color:#64748b;">Filtros activos:</span>
-    {% if filtro_q %}
-      <span class="badge-filtro">
-        "{{ filtro_q }}"
-        <a href="?{% if filtro_jornada %}jornada={{ filtro_jornada }}&{% endif %}{% if filtro_curso %}curso={{ filtro_curso }}&{% endif %}{% if filtro_linea %}linea={{ filtro_linea }}{% endif %}">&times;</a>
-      </span>
-    {% endif %}
-    {% if filtro_jornada %}
-      <span class="badge-filtro">
-        Jornada: {{ filtro_jornada }}
-        <a href="?{% if filtro_q %}q={{ filtro_q }}&{% endif %}{% if filtro_curso %}curso={{ filtro_curso }}&{% endif %}{% if filtro_linea %}linea={{ filtro_linea }}{% endif %}">&times;</a>
-      </span>
-    {% endif %}
-    {% if filtro_curso %}
-      <span class="badge-filtro">
-        Curso: {{ filtro_curso }}
-        <a href="?{% if filtro_q %}q={{ filtro_q }}&{% endif %}{% if filtro_jornada %}jornada={{ filtro_jornada }}&{% endif %}{% if filtro_linea %}linea={{ filtro_linea }}{% endif %}">&times;</a>
-      </span>
-    {% endif %}
-    {% if filtro_linea %}
-      <span class="badge-filtro">
-        Línea: {{ filtro_linea }}
-        <a href="?{% if filtro_q %}q={{ filtro_q }}&{% endif %}{% if filtro_jornada %}jornada={{ filtro_jornada }}&{% endif %}{% if filtro_curso %}curso={{ filtro_curso }}{% endif %}">&times;</a>
-      </span>
-    {% endif %}
-    <a href="{% url 'estudiantes' %}" class="btn-limpiar">&#10005; Limpiar todo</a>
+  {% if hay_filtros or filtro_q %}
+  <div style="display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; margin-top:0.65rem;">
+    <span style="font-size:0.72rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Activos:</span>
+    {% if filtro_q %}<span class="badge-filtro">🔍 "{{ filtro_q }}"</span>{% endif %}
+    {% for j in filtro_jornadas %}<span class="badge-filtro">{% if j == "JM" %}☀ Mañana{% else %}🌙 Tarde{% endif %}</span>{% endfor %}
+    {% for g in filtro_grados %}<span class="badge-filtro">{{ g }}°</span>{% endfor %}
+    {% for l in filtro_lineas %}<span class="badge-filtro">{{ l }}</span>{% endfor %}
   </div>
   {% endif %}
 

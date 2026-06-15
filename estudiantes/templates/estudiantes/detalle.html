@@ -250,6 +250,46 @@
     </div>
     {% endif %}
 
+    <!-- REGISTROS DEL AÑO -->
+    <div class="info-section">
+      <div class="section-title">Registros {{ anio }}</div>
+      <div class="campos-grid col-2" style="gap:0.75rem;">
+
+        <div style="background:#fef2f2; border-radius:12px; padding:0.9rem 1.1rem; display:flex; align-items:center; gap:0.75rem;">
+          <div style="font-size:1.6rem; line-height:1;">📋</div>
+          <div>
+            <div style="font-size:1.5rem; font-weight:800; color:#dc2626; line-height:1;">{{ conteos.ASI }}</div>
+            <div style="font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:#991b1b;">Fallas de asistencia</div>
+          </div>
+        </div>
+
+        <div style="background:#fff7ed; border-radius:12px; padding:0.9rem 1.1rem; display:flex; align-items:center; gap:0.75rem;">
+          <div style="font-size:1.6rem; line-height:1;">⏰</div>
+          <div>
+            <div style="font-size:1.5rem; font-weight:800; color:#ea580c; line-height:1;">{{ conteos.TAR }}</div>
+            <div style="font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:#9a3412;">Llegadas tarde</div>
+          </div>
+        </div>
+
+        <div style="background:#f0fdf4; border-radius:12px; padding:0.9rem 1.1rem; display:flex; align-items:center; gap:0.75rem;">
+          <div style="font-size:1.6rem; line-height:1;">👔</div>
+          <div>
+            <div style="font-size:1.5rem; font-weight:800; color:#16a34a; line-height:1;">{{ conteos.UNI }}</div>
+            <div style="font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:#166534;">Anotaciones uniforme</div>
+          </div>
+        </div>
+
+        <div style="background:#eff6ff; border-radius:12px; padding:0.9rem 1.1rem; display:flex; align-items:center; gap:0.75rem;">
+          <div style="font-size:1.6rem; line-height:1;">🍽️</div>
+          <div>
+            <div style="font-size:1.5rem; font-weight:800; color:#2563eb; line-height:1;">{{ conteos.ALM }}</div>
+            <div style="font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:#1e40af;">Almuerzos registrados</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- ACCIONES -->
     <div class="info-footer">
       <a href="{% url 'estudiantes' %}" class="btn-volver">&#8592; Volver</a>

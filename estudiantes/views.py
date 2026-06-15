@@ -108,14 +108,23 @@ VALORES_TIPO    = [v for v, _ in Estudiante.TIPOS_DOCUMENTO]
 def _qs_filtrada(get):
     qs = Estudiante.objects.all().order_by('apellidos', 'nombres')
     q       = get.get('q', '').strip()
-    jornada = get.get('jornada', '')
-    curso   = get.get('curso', '')
-    linea   = get.get('linea', '')
+    jornadas = get.getlist('jornada')
+    grados   = get.getlist('grado')
+    lineas   = get.getlist('linea')
+    cursos   = get.getlist('curso')
     if q:
         qs = qs.filter(Q(nombres__icontains=q) | Q(apellidos__icontains=q) | Q(documento__icontains=q))
-    if jornada: qs = qs.filter(jornada=jornada)
-    if curso:   qs = qs.filter(curso__iexact=curso)
-    if linea:   qs = qs.filter(linea=linea)
+    if jornadas:
+        qs = qs.filter(jornada__in=jornadas)
+    if grados:
+        q_grado = Q()
+        for g in grados:
+            q_grado |= Q(curso__startswith=g)
+        qs = qs.filter(q_grado)
+    if lineas:
+        qs = qs.filter(linea__in=lineas)
+    if cursos:
+        qs = qs.filter(curso__in=cursos)
     return qs
 
 
@@ -199,10 +208,12 @@ def estudiantes(request):
         'cursos_disponibles': cursos_disponibles,
         'jornadas':           Estudiante.JORNADA,
         'lineas':             Estudiante.LINEA_MEDIA,
-        'filtro_q':       request.GET.get('q', ''),
-        'filtro_jornada': request.GET.get('jornada', ''),
-        'filtro_curso':   request.GET.get('curso', ''),
-        'filtro_linea':   request.GET.get('linea', ''),
+        'filtro_q':        request.GET.get('q', ''),
+        'filtro_jornadas': request.GET.getlist('jornada'),
+        'filtro_grados':   request.GET.getlist('grado'),
+        'filtro_lineas':   request.GET.getlist('linea'),
+        'hay_filtros':     bool(request.GET.get('q') or request.GET.getlist('jornada') or
+                               request.GET.getlist('grado') or request.GET.getlist('linea')),
         'es_directivo':   _es_directivo(request.user),
     })
 
@@ -241,9 +252,16 @@ def eliminar(request, id):
 @login_required
 def detalle(request, id):
     estudiante = get_object_or_404(Estudiante, id=id)
+    anio = timezone.now().year
+    conteos = {
+        tipo: Asistencia.objects.filter(estudiante=estudiante, tipo=tipo, fecha__year=anio).count()
+        for tipo in ('ALM', 'TAR', 'UNI', 'ASI')
+    }
     return render(request, 'estudiantes/detalle.html', {
         'estudiante':   estudiante,
         'es_directivo': _es_directivo(request.user),
+        'conteos':      conteos,
+        'anio':         anio,
     })
 
 

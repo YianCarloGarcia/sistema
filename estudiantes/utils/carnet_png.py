@@ -21,7 +21,7 @@ FONDO_DEFAULT = 'fondo_default'
 # Diferencias exactas entre JM y JT (tomadas de los archivos originales)
 CONFIG_JORNADA = {
     'JM': {
-        'texto_offset_y': -70,
+        'texto_offset_y': -65,
         'doc_offset_y':   1,
         'foto_x_offset':   6,
         'foto_y_offset':  10,
@@ -33,10 +33,10 @@ CONFIG_JORNADA = {
     'JT': {
         'texto_offset_y': -70,
         'doc_offset_y':   1,
-        'foto_x_offset':   6,
+        'foto_x_offset':   1,
         'foto_y_offset':   10,
-        'qr_size':        145,
-        'qr_x':           int(0.7 * PX_POR_CM - 50),
+        'qr_size':        170,
+        'qr_x':           int(0.7 * PX_POR_CM - 15),
         'qr_y':           int(ALTO - (0.5 * PX_POR_CM) - 200),
     },
 }

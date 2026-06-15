@@ -2,11 +2,187 @@ import csv, io, zipfile
 from datetime import datetime
 from django.contrib import admin
 from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
 from .models import Estudiante, Asistencia
 from .utils.pdf import generar_certificado_pdf
 from .utils.carnet import generar_carnet_pdf
 from .utils.carnet_png import generar_carnet_png
 from .utils.mosaico_pdf import generar_mosaico_pdf_por_linea
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Filtros multi-selección para el Admin
+# ══════════════════════════════════════════════════════════════════════════════
+
+class MultiSelectFilter(admin.SimpleListFilter):
+    """Base para filtros que aceptan múltiples valores vía ?param=A&param=B."""
+    separator = ','
+
+    def lookups(self, request, model_admin):
+        raise NotImplementedError
+
+    def _selected(self, request):
+        val = request.GET.get(self.parameter_name, '')
+        return [v for v in val.split(self.separator) if v]
+
+    def queryset(self, request, queryset):
+        vals = self._selected(request)
+        if not vals:
+            return queryset
+        return queryset.filter(**{f'{self.field_path}__in': vals})
+
+    def value(self):
+        # Devuelve el primer valor (para compatibilidad con "selected" en el sidebar)
+        vals = self.request.GET.get(self.parameter_name, '')
+        return vals or None
+
+    def choices(self, changelist):
+        # Reconstruimos las URL para multi-selección tipo toggle
+        self.request = changelist.params  # no disponible aquí
+        yield {
+            'selected': not changelist.get_query_string({self.parameter_name: ''}),
+            'query_string': changelist.get_query_string(remove=[self.parameter_name]),
+            'display': _('Todos'),
+        }
+        selected_vals = changelist.params.get(self.parameter_name, '').split(self.separator)
+        selected_vals = [v for v in selected_vals if v]
+        for lookup, title in self.lookup_choices:
+            lookup = str(lookup)
+            if lookup in selected_vals:
+                new_vals = [v for v in selected_vals if v != lookup]
+            else:
+                new_vals = selected_vals + [lookup]
+            qs = changelist.get_query_string({self.parameter_name: self.separator.join(new_vals)})
+            yield {
+                'selected': lookup in selected_vals,
+                'query_string': qs,
+                'display': title,
+            }
+
+    def queryset(self, request, queryset):
+        val = request.GET.get(self.parameter_name, '')
+        vals = [v for v in val.split(self.separator) if v]
+        if not vals:
+            return queryset
+        return queryset.filter(**{f'{self.field_path}__in': vals})
+
+
+class JornadaFilter(MultiSelectFilter):
+    title        = 'Jornada'
+    parameter_name = 'jornada'
+    field_path   = 'jornada'
+
+    def lookups(self, request, model_admin):
+        self.lookup_choices = Estudiante.JORNADA
+        return Estudiante.JORNADA
+
+
+class GradoFilter(admin.SimpleListFilter):
+    title          = 'Grado'
+    parameter_name = 'grado'
+    separator      = ','
+
+    def lookups(self, request, model_admin):
+        return [('10', '10°'), ('11', '11°')]
+
+    def choices(self, changelist):
+        yield {
+            'selected': not changelist.params.get(self.parameter_name),
+            'query_string': changelist.get_query_string(remove=[self.parameter_name]),
+            'display': _('Todos'),
+        }
+        selected_vals = changelist.params.get(self.parameter_name, '').split(self.separator)
+        selected_vals = [v for v in selected_vals if v]
+        for lookup, title in self.lookup_choices:
+            lookup = str(lookup)
+            if lookup in selected_vals:
+                new_vals = [v for v in selected_vals if v != lookup]
+            else:
+                new_vals = selected_vals + [lookup]
+            qs = changelist.get_query_string({self.parameter_name: self.separator.join(new_vals)})
+            yield {
+                'selected': lookup in selected_vals,
+                'query_string': qs,
+                'display': title,
+            }
+
+    def queryset(self, request, queryset):
+        val = request.GET.get(self.parameter_name, '')
+        vals = [v for v in val.split(self.separator) if v]
+        if not vals:
+            return queryset
+        from django.db.models import Q
+        q = Q()
+        for g in vals:
+            q |= Q(curso__startswith=g)
+        return queryset.filter(q)
+
+
+class LineaFilter(MultiSelectFilter):
+    title          = 'Línea de media'
+    parameter_name = 'linea'
+    field_path     = 'linea'
+
+    def lookups(self, request, model_admin):
+        self.lookup_choices = Estudiante.LINEA_MEDIA
+        return Estudiante.LINEA_MEDIA
+
+
+class LineaAsistenciaFilter(MultiSelectFilter):
+    title          = 'Línea de media'
+    parameter_name = 'linea'
+    field_path     = 'estudiante__linea'
+
+    def lookups(self, request, model_admin):
+        self.lookup_choices = Estudiante.LINEA_MEDIA
+        return Estudiante.LINEA_MEDIA
+
+
+class JornadaAsistenciaFilter(MultiSelectFilter):
+    title          = 'Jornada'
+    parameter_name = 'jornada'
+    field_path     = 'estudiante__jornada'
+
+    def lookups(self, request, model_admin):
+        self.lookup_choices = Estudiante.JORNADA
+        return Estudiante.JORNADA
+
+
+class GradoAsistenciaFilter(admin.SimpleListFilter):
+    title          = 'Grado'
+    parameter_name = 'grado'
+    separator      = ','
+
+    def lookups(self, request, model_admin):
+        return [('10', '10°'), ('11', '11°')]
+
+    def choices(self, changelist):
+        yield {
+            'selected': not changelist.params.get(self.parameter_name),
+            'query_string': changelist.get_query_string(remove=[self.parameter_name]),
+            'display': _('Todos'),
+        }
+        selected_vals = changelist.params.get(self.parameter_name, '').split(self.separator)
+        selected_vals = [v for v in selected_vals if v]
+        for lookup, title in self.lookup_choices:
+            lookup = str(lookup)
+            new_vals = [v for v in selected_vals if v != lookup] if lookup in selected_vals else selected_vals + [lookup]
+            yield {
+                'selected': lookup in selected_vals,
+                'query_string': changelist.get_query_string({self.parameter_name: self.separator.join(new_vals)}),
+                'display': title,
+            }
+
+    def queryset(self, request, queryset):
+        val = request.GET.get(self.parameter_name, '')
+        vals = [v for v in val.split(self.separator) if v]
+        if not vals:
+            return queryset
+        from django.db.models import Q
+        q = Q()
+        for g in vals:
+            q |= Q(estudiante__curso__startswith=g)
+        return queryset.filter(q)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -204,8 +380,8 @@ def exportar_asistencia_clase_csv(ma, request, qs):
 class AsistenciaAdmin(admin.ModelAdmin):
     list_display  = ['fecha', 'hora', 'tipo', 'get_nombres', 'get_apellidos',
                      'get_jornada', 'get_curso', 'get_linea']
-    list_filter   = ['fecha', 'tipo', 'estudiante__jornada',
-                     'estudiante__curso', 'estudiante__linea']
+    list_filter   = ['fecha', 'tipo', JornadaAsistenciaFilter,
+                     GradoAsistenciaFilter, LineaAsistenciaFilter]
     search_fields = ['estudiante__nombres', 'estudiante__apellidos',
                      'estudiante__documento']
     ordering      = ['-fecha', '-hora']
@@ -235,7 +411,7 @@ class AsistenciaAdmin(admin.ModelAdmin):
 class EstudianteAdmin(admin.ModelAdmin):
     list_display  = ['documento', 'apellidos', 'nombres', 'jornada', 'curso', 'linea']
     search_fields = ['documento', 'nombres', 'apellidos']
-    list_filter   = ['jornada', 'curso', 'linea']
+    list_filter   = [JornadaFilter, GradoFilter, LineaFilter]
     actions = [
         exportar_estudiantes_csv,
         generar_certificado,
