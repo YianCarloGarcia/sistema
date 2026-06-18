@@ -32,9 +32,9 @@ CONFIG_JORNADA = {
     },
     'JT': {
         'texto_offset_y': -70,
-        'doc_offset_y':   1,
-        'foto_x_offset':   1,
-        'foto_y_offset':   10,
+        'doc_offset_y':    1,
+        'foto_x_offset':   18,
+        'foto_y_offset':   -22,
         'qr_size':        170,
         'qr_x':           int(0.7 * PX_POR_CM - 15),
         'qr_y':           int(ALTO - (0.5 * PX_POR_CM) - 200),
@@ -149,8 +149,8 @@ def generar_carnet_png(estudiante):
         try:
             foto_path = os.path.join(settings.MEDIA_ROOT, estudiante.foto.name)
             if os.path.exists(foto_path):
-                MARCO_ANCHO = 230
-                MARCO_ALTO  = 280
+                MARCO_ANCHO = 240
+                MARCO_ALTO  = 290
                 foto = Image.open(foto_path).resize((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
                 foto = foto.rotate(0, expand=True)
                 foto.thumbnail((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
