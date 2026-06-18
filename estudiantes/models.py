@@ -50,6 +50,7 @@ class Estudiante(models.Model):
         ('ORIENTACION', 'Orientación'),
         ('SECRETARIA', 'Secretaría'),
         ('BIBLIOTECA', 'Biblioteca'),
+        ('COORD_MED', 'Coordinación de Media'),
         ('OTRO', 'Otro'),
     ]
     en_practica = models.BooleanField(default=False, verbose_name="¿Está haciendo práctica?")
