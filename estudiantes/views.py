@@ -108,10 +108,10 @@ VALORES_TIPO    = [v for v, _ in Estudiante.TIPOS_DOCUMENTO]
 def _qs_filtrada(get):
     qs = Estudiante.objects.all().order_by('apellidos', 'nombres')
     q       = get.get('q', '').strip()
-    jornadas = get.getlist('jornada')
-    grados   = get.getlist('grado')
-    lineas   = get.getlist('linea')
-    cursos   = get.getlist('curso')
+    jornadas = [j for j in get.getlist('jornada') if j]
+    grados   = [g for g in get.getlist('grado')   if g]
+    lineas   = [l for l in get.getlist('linea')   if l]
+    cursos   = [c for c in get.getlist('curso')   if c]
     if q:
         qs = qs.filter(Q(nombres__icontains=q) | Q(apellidos__icontains=q) | Q(documento__icontains=q))
     if jornadas:
@@ -212,8 +212,8 @@ def estudiantes(request):
         'filtro_jornadas': request.GET.getlist('jornada'),
         'filtro_grados':   request.GET.getlist('grado'),
         'filtro_lineas':   request.GET.getlist('linea'),
-        'hay_filtros':     bool(request.GET.get('q') or request.GET.getlist('jornada') or
-                               request.GET.getlist('grado') or request.GET.getlist('linea')),
+        'hay_filtros':     bool(request.GET.get('q') or any(request.GET.getlist('jornada')) or
+                               any(request.GET.getlist('grado')) or any(request.GET.getlist('linea'))),
         'es_directivo':   _es_directivo(request.user),
     })
 

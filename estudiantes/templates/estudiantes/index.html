@@ -166,7 +166,7 @@
   <div>
     <h5>&#128106; Listado de Estudiantes</h5>
     <span class="conteo">
-      {% if filtro_q or filtro_jornada or filtro_curso or filtro_linea %}
+      {% if hay_filtros or filtro_q %}
         {{ total_filtrado }} resultado{{ total_filtrado|pluralize:"s" }} de {{ total_general }} total{{ total_general|pluralize:"es" }}
       {% else %}
         {{ total_general }} estudiante{{ total_general|pluralize:"s" }} en total
@@ -336,8 +336,8 @@
     </span>
     <div class="pag-links">
       {% if page_obj.has_previous %}
-        <a class="pag-btn" href="?page=1{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">&laquo;</a>
-        <a class="pag-btn" href="?page={{ page_obj.previous_page_number }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">&lsaquo; Ant.</a>
+        <a class="pag-btn" href="?page=1{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% for j in filtro_jornadas %}&jornada={{ j }}{% endfor %}{% for g in filtro_grados %}&grado={{ g }}{% endfor %}{% for l in filtro_lineas %}&linea={{ l }}{% endfor %}">&laquo;</a>
+        <a class="pag-btn" href="?page={{ page_obj.previous_page_number }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% for j in filtro_jornadas %}&jornada={{ j }}{% endfor %}{% for g in filtro_grados %}&grado={{ g }}{% endfor %}{% for l in filtro_lineas %}&linea={{ l }}{% endfor %}">&lsaquo; Ant.</a>
       {% else %}
         <span class="pag-btn disabled">&laquo;</span>
         <span class="pag-btn disabled">&lsaquo; Ant.</span>
@@ -347,13 +347,13 @@
         {% if page_obj.number == num %}
           <span class="pag-btn active">{{ num }}</span>
         {% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}
-          <a class="pag-btn" href="?page={{ num }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">{{ num }}</a>
+          <a class="pag-btn" href="?page={{ num }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% for j in filtro_jornadas %}&jornada={{ j }}{% endfor %}{% for g in filtro_grados %}&grado={{ g }}{% endfor %}{% for l in filtro_lineas %}&linea={{ l }}{% endfor %}">{{ num }}</a>
         {% endif %}
       {% endfor %}
 
       {% if page_obj.has_next %}
-        <a class="pag-btn" href="?page={{ page_obj.next_page_number }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">Sig. &rsaquo;</a>
-        <a class="pag-btn" href="?page={{ page_obj.paginator.num_pages }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% if filtro_jornada %}&jornada={{ filtro_jornada }}{% endif %}{% if filtro_curso %}&curso={{ filtro_curso }}{% endif %}{% if filtro_linea %}&linea={{ filtro_linea }}{% endif %}">&raquo;</a>
+        <a class="pag-btn" href="?page={{ page_obj.next_page_number }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% for j in filtro_jornadas %}&jornada={{ j }}{% endfor %}{% for g in filtro_grados %}&grado={{ g }}{% endfor %}{% for l in filtro_lineas %}&linea={{ l }}{% endfor %}">Sig. &rsaquo;</a>
+        <a class="pag-btn" href="?page={{ page_obj.paginator.num_pages }}{% if filtro_q %}&q={{ filtro_q }}{% endif %}{% for j in filtro_jornadas %}&jornada={{ j }}{% endfor %}{% for g in filtro_grados %}&grado={{ g }}{% endfor %}{% for l in filtro_lineas %}&linea={{ l }}{% endfor %}">&raquo;</a>
       {% else %}
         <span class="pag-btn disabled">Sig. &rsaquo;</span>
         <span class="pag-btn disabled">&raquo;</span>
