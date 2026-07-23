@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
 # Create your models here.
 class Estudiante(models.Model):
@@ -56,6 +57,19 @@ class Estudiante(models.Model):
     en_practica = models.BooleanField(default=False, verbose_name="¿Está haciendo práctica?")
     fecha_inicio_practica = models.DateField(verbose_name="Fecha de inicio de práctica", null=True, blank=True)
     dependencia_practica = models.CharField(max_length=20, choices=DEPENDENCIA_PRACTICA, verbose_name="Dependencia de práctica", null=True, blank=True)
+
+    # Cuenta de acceso individual del estudiante (usuario y contraseña propios)
+    usuario = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='estudiante_perfil',
+        verbose_name='Usuario de acceso',
+    )
+    debe_cambiar_clave = models.BooleanField(
+        default=False,
+        verbose_name='Debe cambiar contraseña al ingresar',
+    )
 
     
     # mostrrar datos en el admin

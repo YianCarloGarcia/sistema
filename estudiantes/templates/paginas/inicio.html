@@ -19,6 +19,60 @@
         </div>
     </div>
 
+    {% if es_estudiante %}
+    <!-- Resumen rapido para cuentas de estudiante -->
+    <div class="col-12">
+        <div class="row g-3">
+            <div class="col-6 col-md-3">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 14px; border-left: 4px solid #dc2626 !important;">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:1.7rem; font-weight:800; color:#dc2626;">{{ conteos.ASI }}</div>
+                        <div class="text-muted small">Fallas de asistencia</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 14px; border-left: 4px solid #ea580c !important;">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:1.7rem; font-weight:800; color:#ea580c;">{{ conteos.TAR }}</div>
+                        <div class="text-muted small">Llegadas tarde</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 14px; border-left: 4px solid #16a34a !important;">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:1.7rem; font-weight:800; color:#16a34a;">{{ conteos.UNI }}</div>
+                        <div class="text-muted small">Uniforme</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 14px; border-left: 4px solid #2563eb !important;">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:1.7rem; font-weight:800; color:#2563eb;">{{ conteos.ALM }}</div>
+                        <div class="text-muted small">Almuerzos</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <a href="{% url 'mi_historial' %}" class="text-decoration-none">
+            <div class="card border-0 shadow-sm" style="border-radius: 14px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="card-body d-flex align-items-center gap-3 p-4">
+                    <div style="font-size: 2.2rem;">&#128337;</div>
+                    <div>
+                        <h5 class="fw-bold mb-1">Ver mi historial completo</h5>
+                        <p class="text-muted small mb-0">Consulte el detalle de todos sus registros de {{ anio }}</p>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    {% else %}
     <!-- Tarjetas de acceso rapido -->
     <div class="col-md-4">
         <a href="{% url 'estudiantes' %}" class="text-decoration-none">
@@ -55,6 +109,7 @@
             </div>
         </a>
     </div>
+    {% endif %}
 
 </div>
 

@@ -15,6 +15,10 @@ urlpatterns = [
     path('estudiantes/editar/<int:id>', views.editar, name='editar'),
     path('estudiantes/detalle/<int:id>/', views.detalle, name='detalle'),
 
+    # Historial individual (cuenta de estudiante)
+    path('mi-historial/', views.mi_historial, name='mi_historial'),
+    path('cambiar-clave/', views.cambiar_clave_obligatorio, name='cambiar_clave_obligatorio'),
+
     # Escáner general (Almuerzo, Tardanzas, Uniforme, Asistencia)
     path('estudiantes/escaner/', views.escaner, name='escaner'),
     path('estudiantes/almuerzo/', views.almuerzo, name='almuerzo'),  # alias antiguo

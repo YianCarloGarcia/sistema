@@ -1,6 +1,7 @@
-import csv, io, zipfile
+import csv, io, zipfile, unicodedata
 from datetime import datetime
 from django.contrib import admin
+from django.contrib.auth.models import User, Group
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from .models import Estudiante, Asistencia
@@ -243,6 +244,104 @@ def _csv_asistencia(qs, tipos=None, nombre_archivo='asistencias'):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  Cuentas de acceso individuales (usuario y contraseña por estudiante)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _normalizar_texto(texto):
+    """Quita tildes/ñ y deja solo caracteres ASCII."""
+    texto = unicodedata.normalize('NFKD', texto or '')
+    return texto.encode('ascii', 'ignore').decode('ascii')
+
+
+def _username_desde_nombre(nombres, apellidos):
+    """nombres+apellidos completos, en minúscula, sin tildes ni espacios. Ej: juancamilocortesperez"""
+    base = _normalizar_texto(f"{nombres} {apellidos}").lower()
+    base = ''.join(ch for ch in base if ch.isalnum())
+    if not base:
+        base = 'estudiante'
+    username = base
+    i = 1
+    while User.objects.filter(username=username).exists():
+        i += 1
+        username = f"{base}{i}"
+    return username
+
+
+def _password_desde_documento(documento):
+    """La contraseña es el número de documento (sin espacios)."""
+    return ''.join((documento or '').split())
+
+
+@admin.action(description='🔑 Crear acceso (usuario y contraseña)')
+def crear_acceso_estudiantes(ma, request, qs):
+    grupo, _creado = Group.objects.get_or_create(name='estudiante')
+    creadas, omitidas = [], 0
+    for e in qs:
+        if e.usuario_id:
+            omitidas += 1
+            continue
+        username = _username_desde_nombre(e.nombres, e.apellidos)
+        password = _password_desde_documento(e.documento)
+        user = User.objects.create_user(
+            username=username, password=password,
+            first_name=(e.nombres or '')[:30], last_name=(e.apellidos or '')[:30],
+            email=e.email or '', is_staff=False,
+        )
+        user.groups.set([grupo])
+        e.usuario = user
+        e.debe_cambiar_clave = True
+        e.save(update_fields=['usuario', 'debe_cambiar_clave'])
+        creadas.append(f"{e.apellidos}, {e.nombres} → usuario: {username} / clave: {password}")
+    if creadas:
+        ma.message_user(
+            request,
+            "Cuentas creadas (usuario = nombre completo, clave = documento). "
+            "Se les pedirá cambiar la contraseña al ingresar por primera vez: "
+            + "  |  ".join(creadas),
+            level='success',
+        )
+    if omitidas:
+        ma.message_user(request, f"{omitidas} estudiante(s) ya tenían cuenta de acceso y se omitieron.", level='warning')
+
+
+@admin.action(description='♻️ Restablecer contraseña (al número de documento)')
+def restablecer_clave_estudiantes(ma, request, qs):
+    resultados, sin_acceso = [], 0
+    for e in qs:
+        if not e.usuario_id:
+            sin_acceso += 1
+            continue
+        password = _password_desde_documento(e.documento)
+        e.usuario.set_password(password)
+        e.usuario.save()
+        e.debe_cambiar_clave = True
+        e.save(update_fields=['debe_cambiar_clave'])
+        resultados.append(f"{e.apellidos}, {e.nombres} → usuario: {e.usuario.username} / nueva clave: {password}")
+    if resultados:
+        ma.message_user(
+            request,
+            "Contraseñas restablecidas al número de documento (deberán cambiarla al ingresar): "
+            + "  |  ".join(resultados),
+            level='success',
+        )
+    if sin_acceso:
+        ma.message_user(request, f"{sin_acceso} estudiante(s) no tienen cuenta de acceso creada.", level='warning')
+
+
+@admin.action(description='🚫 Eliminar acceso al sistema')
+def eliminar_acceso_estudiantes(ma, request, qs):
+    total = 0
+    for e in qs:
+        if e.usuario_id:
+            user = e.usuario
+            e.usuario = None
+            e.save(update_fields=['usuario'])
+            user.delete()
+            total += 1
+    ma.message_user(request, f"Se eliminó el acceso al sistema de {total} estudiante(s).", level='success')
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  Acciones — Estudiantes
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -409,9 +508,10 @@ class AsistenciaAdmin(admin.ModelAdmin):
 
 @admin.register(Estudiante)
 class EstudianteAdmin(admin.ModelAdmin):
-    list_display  = ['documento', 'apellidos', 'nombres', 'jornada', 'curso', 'linea']
-    search_fields = ['documento', 'nombres', 'apellidos']
+    list_display  = ['documento', 'apellidos', 'nombres', 'jornada', 'curso', 'linea', 'tiene_acceso']
+    search_fields = ['documento', 'nombres', 'apellidos', 'usuario__username']
     list_filter   = [JornadaFilter, GradoFilter, LineaFilter]
+    readonly_fields = ['usuario']
     actions = [
         exportar_estudiantes_csv,
         generar_certificado,
@@ -419,13 +519,22 @@ class EstudianteAdmin(admin.ModelAdmin):
         generar_carnets_zip,
         generar_carnets_png_zip,
         generar_mosaico_linea,
+        crear_acceso_estudiantes,
+        restablecer_clave_estudiantes,
+        eliminar_acceso_estudiantes,
     ]
+
+    def tiene_acceso(self, obj):
+        return bool(obj.usuario_id)
+    tiene_acceso.short_description = 'Acceso al sistema'
+    tiene_acceso.boolean = True
 
     def get_actions(self, request):
         actions = super().get_actions(request)
         if not request.user.is_superuser:
             for n in ['generar_certificado', 'generar_carnet',
                       'generar_carnets_zip', 'generar_carnets_png_zip',
-                      'generar_mosaico_linea']:
+                      'generar_mosaico_linea', 'crear_acceso_estudiantes',
+                      'restablecer_clave_estudiantes', 'eliminar_acceso_estudiantes']:
                 actions.pop(n, None)
         return actions

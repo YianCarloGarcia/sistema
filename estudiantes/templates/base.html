@@ -20,6 +20,7 @@
         .rol-badge { font-size:.65rem; font-weight:700; border-radius:10px; padding:.1rem .45rem; margin-left:4px; vertical-align:middle; }
         .rol-directivo { background:#7c3aed; color:#fff; }
         .rol-docente    { background:#0369a1; color:#fff; }
+        .rol-estudiante { background:#16a34a; color:#fff; }
         main.container { padding-top:1.75rem; padding-bottom:2.5rem; }
         .django-messages { position:fixed; top:70px; right:20px; z-index:9999; min-width:280px; }
     </style>
@@ -40,6 +41,11 @@
         <li class="nav-item">
           <a class="nav-link-custom" href="{% url 'inicio' %}"><i class="bi bi-house-door"></i> Inicio</a>
         </li>
+        {% if request.user.groups.all.0.name == 'estudiante' %}
+        <li class="nav-item">
+          <a class="nav-link-custom" href="{% url 'mi_historial' %}"><i class="bi bi-clock-history"></i> Mi Historial</a>
+        </li>
+        {% else %}
         <li class="nav-item">
           <a class="nav-link-custom" href="{% url 'estudiantes' %}"><i class="bi bi-people"></i> Estudiantes</a>
         </li>
@@ -54,6 +60,7 @@
         <li class="nav-item">
           <a class="nav-link-custom accent" href="{% url 'almuerzo' %}"><i class="bi bi-qr-code-scan"></i> Escanear</a>
         </li>
+        {% endif %}
       </ul>
 
       <ul class="navbar-nav ms-auto align-items-center gap-2">
@@ -66,6 +73,8 @@
                 <span class="rol-badge rol-directivo">Admin</span>
               {% elif request.user.groups.all.0.name == 'directivo' %}
                 <span class="rol-badge rol-directivo">Directivo</span>
+              {% elif request.user.groups.all.0.name == 'estudiante' %}
+                <span class="rol-badge rol-estudiante">Estudiante</span>
               {% else %}
                 <span class="rol-badge rol-docente">Docente</span>
               {% endif %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block Titulo %}Mi Historial{% endblock %}
+
+{% block contenido %}
+
+<style>
+  .hist-header {
+    background: linear-gradient(135deg, #1a3a6e, #274d9e); color: #fff;
+    border-radius: 16px; padding: 1.5rem 1.75rem; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  }
+  .hist-header .foto-mini {
+    width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
+    border: 3px solid rgba(255,255,255,.6);
+  }
+  .hist-header .foto-mini-placeholder {
+    width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,.15);
+    display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+    border: 3px solid rgba(255,255,255,.4);
+  }
+  .conteos-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; margin-bottom: 1.5rem; }
+  @media (max-width: 768px) { .conteos-grid { grid-template-columns: repeat(2, 1fr); } }
+  .conteo-card {
+    border-radius: 14px; padding: 1.1rem 1.2rem; display: flex; align-items: center; gap: .8rem;
+    text-decoration: none; transition: transform .15s; border: 2px solid transparent;
+  }
+  .conteo-card:hover { transform: translateY(-3px); }
+  .conteo-card.activo { border-color: currentColor; }
+  .conteo-num { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+  .conteo-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+
+  .tabla-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden;
+  }
+  .tabla-card table { margin-bottom: 0; }
+  .tabla-card th { font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b; border-top: none; }
+  .badge-tipo {
+    font-size: .72rem; font-weight: 700; border-radius: 6px; padding: .25rem .6rem;
+  }
+  .badge-ASI { background: #fef2f2; color: #dc2626; }
+  .badge-TAR { background: #fff7ed; color: #ea580c; }
+  .badge-UNI { background: #f0fdf4; color: #16a34a; }
+  .badge-ALM { background: #eff6ff; color: #2563eb; }
+  .filtro-vacio {
+    text-align: center; padding: 3rem 1rem; color: #94a3b8;
+  }
+</style>
+
+<div class="hist-header">
+  {% if estudiante.foto %}
+    <img src="{{ estudiante.foto.url }}" class="foto-mini" alt="Foto">
+  {% else %}
+    <div class="foto-mini-placeholder">&#128100;</div>
+  {% endif %}
+  <div>
+    <h4 class="mb-1 fw-bold">{{ estudiante.nombres }} {{ estudiante.apellidos }}</h4>
+    <div class="opacity-75" style="font-size:.9rem;">
+      {{ estudiante.curso }} &middot; {{ estudiante.get_linea_display }} &middot; {{ estudiante.get_jornada_display }}
+    </div>
+  </div>
+</div>
+
+<h6 class="fw-bold mb-3" style="color:#0f172a;">Mis registros de {{ anio }}</h6>
+
+<div class="conteos-grid">
+  <a href="?tipo=ASI" class="conteo-card badge-ASI {% if tipo_filtro == 'ASI' %}activo{% endif %}">
+    <div style="font-size:1.5rem;">📋</div>
+    <div>
+      <div class="conteo-num">{{ conteos.ASI }}</div>
+      <div class="conteo-label">Fallas de asistencia</div>
+    </div>
+  </a>
+  <a href="?tipo=TAR" class="conteo-card badge-TAR {% if tipo_filtro == 'TAR' %}activo{% endif %}">
+    <div style="font-size:1.5rem;">⏰</div>
+    <div>
+      <div class="conteo-num">{{ conteos.TAR }}</div>
+      <div class="conteo-label">Llegadas tarde</div>
+    </div>
+  </a>
+  <a href="?tipo=UNI" class="conteo-card badge-UNI {% if tipo_filtro == 'UNI' %}activo{% endif %}">
+    <div style="font-size:1.5rem;">👔</div>
+    <div>
+      <div class="conteo-num">{{ conteos.UNI }}</div>
+      <div class="conteo-label">Uniforme</div>
+    </div>
+  </a>
+  <a href="?tipo=ALM" class="conteo-card badge-ALM {% if tipo_filtro == 'ALM' %}activo{% endif %}">
+    <div style="font-size:1.5rem;">🍽️</div>
+    <div>
+      <div class="conteo-num">{{ conteos.ALM }}</div>
+      <div class="conteo-label">Almuerzos</div>
+    </div>
+  </a>
+</div>
+
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <div class="text-muted" style="font-size:.85rem;">
+    {% if tipo_filtro %}Mostrando solo: <strong>{{ tipo_filtro }}</strong> &middot; {% endif %}
+    {{ page_obj.paginator.count }} registro{{ page_obj.paginator.count|pluralize }} en total
+  </div>
+  {% if tipo_filtro %}
+    <a href="{% url 'mi_historial' %}" class="btn btn-sm btn-outline-secondary">Ver todos</a>
+  {% endif %}
+</div>
+
+<div class="tabla-card">
+  <table class="table table-hover align-middle mb-0">
+    <thead>
+      <tr>
+        <th class="ps-3">Fecha</th>
+        <th>Hora</th>
+        <th class="pe-3">Tipo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for registro in page_obj %}
+      <tr>
+        <td class="ps-3">{{ registro.fecha|date:"d/m/Y" }}</td>
+        <td>{{ registro.hora|time:"H:i" }}</td>
+        <td class="pe-3"><span class="badge-tipo badge-{{ registro.tipo }}">{{ registro.get_tipo_display }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="filtro-vacio">No hay registros para mostrar.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-3">
+  <ul class="pagination justify-content-center">
+    {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}">Anterior</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}">Siguiente</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

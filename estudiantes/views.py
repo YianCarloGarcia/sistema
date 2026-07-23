@@ -5,8 +5,9 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.paginator import Paginator
 from django.contrib import messages
-from django.contrib.auth import logout
+from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User, Group
 from django.core.mail import send_mail
 from django.db.models import Q
@@ -42,10 +43,26 @@ def _es_docente(user):
     return user.groups.filter(name='docente').exists()
 
 
+def _es_estudiante(user):
+    """True si la cuenta corresponde a un estudiante (tiene ficha vinculada)."""
+    return hasattr(user, 'estudiante_perfil')
+
+
+def bloquear_estudiantes(view_func):
+    """Impide que las cuentas de estudiante accedan a las vistas internas del sistema."""
+    def wrapper(request, *args, **kwargs):
+        if _es_estudiante(request.user):
+            return redirect('mi_historial')
+        return view_func(request, *args, **kwargs)
+    wrapper.__name__ = view_func.__name__
+    return wrapper
+
+
 def _asegurar_grupos():
-    """Crea los grupos Docente y Directivo si no existen."""
+    """Crea los grupos Docente, Directivo y Estudiante si no existen."""
     Group.objects.get_or_create(name='docente')
     Group.objects.get_or_create(name='directivo')
+    Group.objects.get_or_create(name='estudiante')
 
 
 # ── Email helpers ───────────────────────────────────────────
@@ -184,11 +201,23 @@ def _leer_excel(archivo):
 
 @login_required
 def inicio(request):
-    return render(request, 'paginas/inicio.html', {
-        'es_directivo': _es_directivo(request.user),
-    })
+    contexto = {
+        'es_directivo':  _es_directivo(request.user),
+        'es_estudiante': _es_estudiante(request.user),
+    }
+    if contexto['es_estudiante']:
+        estudiante = request.user.estudiante_perfil
+        anio = timezone.now().year
+        contexto['estudiante'] = estudiante
+        contexto['anio'] = anio
+        contexto['conteos'] = {
+            tipo: Asistencia.objects.filter(estudiante=estudiante, tipo=tipo, fecha__year=anio).count()
+            for tipo in ('ALM', 'TAR', 'UNI', 'ASI')
+        }
+    return render(request, 'paginas/inicio.html', contexto)
 
 @login_required
+@bloquear_estudiantes
 def nosotros(request):
     return render(request, 'paginas/nosotros.html')
 
@@ -196,6 +225,7 @@ def nosotros(request):
 # ── Estudiantes ──────────────────────────────────────────────
 
 @login_required
+@bloquear_estudiantes
 def estudiantes(request):
     qs = _qs_filtrada(request.GET)
     paginator = Paginator(qs, 25)
@@ -250,6 +280,7 @@ def eliminar(request, id):
 
 
 @login_required
+@bloquear_estudiantes
 def detalle(request, id):
     estudiante = get_object_or_404(Estudiante, id=id)
     anio = timezone.now().year
@@ -265,6 +296,66 @@ def detalle(request, id):
     })
 
 
+@login_required
+def cambiar_clave_obligatorio(request):
+    if not _es_estudiante(request.user):
+        return redirect('inicio')
+
+    estudiante = request.user.estudiante_perfil
+    if not estudiante.debe_cambiar_clave:
+        return redirect('mi_historial')
+
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            estudiante.debe_cambiar_clave = False
+            estudiante.save(update_fields=['debe_cambiar_clave'])
+            update_session_auth_hash(request, user)  # no cerrar la sesión al cambiar la clave
+            messages.success(request, "Contraseña actualizada. Ya puede continuar.")
+            return redirect('mi_historial')
+    else:
+        form = PasswordChangeForm(request.user)
+
+    for campo in form.fields.values():
+        campo.widget.attrs['class'] = 'form-control'
+
+    return render(request, 'estudiantes/cambiar_clave.html', {'form': form})
+
+
+# ── Historial del estudiante (cuenta individual) ─────────────
+
+@login_required
+def mi_historial(request):
+    if not _es_estudiante(request.user):
+        messages.info(request, "Su cuenta no está asociada a una ficha de estudiante.")
+        return redirect('inicio')
+
+    estudiante = request.user.estudiante_perfil
+    anio = timezone.now().year
+    conteos = {
+        tipo: Asistencia.objects.filter(estudiante=estudiante, tipo=tipo, fecha__year=anio).count()
+        for tipo in ('ALM', 'TAR', 'UNI', 'ASI')
+    }
+
+    tipo_filtro = request.GET.get('tipo', '')
+    qs = Asistencia.objects.filter(estudiante=estudiante).order_by('-fecha', '-hora')
+    if tipo_filtro in dict(Asistencia.TIPO_REGISTRO):
+        qs = qs.filter(tipo=tipo_filtro)
+
+    paginator = Paginator(qs, 20)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    return render(request, 'estudiantes/mi_historial.html', {
+        'estudiante':   estudiante,
+        'conteos':      conteos,
+        'anio':         anio,
+        'page_obj':     page_obj,
+        'tipo_filtro':  tipo_filtro,
+        'tipos':        Asistencia.TIPO_REGISTRO,
+    })
+
+
 # ── Almuerzo ─────────────────────────────────────────────────
 
 BLOQUEO_SEGUNDOS = 5
@@ -277,6 +368,7 @@ TIPOS_ESCANER = {
 }
 
 @login_required
+@bloquear_estudiantes
 def escaner(request):
     tipo_actual = request.GET.get('tipo', 'ALM')
     if tipo_actual not in TIPOS_ESCANER:
@@ -322,6 +414,7 @@ def escaner(request):
 
 # Redirige la URL antigua para no romper bookmarks
 @login_required
+@bloquear_estudiantes
 def almuerzo(request):
     from django.shortcuts import redirect as _redirect
     return _redirect('/estudiantes/escaner/?tipo=ALM')
@@ -329,6 +422,7 @@ def almuerzo(request):
 
 # ── Escáner AJAX — responde JSON, sin recargar la página ─────────────────────
 @login_required
+@bloquear_estudiantes
 def escaner_registrar(request):
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'mensaje': 'Método no permitido'}, status=405)
