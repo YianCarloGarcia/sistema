@@ -538,3 +538,4 @@ class EstudianteAdmin(admin.ModelAdmin):
                       'restablecer_clave_estudiantes', 'eliminar_acceso_estudiantes']:
                 actions.pop(n, None)
         return actions
+
