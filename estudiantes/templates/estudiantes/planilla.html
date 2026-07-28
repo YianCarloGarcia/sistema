@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load estudiantes_extras %}
+
+{% block Titulo %}Planilla de asistencia{% endblock %}
+
+{% block contenido %}
+
+<style>
+  .planilla-header {
+    background: linear-gradient(135deg, #1a3a6e, #274d9e); color: #fff;
+    border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem;
+  }
+  .convenciones { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+  .conv-chip {
+    display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700;
+    padding: .3rem .6rem; border-radius: 8px;
+  }
+  .conv-swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+
+  .filtros-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+    padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+  }
+
+  .planilla-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow-x: auto;
+  }
+  table.tabla-planilla { border-collapse: collapse; width: 100%; min-width: 720px; }
+  table.tabla-planilla th, table.tabla-planilla td {
+    padding: .55rem .6rem; border-bottom: 1px solid #eef1f5; vertical-align: middle;
+  }
+  table.tabla-planilla th { font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b; }
+  .fila-estudiante:hover { background: #f8fafc; }
+
+  .estado-grupo { display: flex; gap: 6px; flex-wrap: nowrap; }
+  .estado-chip-input { position: absolute; opacity: 0; pointer-events: none; }
+  .estado-chip-label {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 30px; border-radius: 8px; font-size: .74rem; font-weight: 800;
+    cursor: pointer; border: 2px solid transparent; user-select: none; opacity: .55;
+  }
+  .estado-chip-input:checked + .estado-chip-label {
+    opacity: 1; border-color: #0f172a; box-shadow: 0 0 0 2px rgba(15,23,42,.15);
+    transform: scale(1.05);
+  }
+  .chip-F  { background: #FF0000; color: #fff; }
+  .chip-A  { background: #FFFF00; color: #333; }
+  .chip-R  { background: #FF9900; color: #C00000; }
+  .chip-E  { background: #7030A0; color: #FFFF00; }
+  .chip-EX { background: #92D050; color: #333; }
+  .chip-U  { background: #002060; color: #FFFF00; }
+
+  .resumen-badges { display: flex; gap: 4px; flex-wrap: wrap; font-size: .68rem; }
+  .resumen-badge { padding: .1rem .4rem; border-radius: 5px; font-weight: 700; }
+</style>
+
+<div class="planilla-header">
+  <h4 class="fw-bold mb-1">Planilla de asistencia</h4>
+  {% if linea and jornada and curso %}
+    <div class="opacity-90">{{ curso }} &middot; {{ linea_display }} &middot; {{ jornada_display }}</div>
+  {% else %}
+    <div class="opacity-90">Selecciona un grupo para comenzar</div>
+  {% endif %}
+  <div class="convenciones">
+    <span class="conv-chip" style="background:#FF0000;color:#fff;"><span class="conv-swatch" style="background:#FF0000;border:1px solid #fff;"></span>F — Falla</span>
+    <span class="conv-chip" style="background:#FFFF00;color:#333;"><span class="conv-swatch" style="background:#FFFF00;border:1px solid #333;"></span>A — Asistió</span>
+    <span class="conv-chip" style="background:#FF9900;color:#C00000;"><span class="conv-swatch" style="background:#FF9900;border:1px solid #C00000;"></span>R — Llegada tarde</span>
+    <span class="conv-chip" style="background:#7030A0;color:#FFFF00;"><span class="conv-swatch" style="background:#7030A0;border:1px solid #FFFF00;"></span>E — Evasión de clase</span>
+    <span class="conv-chip" style="background:#92D050;color:#333;"><span class="conv-swatch" style="background:#92D050;border:1px solid #333;"></span>EX — Excusa justificada</span>
+    <span class="conv-chip" style="background:#002060;color:#FFFF00;"><span class="conv-swatch" style="background:#002060;border:1px solid #FFFF00;"></span>U — Uniforme incompleto</span>
+  </div>
+</div>
+
+{% if es_directivo %}
+<div class="filtros-card">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-12 col-md-5">
+      <label class="form-label small fw-bold">Grupo (línea · jornada · curso)</label>
+      <select name="grupo_combo" class="form-select form-select-sm" onchange="
+        const v = this.value.split('|'); this.form.linea.value=v[0]||''; this.form.jornada.value=v[1]||''; this.form.curso.value=v[2]||''; this.form.submit();">
+        <option value="">— Selecciona un grupo —</option>
+        {% for g in grupos_disponibles %}
+          <option value="{{ g.0 }}|{{ g.1 }}|{{ g.2 }}" {% if g.0 == linea and g.1 == jornada and g.2 == curso %}selected{% endif %}>
+            {{ g.2 }} — {{ g.0 }} ({{ g.1 }})
+          </option>
+        {% endfor %}
+      </select>
+      <input type="hidden" name="linea" value="{{ linea }}">
+      <input type="hidden" name="jornada" value="{{ jornada }}">
+      <input type="hidden" name="curso" value="{{ curso }}">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small fw-bold">Fecha</label>
+      <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" class="form-control form-control-sm" onchange="this.form.submit();">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small fw-bold">Bloque</label>
+      <select name="bloque" class="form-select form-select-sm" onchange="this.form.submit();">
+        <option value="1" {% if bloque == 1 %}selected{% endif %}>Bloque 1</option>
+        <option value="2" {% if bloque == 2 %}selected{% endif %}>Bloque 2</option>
+      </select>
+    </div>
+  </form>
+</div>
+{% else %}
+<div class="filtros-card">
+  <form method="get" class="row g-2 align-items-end">
+    <input type="hidden" name="linea" value="{{ linea }}">
+    <input type="hidden" name="jornada" value="{{ jornada }}">
+    <input type="hidden" name="curso" value="{{ curso }}">
+    <div class="col-6 col-md-3">
+      <label class="form-label small fw-bold">Fecha</label>
+      <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" class="form-control form-control-sm" onchange="this.form.submit();">
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label small fw-bold">Bloque</label>
+      <select name="bloque" class="form-select form-select-sm" onchange="this.form.submit();">
+        <option value="1" {% if bloque == 1 %}selected{% endif %}>Bloque 1</option>
+        <option value="2" {% if bloque == 2 %}selected{% endif %}>Bloque 2</option>
+      </select>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% if linea and jornada and curso %}
+<div class="planilla-card">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="linea" value="{{ linea }}">
+    <input type="hidden" name="jornada" value="{{ jornada }}">
+    <input type="hidden" name="curso" value="{{ curso }}">
+    <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">
+    <input type="hidden" name="bloque" value="{{ bloque }}">
+
+    <table class="tabla-planilla">
+      <thead>
+        <tr>
+          <th class="ps-3">#</th>
+          <th>Estudiante</th>
+          <th>Documento</th>
+          <th>Estado — {{ fecha|date:"d/m/Y" }} (Bloque {{ bloque }})</th>
+          <th class="pe-3">Historial (F / A / R / E / EX / U)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for est in estudiantes_grupo %}
+        <tr class="fila-estudiante">
+          <td class="ps-3">{{ forloop.counter }}</td>
+          <td>{{ est.apellidos }} {{ est.nombres }}</td>
+          <td>{{ est.documento }}</td>
+          <td>
+            <div class="estado-grupo">
+              {% for codigo, etiqueta in estados %}
+                <input type="radio" class="estado-chip-input" id="e{{ est.id }}_{{ codigo }}"
+                       name="estado_{{ est.id }}" value="{{ codigo }}"
+                       {% if registros_por_estudiante|get_item:est.id == codigo %}checked{% endif %}>
+                <label class="estado-chip-label chip-{{ codigo }}" for="e{{ est.id }}_{{ codigo }}" title="{{ etiqueta }}">{{ codigo }}</label>
+              {% endfor %}
+            </div>
+          </td>
+          <td class="pe-3">
+            <div class="resumen-badges">
+              <span class="resumen-badge chip-F">F {{ resumen|get_item:est.id|get_item:"F"|default:0 }}</span>
+              <span class="resumen-badge chip-A">A {{ resumen|get_item:est.id|get_item:"A"|default:0 }}</span>
+              <span class="resumen-badge chip-R">R {{ resumen|get_item:est.id|get_item:"R"|default:0 }}</span>
+              <span class="resumen-badge chip-E">E {{ resumen|get_item:est.id|get_item:"E"|default:0 }}</span>
+              <span class="resumen-badge chip-EX">EX {{ resumen|get_item:est.id|get_item:"EX"|default:0 }}</span>
+              <span class="resumen-badge chip-U">U {{ resumen|get_item:est.id|get_item:"U"|default:0 }}</span>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No hay estudiantes en este grupo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="p-3 border-top d-flex justify-content-end">
+      <button type="submit" class="btn btn-primary">Guardar planilla</button>
+    </div>
+  </form>
+</div>
+{% elif es_directivo %}
+<p class="text-muted">Selecciona un grupo arriba para ver su planilla.</p>
+{% endif %}
+
+{% endblock %}

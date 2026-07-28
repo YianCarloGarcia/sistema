@@ -58,6 +58,18 @@ class UsuarioCrearForm(UserCreationForm):
         label='Rol', choices=ROL_CHOICES,
         widget=forms.Select(attrs={'class': 'form-select'}),
     )
+    grupo_linea = forms.ChoiceField(
+        label='Línea del grupo asignado', choices=[('', '— Selecciona —')] + Estudiante.LINEA_MEDIA,
+        required=False, widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    grupo_jornada = forms.ChoiceField(
+        label='Jornada del grupo asignado', choices=[('', '— Selecciona —')] + Estudiante.JORNADA,
+        required=False, widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    grupo_curso = forms.CharField(
+        label='Curso del grupo asignado (ej: 1101)', max_length=100,
+        required=False, widget=forms.TextInput(attrs={'class': 'form-control'}),
+    )
 
     class Meta:
         model  = User
@@ -72,12 +84,32 @@ class UsuarioCrearForm(UserCreationForm):
         self.fields['password2'].widget.attrs['class'] = 'form-control'
         self.fields['username'].help_text = 'Solo letras, números y @/./+/-/_'
 
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('rol') == 'docente':
+            faltantes = [f for f in ('grupo_linea', 'grupo_jornada', 'grupo_curso') if not cleaned.get(f)]
+            if faltantes:
+                raise forms.ValidationError('Para un docente debe indicar la línea, jornada y curso del grupo que va a manejar en la planilla.')
+        return cleaned
+
 
 class UsuarioEditarForm(forms.ModelForm):
     """Formulario para editar usuario existente (sin cambiar contraseña aquí)."""
     rol = forms.ChoiceField(
         label='Rol', choices=ROL_CHOICES,
         widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    grupo_linea = forms.ChoiceField(
+        label='Línea del grupo asignado', choices=[('', '— Selecciona —')] + Estudiante.LINEA_MEDIA,
+        required=False, widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    grupo_jornada = forms.ChoiceField(
+        label='Jornada del grupo asignado', choices=[('', '— Selecciona —')] + Estudiante.JORNADA,
+        required=False, widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    grupo_curso = forms.CharField(
+        label='Curso del grupo asignado (ej: 1101)', max_length=100,
+        required=False, widget=forms.TextInput(attrs={'class': 'form-control'}),
     )
 
     class Meta:
@@ -101,5 +133,18 @@ class UsuarioEditarForm(forms.ModelForm):
                 initial['rol'] = 'directivo'
             else:
                 initial['rol'] = 'docente'
+            perfil = getattr(instance, 'docente_perfil', None)
+            if perfil:
+                initial['grupo_linea'] = perfil.linea
+                initial['grupo_jornada'] = perfil.jornada
+                initial['grupo_curso'] = perfil.curso
         kwargs['initial'] = initial
         super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('rol') == 'docente':
+            faltantes = [f for f in ('grupo_linea', 'grupo_jornada', 'grupo_curso') if not cleaned.get(f)]
+            if faltantes:
+                raise forms.ValidationError('Para un docente debe indicar la línea, jornada y curso del grupo que va a manejar en la planilla.')
+        return cleaned

@@ -106,6 +106,27 @@
         <p id="rol-desc">Seleccione un rol para ver sus permisos.</p>
       </div>
 
+      <div id="grupo-fields" style="display:none; margin-top:1rem;">
+        <div class="field-help" style="margin-bottom:.6rem;">
+          Grupo que este docente podrá manejar en la <strong>planilla de asistencia</strong>.
+        </div>
+        <div class="fields-row-2">
+          <div class="field-group">
+            <label class="field-label">Línea<span class="req">*</span></label>
+            {{ form.grupo_linea }}
+          </div>
+          <div class="field-group">
+            <label class="field-label">Jornada<span class="req">*</span></label>
+            {{ form.grupo_jornada }}
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Curso<span class="req">*</span></label>
+          {{ form.grupo_curso }}
+        </div>
+        {% if form.non_field_errors %}<div class="field-error">{{ form.non_field_errors }}</div>{% endif %}
+      </div>
+
       {% if not es_nuevo %}
       <div class="field-group" style="margin-top:1rem;">
         <label class="field-label d-flex align-items-center gap-2">
@@ -131,8 +152,10 @@ const rolDesc = {
 };
 const select = document.querySelector('select[name="rol"]');
 const desc   = document.getElementById('rol-desc');
+const grupoFields = document.getElementById('grupo-fields');
 function actualizarDesc() {
   desc.innerHTML = rolDesc[select.value] || 'Seleccione un rol.';
+  grupoFields.style.display = (select.value === 'docente') ? 'block' : 'none';
 }
 select.addEventListener('change', actualizarDesc);
 actualizarDesc();

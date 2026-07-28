@@ -101,4 +101,59 @@ class Asistencia(models.Model):
         return f"{self.estudiante} - {self.fecha} - {self.hora}"
 
 
+class DocentePerfil(models.Model):
+    """Vincula la cuenta de un docente con el grupo (línea + jornada + curso) que le fue asignado."""
+    usuario = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='docente_perfil',
+        verbose_name='Usuario',
+    )
+    linea = models.CharField(max_length=50, choices=Estudiante.LINEA_MEDIA, verbose_name='Línea')
+    jornada = models.CharField(max_length=50, choices=Estudiante.JORNADA, verbose_name='Jornada')
+    curso = models.CharField(max_length=100, verbose_name='Curso')
+
+    class Meta:
+        verbose_name = 'Docente — grupo asignado'
+        verbose_name_plural = 'Docentes — grupos asignados'
+
+    def __str__(self):
+        return f"{self.usuario.get_full_name() or self.usuario.username} — {self.curso} ({self.get_linea_display()}, {self.get_jornada_display()})"
+
+
+class RegistroPlanilla(models.Model):
+    """Registro diario de la planilla del docente: un estado por estudiante, fecha y bloque de clase."""
+    ESTADOS = [
+        ('F',  'Falla'),
+        ('A',  'Asistió'),
+        ('R',  'Llegada tarde'),
+        ('E',  'Evasión de clase'),
+        ('EX', 'Excusa justificada'),
+        ('U',  'Uniforme incompleto'),
+    ]
+    BLOQUES = [
+        (1, 'Bloque 1'),
+        (2, 'Bloque 2'),
+    ]
+    estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE, related_name='registros_planilla')
+    fecha = models.DateField(verbose_name='Fecha')
+    bloque = models.PositiveSmallIntegerField(choices=BLOQUES, default=1, verbose_name='Bloque')
+    estado = models.CharField(max_length=2, choices=ESTADOS, verbose_name='Estado')
+    registrado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='registros_planilla_creados',
+    )
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['estudiante', 'fecha', 'bloque'], name='unico_estudiante_fecha_bloque')
+        ]
+        verbose_name = 'Registro de planilla'
+        verbose_name_plural = 'Registros de planilla'
+
+    def __str__(self):
+        return f"{self.estudiante} — {self.fecha} B{self.bloque}: {self.estado}"
+
+
     

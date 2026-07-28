@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User, Group
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from .models import Estudiante, Asistencia
+from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla
 from .utils.pdf import generar_certificado_pdf
 from .utils.carnet import generar_carnet_pdf
 from .utils.carnet_png import generar_carnet_png
@@ -539,3 +539,18 @@ class EstudianteAdmin(admin.ModelAdmin):
                 actions.pop(n, None)
         return actions
 
+
+@admin.register(DocentePerfil)
+class DocentePerfilAdmin(admin.ModelAdmin):
+    list_display  = ['usuario', 'curso', 'linea', 'jornada']
+    search_fields = ['usuario__username', 'usuario__first_name', 'usuario__last_name', 'curso']
+    list_filter   = ['linea', 'jornada']
+    autocomplete_fields = []
+
+
+@admin.register(RegistroPlanilla)
+class RegistroPlanillaAdmin(admin.ModelAdmin):
+    list_display  = ['estudiante', 'fecha', 'bloque', 'estado', 'registrado_por']
+    list_filter   = ['estado', 'bloque', 'fecha']
+    search_fields = ['estudiante__documento', 'estudiante__apellidos', 'estudiante__nombres']
+    date_hierarchy = 'fecha'

@@ -14,11 +14,13 @@ from django.db.models import Q
 from django.conf import settings
 import io, csv, zipfile, json, os
 from datetime import datetime
+from urllib.parse import urlencode
+from django.db.models import Count
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-from .models import Estudiante, Asistencia
+from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla
 from .forms import EstudianteForm, UsuarioCrearForm, UsuarioEditarForm
 
 
@@ -56,6 +58,18 @@ def bloquear_estudiantes(view_func):
         return view_func(request, *args, **kwargs)
     wrapper.__name__ = view_func.__name__
     return wrapper
+
+
+def _grupo_docente(user):
+    """Devuelve (linea, jornada, curso) del grupo asignado al docente, o None."""
+    perfil = getattr(user, 'docente_perfil', None)
+    if perfil:
+        return (perfil.linea, perfil.jornada, perfil.curso)
+    return None
+
+
+def _puede_usar_planilla(user):
+    return _es_directivo(user) or _grupo_docente(user) is not None
 
 
 def _asegurar_grupos():
@@ -356,6 +370,94 @@ def mi_historial(request):
     })
 
 
+# ── Planilla de asistencia por grupo (docentes/directivos) ───
+
+@login_required
+@bloquear_estudiantes
+def planilla_grupo(request):
+    if not _puede_usar_planilla(request.user):
+        messages.error(request, "Su cuenta no tiene un grupo asignado para la planilla. Pida a un directivo que se lo asigne.")
+        return redirect('inicio')
+
+    es_directivo = _es_directivo(request.user)
+    grupo_asignado = _grupo_docente(request.user)
+    params = request.POST if request.method == 'POST' else request.GET
+
+    linea = params.get('linea') or (grupo_asignado[0] if grupo_asignado else '')
+    jornada = params.get('jornada') or (grupo_asignado[1] if grupo_asignado else '')
+    curso = params.get('curso') or (grupo_asignado[2] if grupo_asignado else '')
+
+    # Un docente (no directivo) solo puede trabajar el grupo que le fue asignado
+    if grupo_asignado and not es_directivo:
+        linea, jornada, curso = grupo_asignado
+
+    hoy = timezone.localdate()
+    try:
+        fecha = datetime.strptime(params.get('fecha', ''), '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        fecha = hoy
+    try:
+        bloque = int(params.get('bloque', 1))
+        if bloque not in (1, 2):
+            bloque = 1
+    except (TypeError, ValueError):
+        bloque = 1
+
+    grupos_disponibles = []
+    if es_directivo:
+        grupos_disponibles = list(
+            Estudiante.objects.exclude(curso='').values_list('linea', 'jornada', 'curso')
+            .distinct().order_by('linea', 'jornada', 'curso')
+        )
+
+    estudiantes_grupo = Estudiante.objects.none()
+    registros_por_estudiante = {}
+    resumen = {}
+
+    if linea and jornada and curso:
+        estudiantes_grupo = Estudiante.objects.filter(
+            linea=linea, jornada=jornada, curso=curso
+        ).order_by('apellidos', 'nombres')
+
+        if request.method == 'POST':
+            for est in estudiantes_grupo:
+                estado = request.POST.get(f'estado_{est.id}', '')
+                if estado in dict(RegistroPlanilla.ESTADOS):
+                    RegistroPlanilla.objects.update_or_create(
+                        estudiante=est, fecha=fecha, bloque=bloque,
+                        defaults={'estado': estado, 'registrado_por': request.user},
+                    )
+                else:
+                    RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque).delete()
+            messages.success(request, f"Planilla guardada para {fecha.strftime('%d/%m/%Y')} — Bloque {bloque}.")
+            qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso, 'fecha': fecha.isoformat(), 'bloque': bloque})
+            return redirect(f"{request.path}?{qs}")
+
+        registros = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo, fecha=fecha, bloque=bloque)
+        registros_por_estudiante = {r.estudiante_id: r.estado for r in registros}
+
+        conteo_qs = (
+            RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo)
+            .values('estudiante_id', 'estado').annotate(total=Count('id'))
+        )
+        for fila in conteo_qs:
+            resumen.setdefault(fila['estudiante_id'], {})[fila['estado']] = fila['total']
+
+    return render(request, 'estudiantes/planilla.html', {
+        'es_directivo':       es_directivo,
+        'grupos_disponibles': grupos_disponibles,
+        'linea': linea, 'jornada': jornada, 'curso': curso,
+        'linea_display':   dict(Estudiante.LINEA_MEDIA).get(linea, linea),
+        'jornada_display': dict(Estudiante.JORNADA).get(jornada, jornada),
+        'fecha': fecha,
+        'bloque': bloque,
+        'estudiantes_grupo':         estudiantes_grupo,
+        'registros_por_estudiante':  registros_por_estudiante,
+        'resumen': resumen,
+        'estados': RegistroPlanilla.ESTADOS,
+    })
+
+
 # ── Almuerzo ─────────────────────────────────────────────────
 
 BLOQUEO_SEGUNDOS = 5
@@ -633,6 +735,19 @@ def crear_usuario(request):
             grupo, _ = Group.objects.get_or_create(name=rol)
             user.groups.set([grupo])
 
+            # Grupo (línea/jornada/curso) asignado para la planilla, si es docente
+            if rol == 'docente':
+                DocentePerfil.objects.update_or_create(
+                    usuario=user,
+                    defaults={
+                        'linea': form.cleaned_data['grupo_linea'],
+                        'jornada': form.cleaned_data['grupo_jornada'],
+                        'curso': form.cleaned_data['grupo_curso'],
+                    },
+                )
+            else:
+                DocentePerfil.objects.filter(usuario=user).delete()
+
             # Enviar correo de bienvenida
             resultado = _enviar_bienvenida(user, password_plano, rol)
             if resultado is True:
@@ -663,6 +778,17 @@ def editar_usuario(request, id):
             user = form.save()
             grupo, _ = Group.objects.get_or_create(name=rol)
             user.groups.set([grupo])
+            if rol == 'docente':
+                DocentePerfil.objects.update_or_create(
+                    usuario=user,
+                    defaults={
+                        'linea': form.cleaned_data['grupo_linea'],
+                        'jornada': form.cleaned_data['grupo_jornada'],
+                        'curso': form.cleaned_data['grupo_curso'],
+                    },
+                )
+            else:
+                DocentePerfil.objects.filter(usuario=user).delete()
             messages.success(request, f"Usuario '{user.username}' actualizado.")
             return redirect('lista_usuarios')
     else:
