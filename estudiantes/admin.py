@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User, Group
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla
+from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad
 from .utils.pdf import generar_certificado_pdf
 from .utils.carnet import generar_carnet_pdf
 from .utils.carnet_png import generar_carnet_png
@@ -542,8 +542,8 @@ class EstudianteAdmin(admin.ModelAdmin):
 
 @admin.register(DocentePerfil)
 class DocentePerfilAdmin(admin.ModelAdmin):
-    list_display  = ['usuario', 'curso', 'linea', 'jornada']
-    search_fields = ['usuario__username', 'usuario__first_name', 'usuario__last_name', 'curso']
+    list_display  = ['usuario', 'linea', 'jornada']
+    search_fields = ['usuario__username', 'usuario__first_name', 'usuario__last_name']
     list_filter   = ['linea', 'jornada']
     autocomplete_fields = []
 
@@ -554,3 +554,17 @@ class RegistroPlanillaAdmin(admin.ModelAdmin):
     list_filter   = ['estado', 'bloque', 'fecha']
     search_fields = ['estudiante__documento', 'estudiante__apellidos', 'estudiante__nombres']
     date_hierarchy = 'fecha'
+
+
+@admin.register(Actividad)
+class ActividadAdmin(admin.ModelAdmin):
+    list_display  = ['nombre', 'linea', 'jornada', 'orden', 'creado_por']
+    list_filter   = ['linea', 'jornada']
+    search_fields = ['nombre']
+
+
+@admin.register(NotaActividad)
+class NotaActividadAdmin(admin.ModelAdmin):
+    list_display  = ['estudiante', 'actividad', 'valor', 'registrado_por']
+    list_filter   = ['actividad']
+    search_fields = ['estudiante__documento', 'estudiante__apellidos', 'estudiante__nombres']

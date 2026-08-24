@@ -108,7 +108,8 @@
 
       <div id="grupo-fields" style="display:none; margin-top:1rem;">
         <div class="field-help" style="margin-bottom:.6rem;">
-          Grupo que este docente podrá manejar en la <strong>planilla de asistencia</strong>.
+          Línea que este docente podrá manejar en la <strong>planilla de asistencia</strong> y en <strong>notas</strong>
+          (podrá filtrar por curso dentro de su línea).
         </div>
         <div class="fields-row-2">
           <div class="field-group">
@@ -119,10 +120,6 @@
             <label class="field-label">Jornada<span class="req">*</span></label>
             {{ form.grupo_jornada }}
           </div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Curso<span class="req">*</span></label>
-          {{ form.grupo_curso }}
         </div>
         {% if form.non_field_errors %}<div class="field-error">{{ form.non_field_errors }}</div>{% endif %}
       </div>

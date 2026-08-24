@@ -53,6 +53,9 @@
         <li class="nav-item">
           <a class="nav-link-custom" href="{% url 'planilla' %}"><i class="bi bi-journal-check"></i> Planilla</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link-custom" href="{% url 'notas' %}"><i class="bi bi-pencil-square"></i> Notas</a>
+        </li>
         {% endif %}
         {% if request.user.is_superuser or request.user.groups.all.0.name == 'directivo' %}
         <li class="nav-item">

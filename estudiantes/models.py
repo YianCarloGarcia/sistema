@@ -102,7 +102,7 @@ class Asistencia(models.Model):
 
 
 class DocentePerfil(models.Model):
-    """Vincula la cuenta de un docente con el grupo (línea + jornada + curso) que le fue asignado."""
+    """Vincula la cuenta de un docente con la línea + jornada que le fue asignada."""
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -111,14 +111,13 @@ class DocentePerfil(models.Model):
     )
     linea = models.CharField(max_length=50, choices=Estudiante.LINEA_MEDIA, verbose_name='Línea')
     jornada = models.CharField(max_length=50, choices=Estudiante.JORNADA, verbose_name='Jornada')
-    curso = models.CharField(max_length=100, verbose_name='Curso')
 
     class Meta:
         verbose_name = 'Docente — grupo asignado'
         verbose_name_plural = 'Docentes — grupos asignados'
 
     def __str__(self):
-        return f"{self.usuario.get_full_name() or self.usuario.username} — {self.curso} ({self.get_linea_display()}, {self.get_jornada_display()})"
+        return f"{self.usuario.get_full_name() or self.usuario.username} — {self.get_linea_display()} ({self.get_jornada_display()})"
 
 
 class RegistroPlanilla(models.Model):
@@ -131,6 +130,16 @@ class RegistroPlanilla(models.Model):
         ('EX', 'Excusa justificada'),
         ('U',  'Uniforme incompleto'),
     ]
+    # Puntos que suma/resta cada estado a la nota definitiva del estudiante.
+    # La excusa justificada (EX) anula la sanción: no resta puntos.
+    PUNTOS = {
+        'F':  -1,
+        'A':   0,
+        'R':  -1,
+        'E':  -5,
+        'EX':  0,
+        'U':  -1,
+    }
     BLOQUES = [
         (1, 'Bloque 1'),
         (2, 'Bloque 2'),
@@ -155,5 +164,50 @@ class RegistroPlanilla(models.Model):
     def __str__(self):
         return f"{self.estudiante} — {self.fecha} B{self.bloque}: {self.estado}"
 
+    @property
+    def puntos(self):
+        return self.PUNTOS.get(self.estado, 0)
 
-    
+
+class Actividad(models.Model):
+    """Actividad calificable definida por el docente para su línea/jornada (equivalente a las
+    columnas D:O 'ACTIVIDADES' de la planilla en Excel)."""
+    linea = models.CharField(max_length=50, choices=Estudiante.LINEA_MEDIA, verbose_name='Línea')
+    jornada = models.CharField(max_length=50, choices=Estudiante.JORNADA, verbose_name='Jornada')
+    nombre = models.CharField(max_length=100, verbose_name='Nombre de la actividad')
+    orden = models.PositiveIntegerField(default=0)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='actividades_creadas',
+    )
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['orden', 'id']
+        verbose_name = 'Actividad calificable'
+        verbose_name_plural = 'Actividades calificables'
+
+    def __str__(self):
+        return f"{self.nombre} — {self.get_linea_display()} ({self.get_jornada_display()})"
+
+
+class NotaActividad(models.Model):
+    """Calificación (0.0 a 5.0) de un estudiante en una actividad."""
+    estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE, related_name='notas_actividades')
+    actividad = models.ForeignKey(Actividad, on_delete=models.CASCADE, related_name='notas')
+    valor = models.DecimalField(max_digits=4, decimal_places=2, verbose_name='Nota (0.0 a 5.0)')
+    registrado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='notas_registradas',
+    )
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['estudiante', 'actividad'], name='unica_nota_estudiante_actividad')
+        ]
+        verbose_name = 'Nota de actividad'
+        verbose_name_plural = 'Notas de actividades'
+
+    def __str__(self):
+        return f"{self.estudiante} — {self.actividad.nombre}: {self.valor}"

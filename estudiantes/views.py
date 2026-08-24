@@ -10,17 +10,17 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User, Group
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q, Count, Max
 from django.conf import settings
 import io, csv, zipfile, json, os
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from urllib.parse import urlencode
-from django.db.models import Count
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla
+from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad
 from .forms import EstudianteForm, UsuarioCrearForm, UsuarioEditarForm
 
 
@@ -61,10 +61,10 @@ def bloquear_estudiantes(view_func):
 
 
 def _grupo_docente(user):
-    """Devuelve (linea, jornada, curso) del grupo asignado al docente, o None."""
+    """Devuelve (linea, jornada) asignada al docente, o None."""
     perfil = getattr(user, 'docente_perfil', None)
     if perfil:
-        return (perfil.linea, perfil.jornada, perfil.curso)
+        return (perfil.linea, perfil.jornada)
     return None
 
 
@@ -372,24 +372,49 @@ def mi_historial(request):
 
 # ── Planilla de asistencia por grupo (docentes/directivos) ───
 
-@login_required
-@bloquear_estudiantes
-def planilla_grupo(request):
-    if not _puede_usar_planilla(request.user):
-        messages.error(request, "Su cuenta no tiene un grupo asignado para la planilla. Pida a un directivo que se lo asigne.")
-        return redirect('inicio')
-
+def _resolver_grupo(request):
+    """Resuelve (es_directivo, linea, jornada, curso_filtro, grupos_disponibles, cursos_disponibles,
+    estudiantes_grupo) para las vistas de planilla y notas, a partir del docente o de los filtros GET/POST."""
     es_directivo = _es_directivo(request.user)
     grupo_asignado = _grupo_docente(request.user)
     params = request.POST if request.method == 'POST' else request.GET
 
     linea = params.get('linea') or (grupo_asignado[0] if grupo_asignado else '')
     jornada = params.get('jornada') or (grupo_asignado[1] if grupo_asignado else '')
-    curso = params.get('curso') or (grupo_asignado[2] if grupo_asignado else '')
+    curso_filtro = params.get('curso', '')
 
-    # Un docente (no directivo) solo puede trabajar el grupo que le fue asignado
     if grupo_asignado and not es_directivo:
-        linea, jornada, curso = grupo_asignado
+        linea, jornada = grupo_asignado
+
+    grupos_disponibles = []
+    if es_directivo:
+        grupos_disponibles = list(
+            Estudiante.objects.values_list('linea', 'jornada').distinct().order_by('linea', 'jornada')
+        )
+
+    estudiantes_grupo = Estudiante.objects.none()
+    cursos_disponibles = []
+    if linea and jornada:
+        estudiantes_grupo = Estudiante.objects.filter(linea=linea, jornada=jornada)
+        cursos_disponibles = list(
+            estudiantes_grupo.exclude(curso='').values_list('curso', flat=True).distinct().order_by('curso')
+        )
+        if curso_filtro:
+            estudiantes_grupo = estudiantes_grupo.filter(curso=curso_filtro)
+        estudiantes_grupo = estudiantes_grupo.order_by('curso', 'apellidos', 'nombres')
+
+    return es_directivo, linea, jornada, curso_filtro, grupos_disponibles, cursos_disponibles, estudiantes_grupo
+
+
+@login_required
+@bloquear_estudiantes
+def planilla_grupo(request):
+    if not _puede_usar_planilla(request.user):
+        messages.error(request, "Su cuenta no tiene una línea asignada para la planilla. Pida a un directivo que se la asigne.")
+        return redirect('inicio')
+
+    es_directivo, linea, jornada, curso_filtro, grupos_disponibles, cursos_disponibles, estudiantes_grupo = _resolver_grupo(request)
+    params = request.POST if request.method == 'POST' else request.GET
 
     hoy = timezone.localdate()
     try:
@@ -403,22 +428,10 @@ def planilla_grupo(request):
     except (TypeError, ValueError):
         bloque = 1
 
-    grupos_disponibles = []
-    if es_directivo:
-        grupos_disponibles = list(
-            Estudiante.objects.exclude(curso='').values_list('linea', 'jornada', 'curso')
-            .distinct().order_by('linea', 'jornada', 'curso')
-        )
-
-    estudiantes_grupo = Estudiante.objects.none()
     registros_por_estudiante = {}
     resumen = {}
 
-    if linea and jornada and curso:
-        estudiantes_grupo = Estudiante.objects.filter(
-            linea=linea, jornada=jornada, curso=curso
-        ).order_by('apellidos', 'nombres')
-
+    if linea and jornada:
         if request.method == 'POST':
             for est in estudiantes_grupo:
                 estado = request.POST.get(f'estado_{est.id}', '')
@@ -430,7 +443,7 @@ def planilla_grupo(request):
                 else:
                     RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque).delete()
             messages.success(request, f"Planilla guardada para {fecha.strftime('%d/%m/%Y')} — Bloque {bloque}.")
-            qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso, 'fecha': fecha.isoformat(), 'bloque': bloque})
+            qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso_filtro, 'fecha': fecha.isoformat(), 'bloque': bloque})
             return redirect(f"{request.path}?{qs}")
 
         registros = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo, fecha=fecha, bloque=bloque)
@@ -442,11 +455,14 @@ def planilla_grupo(request):
         )
         for fila in conteo_qs:
             resumen.setdefault(fila['estudiante_id'], {})[fila['estado']] = fila['total']
+        for datos in resumen.values():
+            datos['puntos'] = sum(RegistroPlanilla.PUNTOS.get(estado, 0) * cant for estado, cant in datos.items() if estado != 'puntos')
 
     return render(request, 'estudiantes/planilla.html', {
         'es_directivo':       es_directivo,
         'grupos_disponibles': grupos_disponibles,
-        'linea': linea, 'jornada': jornada, 'curso': curso,
+        'cursos_disponibles': cursos_disponibles,
+        'linea': linea, 'jornada': jornada, 'curso_filtro': curso_filtro,
         'linea_display':   dict(Estudiante.LINEA_MEDIA).get(linea, linea),
         'jornada_display': dict(Estudiante.JORNADA).get(jornada, jornada),
         'fecha': fecha,
@@ -455,6 +471,93 @@ def planilla_grupo(request):
         'registros_por_estudiante':  registros_por_estudiante,
         'resumen': resumen,
         'estados': RegistroPlanilla.ESTADOS,
+    })
+
+
+@login_required
+@bloquear_estudiantes
+def notas_grupo(request):
+    if not _puede_usar_planilla(request.user):
+        messages.error(request, "Su cuenta no tiene una línea asignada para calificar. Pida a un directivo que se la asigne.")
+        return redirect('inicio')
+
+    es_directivo, linea, jornada, curso_filtro, grupos_disponibles, cursos_disponibles, estudiantes_grupo = _resolver_grupo(request)
+
+    actividades = Actividad.objects.none()
+    notas_grid = {}
+    resumen = {}
+
+    if linea and jornada:
+        actividades = Actividad.objects.filter(linea=linea, jornada=jornada)
+
+        if request.method == 'POST':
+            if 'nueva_actividad' in request.POST:
+                nombre = request.POST.get('nueva_actividad', '').strip()
+                if nombre:
+                    siguiente_orden = (actividades.aggregate(m=Max('orden'))['m'] or 0) + 1
+                    Actividad.objects.create(linea=linea, jornada=jornada, nombre=nombre, orden=siguiente_orden, creado_por=request.user)
+                    messages.success(request, f"Actividad '{nombre}' creada.")
+                qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso_filtro})
+                return redirect(f"{request.path}?{qs}")
+
+            elif 'eliminar_actividad' in request.POST:
+                Actividad.objects.filter(id=request.POST.get('eliminar_actividad'), linea=linea, jornada=jornada).delete()
+                messages.success(request, "Actividad eliminada.")
+                qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso_filtro})
+                return redirect(f"{request.path}?{qs}")
+
+            else:
+                for est in estudiantes_grupo:
+                    for act in actividades:
+                        campo = f'nota_{est.id}_{act.id}'
+                        if campo in request.POST:
+                            valor_txt = request.POST.get(campo, '').strip().replace(',', '.')
+                            if valor_txt == '':
+                                NotaActividad.objects.filter(estudiante=est, actividad=act).delete()
+                                continue
+                            try:
+                                valor = Decimal(valor_txt)
+                            except InvalidOperation:
+                                continue
+                            valor = max(Decimal('0.0'), min(Decimal('5.0'), valor))
+                            NotaActividad.objects.update_or_create(
+                                estudiante=est, actividad=act,
+                                defaults={'valor': valor, 'registrado_por': request.user},
+                            )
+                messages.success(request, "Notas guardadas.")
+                qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso_filtro})
+                return redirect(f"{request.path}?{qs}")
+
+        notas_qs = NotaActividad.objects.filter(estudiante__in=estudiantes_grupo, actividad__in=actividades)
+        for n in notas_qs:
+            notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = n.valor
+
+        conteo_qs = (
+            RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo)
+            .values('estudiante_id', 'estado').annotate(total=Count('id'))
+        )
+        puntos_por_estudiante = {}
+        for fila in conteo_qs:
+            puntos_por_estudiante[fila['estudiante_id']] = puntos_por_estudiante.get(fila['estudiante_id'], 0) + RegistroPlanilla.PUNTOS.get(fila['estado'], 0) * fila['total']
+
+        for est in estudiantes_grupo:
+            notas_est = list(notas_grid.get(est.id, {}).values())
+            promedio = (sum(notas_est) / len(notas_est)) if notas_est else None
+            puntos = puntos_por_estudiante.get(est.id, 0)
+            definitiva = (promedio + Decimal(puntos)) if promedio is not None else None
+            resumen[est.id] = {'promedio': promedio, 'puntos': puntos, 'definitiva': definitiva}
+
+    return render(request, 'estudiantes/notas.html', {
+        'es_directivo':       es_directivo,
+        'grupos_disponibles': grupos_disponibles,
+        'cursos_disponibles': cursos_disponibles,
+        'linea': linea, 'jornada': jornada, 'curso_filtro': curso_filtro,
+        'linea_display':   dict(Estudiante.LINEA_MEDIA).get(linea, linea),
+        'jornada_display': dict(Estudiante.JORNADA).get(jornada, jornada),
+        'estudiantes_grupo': estudiantes_grupo,
+        'actividades': actividades,
+        'notas_grid': notas_grid,
+        'resumen': resumen,
     })
 
 
@@ -742,7 +845,6 @@ def crear_usuario(request):
                     defaults={
                         'linea': form.cleaned_data['grupo_linea'],
                         'jornada': form.cleaned_data['grupo_jornada'],
-                        'curso': form.cleaned_data['grupo_curso'],
                     },
                 )
             else:
@@ -784,7 +886,6 @@ def editar_usuario(request, id):
                     defaults={
                         'linea': form.cleaned_data['grupo_linea'],
                         'jornada': form.cleaned_data['grupo_jornada'],
-                        'curso': form.cleaned_data['grupo_curso'],
                     },
                 )
             else:

@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load estudiantes_extras %}
+
+{% block Titulo %}Notas del grupo{% endblock %}
+
+{% block contenido %}
+
+<style>
+  .notas-header {
+    background: linear-gradient(135deg, #1a3a6e, #274d9e); color: #fff;
+    border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem;
+    display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: .75rem;
+  }
+  .filtros-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+    padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+  }
+  .actividades-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+    padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+  }
+  .actividad-chip {
+    display: inline-flex; align-items: center; gap: .5rem; background: #eef2ff; color: #1e293b;
+    border-radius: 8px; padding: .35rem .5rem .35rem .75rem; font-size: .82rem; font-weight: 600;
+  }
+  .actividad-chip form { margin: 0; }
+  .actividad-chip button {
+    border: none; background: #fecaca; color: #991b1b; border-radius: 6px; width: 20px; height: 20px;
+    font-size: .7rem; font-weight: 800; line-height: 1; cursor: pointer;
+  }
+  .nueva-actividad-form { display: flex; gap: .5rem; margin-top: .75rem; max-width: 420px; }
+
+  .notas-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow-x: auto;
+  }
+  table.tabla-notas { border-collapse: collapse; width: 100%; min-width: 720px; }
+  table.tabla-notas th, table.tabla-notas td {
+    padding: .5rem .55rem; border-bottom: 1px solid #eef1f5; vertical-align: middle; text-align: center;
+  }
+  table.tabla-notas th { font-size: .7rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b; }
+  table.tabla-notas td:nth-child(2), table.tabla-notas th:nth-child(2) { text-align: left; }
+  .fila-estudiante:hover { background: #f8fafc; }
+  .input-nota {
+    width: 56px; text-align: center; border: 1px solid #e2e8f0; border-radius: 6px; padding: .25rem;
+  }
+  .celda-promedio { font-weight: 800; color: #1a3a6e; }
+  .celda-puntos { font-weight: 700; }
+  .celda-puntos.neg { color: #b91c1c; }
+  .celda-definitiva { font-weight: 900; font-size: .95rem; color: #0f172a; background: #f8fafc; }
+</style>
+
+<div class="notas-header">
+  <div>
+    <h4 class="fw-bold mb-1">Notas del grupo</h4>
+    {% if linea and jornada %}
+      <div class="opacity-90">{{ linea_display }} &middot; {{ jornada_display }}{% if curso_filtro %} &middot; Curso {{ curso_filtro }}{% endif %}</div>
+    {% else %}
+      <div class="opacity-90">Selecciona una línea para comenzar</div>
+    {% endif %}
+  </div>
+  {% if linea and jornada %}
+  <a href="{% url 'planilla' %}?linea={{ linea }}&jornada={{ jornada }}&curso={{ curso_filtro }}" class="btn btn-light btn-sm fw-bold">📋 Ir a Planilla</a>
+  {% endif %}
+</div>
+
+{% if es_directivo %}
+<div class="filtros-card">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-12 col-md-5">
+      <label class="form-label small fw-bold">Línea y jornada</label>
+      <select name="grupo_combo" class="form-select form-select-sm" onchange="
+        const v = this.value.split('|'); this.form.linea.value=v[0]||''; this.form.jornada.value=v[1]||''; this.form.curso.value=''; this.form.submit();">
+        <option value="">— Selecciona —</option>
+        {% for g in grupos_disponibles %}
+          <option value="{{ g.0 }}|{{ g.1 }}" {% if g.0 == linea and g.1 == jornada %}selected{% endif %}>{{ g.0 }} ({{ g.1 }})</option>
+        {% endfor %}
+      </select>
+      <input type="hidden" name="linea" value="{{ linea }}">
+      <input type="hidden" name="jornada" value="{{ jornada }}">
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label small fw-bold">Curso (filtro)</label>
+      <select name="curso" class="form-select form-select-sm" onchange="this.form.submit();">
+        <option value="">Todos</option>
+        {% for c in cursos_disponibles %}
+          <option value="{{ c }}" {% if c == curso_filtro %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+</div>
+{% else %}
+<div class="filtros-card">
+  <form method="get" class="row g-2 align-items-end">
+    <input type="hidden" name="linea" value="{{ linea }}">
+    <input type="hidden" name="jornada" value="{{ jornada }}">
+    <div class="col-6 col-md-4">
+      <label class="form-label small fw-bold">Curso (filtro, opcional)</label>
+      <select name="curso" class="form-select form-select-sm" onchange="this.form.submit();">
+        <option value="">Todos mis cursos</option>
+        {% for c in cursos_disponibles %}
+          <option value="{{ c }}" {% if c == curso_filtro %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% if linea and jornada %}
+<div class="actividades-card">
+  <div class="section-title" style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem;">
+    Actividades calificables de {{ linea_display }} ({{ jornada_display }})
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% for act in actividades %}
+      <span class="actividad-chip">
+        {{ act.nombre }}
+        <form method="post" onsubmit="return confirm('¿Eliminar la actividad {{ act.nombre }} y todas sus notas?');">
+          {% csrf_token %}
+          <input type="hidden" name="linea" value="{{ linea }}">
+          <input type="hidden" name="jornada" value="{{ jornada }}">
+          <input type="hidden" name="curso" value="{{ curso_filtro }}">
+          <input type="hidden" name="eliminar_actividad" value="{{ act.id }}">
+          <button type="submit" title="Eliminar actividad">&times;</button>
+        </form>
+      </span>
+    {% empty %}
+      <span class="text-muted small">Aún no hay actividades. Crea la primera abajo.</span>
+    {% endfor %}
+  </div>
+  <form method="post" class="nueva-actividad-form">
+    {% csrf_token %}
+    <input type="hidden" name="linea" value="{{ linea }}">
+    <input type="hidden" name="jornada" value="{{ jornada }}">
+    <input type="hidden" name="curso" value="{{ curso_filtro }}">
+    <input type="text" name="nueva_actividad" class="form-control form-control-sm" placeholder="Nombre de la nueva actividad (ej: Taller 1)" required>
+    <button type="submit" class="btn btn-sm btn-primary">Agregar</button>
+  </form>
+</div>
+
+{% if actividades %}
+<div class="notas-card">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="linea" value="{{ linea }}">
+    <input type="hidden" name="jornada" value="{{ jornada }}">
+    <input type="hidden" name="curso" value="{{ curso_filtro }}">
+
+    <table class="tabla-notas">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Estudiante</th>
+          <th>Curso</th>
+          {% for act in actividades %}<th>{{ act.nombre }}</th>{% endfor %}
+          <th>Promedio</th>
+          <th>Puntos asist.</th>
+          <th>Definitiva</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for est in estudiantes_grupo %}
+        <tr class="fila-estudiante">
+          <td>{{ forloop.counter }}</td>
+          <td>{{ est.apellidos }} {{ est.nombres }}</td>
+          <td>{{ est.curso }}</td>
+          {% for act in actividades %}
+          <td>
+            <input type="number" step="0.1" min="0" max="5" class="input-nota"
+                   name="nota_{{ est.id }}_{{ act.id }}"
+                   value="{{ notas_grid|get_item:est.id|get_item:act.id|default_if_none:'' }}">
+          </td>
+          {% endfor %}
+          {% with fila=resumen|get_item:est.id %}
+          <td class="celda-promedio">{{ fila.promedio|floatformat:2|default:"—" }}</td>
+          <td class="celda-puntos {% if fila.puntos < 0 %}neg{% endif %}">{{ fila.puntos|default:0 }}</td>
+          <td class="celda-definitiva">{{ fila.definitiva|floatformat:2|default:"—" }}</td>
+          {% endwith %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="{{ actividades|length|add:6 }}" class="text-center text-muted py-4">No hay estudiantes en este grupo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="p-3 border-top d-flex justify-content-end">
+      <button type="submit" class="btn btn-primary">Guardar notas</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% elif es_directivo %}
+<p class="text-muted">Selecciona una línea arriba para ver sus notas.</p>
+{% endif %}
+
+{% endblock %}

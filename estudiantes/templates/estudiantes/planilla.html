@@ -9,6 +9,7 @@
   .planilla-header {
     background: linear-gradient(135deg, #1a3a6e, #274d9e); color: #fff;
     border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem;
+    display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: .75rem;
   }
   .convenciones { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
   .conv-chip {
@@ -16,6 +17,7 @@
     padding: .3rem .6rem; border-radius: 8px;
   }
   .conv-swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+  .conv-puntos { font-size: .68rem; font-weight: 600; opacity: .85; margin-top: .1rem; }
 
   .filtros-card {
     background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
@@ -26,7 +28,7 @@
     background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
     box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow-x: auto;
   }
-  table.tabla-planilla { border-collapse: collapse; width: 100%; min-width: 720px; }
+  table.tabla-planilla { border-collapse: collapse; width: 100%; min-width: 780px; }
   table.tabla-planilla th, table.tabla-planilla td {
     padding: .55rem .6rem; border-bottom: 1px solid #eef1f5; vertical-align: middle;
   }
@@ -53,48 +55,64 @@
 
   .resumen-badges { display: flex; gap: 4px; flex-wrap: wrap; font-size: .68rem; }
   .resumen-badge { padding: .1rem .4rem; border-radius: 5px; font-weight: 700; }
+  .puntos-badge { font-size: .82rem; font-weight: 800; padding: .2rem .55rem; border-radius: 7px; }
+  .puntos-neg  { background: #fee2e2; color: #b91c1c; }
+  .puntos-cero { background: #f1f5f9; color: #475569; }
 </style>
 
 <div class="planilla-header">
-  <h4 class="fw-bold mb-1">Planilla de asistencia</h4>
-  {% if linea and jornada and curso %}
-    <div class="opacity-90">{{ curso }} &middot; {{ linea_display }} &middot; {{ jornada_display }}</div>
-  {% else %}
-    <div class="opacity-90">Selecciona un grupo para comenzar</div>
-  {% endif %}
-  <div class="convenciones">
-    <span class="conv-chip" style="background:#FF0000;color:#fff;"><span class="conv-swatch" style="background:#FF0000;border:1px solid #fff;"></span>F — Falla</span>
-    <span class="conv-chip" style="background:#FFFF00;color:#333;"><span class="conv-swatch" style="background:#FFFF00;border:1px solid #333;"></span>A — Asistió</span>
-    <span class="conv-chip" style="background:#FF9900;color:#C00000;"><span class="conv-swatch" style="background:#FF9900;border:1px solid #C00000;"></span>R — Llegada tarde</span>
-    <span class="conv-chip" style="background:#7030A0;color:#FFFF00;"><span class="conv-swatch" style="background:#7030A0;border:1px solid #FFFF00;"></span>E — Evasión de clase</span>
-    <span class="conv-chip" style="background:#92D050;color:#333;"><span class="conv-swatch" style="background:#92D050;border:1px solid #333;"></span>EX — Excusa justificada</span>
-    <span class="conv-chip" style="background:#002060;color:#FFFF00;"><span class="conv-swatch" style="background:#002060;border:1px solid #FFFF00;"></span>U — Uniforme incompleto</span>
+  <div>
+    <h4 class="fw-bold mb-1">Planilla de asistencia</h4>
+    {% if linea and jornada %}
+      <div class="opacity-90">{{ linea_display }} &middot; {{ jornada_display }}{% if curso_filtro %} &middot; Curso {{ curso_filtro }}{% endif %}</div>
+    {% else %}
+      <div class="opacity-90">Selecciona una línea para comenzar</div>
+    {% endif %}
+    <div class="convenciones">
+      <span class="conv-chip" style="background:#FF0000;color:#fff;"><span class="conv-swatch" style="background:#FF0000;border:1px solid #fff;"></span>F — Falla (-1)</span>
+      <span class="conv-chip" style="background:#FFFF00;color:#333;"><span class="conv-swatch" style="background:#FFFF00;border:1px solid #333;"></span>A — Asistió (0)</span>
+      <span class="conv-chip" style="background:#FF9900;color:#C00000;"><span class="conv-swatch" style="background:#FF9900;border:1px solid #C00000;"></span>R — Llegada tarde (-1)</span>
+      <span class="conv-chip" style="background:#7030A0;color:#FFFF00;"><span class="conv-swatch" style="background:#7030A0;border:1px solid #FFFF00;"></span>E — Evasión de clase (-5)</span>
+      <span class="conv-chip" style="background:#92D050;color:#333;"><span class="conv-swatch" style="background:#92D050;border:1px solid #333;"></span>EX — Excusa justificada (anula sanción)</span>
+      <span class="conv-chip" style="background:#002060;color:#FFFF00;"><span class="conv-swatch" style="background:#002060;border:1px solid #FFFF00;"></span>U — Uniforme incompleto (-1)</span>
+    </div>
   </div>
+  {% if linea and jornada %}
+  <a href="{% url 'notas' %}?linea={{ linea }}&jornada={{ jornada }}&curso={{ curso_filtro }}" class="btn btn-light btn-sm fw-bold">📝 Ir a Notas</a>
+  {% endif %}
 </div>
 
 {% if es_directivo %}
 <div class="filtros-card">
   <form method="get" class="row g-2 align-items-end">
-    <div class="col-12 col-md-5">
-      <label class="form-label small fw-bold">Grupo (línea · jornada · curso)</label>
+    <div class="col-12 col-md-4">
+      <label class="form-label small fw-bold">Línea y jornada</label>
       <select name="grupo_combo" class="form-select form-select-sm" onchange="
-        const v = this.value.split('|'); this.form.linea.value=v[0]||''; this.form.jornada.value=v[1]||''; this.form.curso.value=v[2]||''; this.form.submit();">
-        <option value="">— Selecciona un grupo —</option>
+        const v = this.value.split('|'); this.form.linea.value=v[0]||''; this.form.jornada.value=v[1]||''; this.form.curso.value=''; this.form.submit();">
+        <option value="">— Selecciona —</option>
         {% for g in grupos_disponibles %}
-          <option value="{{ g.0 }}|{{ g.1 }}|{{ g.2 }}" {% if g.0 == linea and g.1 == jornada and g.2 == curso %}selected{% endif %}>
-            {{ g.2 }} — {{ g.0 }} ({{ g.1 }})
+          <option value="{{ g.0 }}|{{ g.1 }}" {% if g.0 == linea and g.1 == jornada %}selected{% endif %}>
+            {{ g.0 }} ({{ g.1 }})
           </option>
         {% endfor %}
       </select>
       <input type="hidden" name="linea" value="{{ linea }}">
       <input type="hidden" name="jornada" value="{{ jornada }}">
-      <input type="hidden" name="curso" value="{{ curso }}">
     </div>
     <div class="col-6 col-md-2">
+      <label class="form-label small fw-bold">Curso (filtro)</label>
+      <select name="curso" class="form-select form-select-sm" onchange="this.form.submit();">
+        <option value="">Todos</option>
+        {% for c in cursos_disponibles %}
+          <option value="{{ c }}" {% if c == curso_filtro %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
       <label class="form-label small fw-bold">Fecha</label>
       <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" class="form-control form-control-sm" onchange="this.form.submit();">
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 col-md-3">
       <label class="form-label small fw-bold">Bloque</label>
       <select name="bloque" class="form-select form-select-sm" onchange="this.form.submit();">
         <option value="1" {% if bloque == 1 %}selected{% endif %}>Bloque 1</option>
@@ -108,7 +126,15 @@
   <form method="get" class="row g-2 align-items-end">
     <input type="hidden" name="linea" value="{{ linea }}">
     <input type="hidden" name="jornada" value="{{ jornada }}">
-    <input type="hidden" name="curso" value="{{ curso }}">
+    <div class="col-6 col-md-3">
+      <label class="form-label small fw-bold">Curso (filtro, opcional)</label>
+      <select name="curso" class="form-select form-select-sm" onchange="this.form.submit();">
+        <option value="">Todos mis cursos</option>
+        {% for c in cursos_disponibles %}
+          <option value="{{ c }}" {% if c == curso_filtro %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
     <div class="col-6 col-md-3">
       <label class="form-label small fw-bold">Fecha</label>
       <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" class="form-control form-control-sm" onchange="this.form.submit();">
@@ -124,13 +150,13 @@
 </div>
 {% endif %}
 
-{% if linea and jornada and curso %}
+{% if linea and jornada %}
 <div class="planilla-card">
   <form method="post">
     {% csrf_token %}
     <input type="hidden" name="linea" value="{{ linea }}">
     <input type="hidden" name="jornada" value="{{ jornada }}">
-    <input type="hidden" name="curso" value="{{ curso }}">
+    <input type="hidden" name="curso" value="{{ curso_filtro }}">
     <input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">
     <input type="hidden" name="bloque" value="{{ bloque }}">
 
@@ -139,9 +165,10 @@
         <tr>
           <th class="ps-3">#</th>
           <th>Estudiante</th>
-          <th>Documento</th>
+          <th>Curso</th>
           <th>Estado — {{ fecha|date:"d/m/Y" }} (Bloque {{ bloque }})</th>
-          <th class="pe-3">Historial (F / A / R / E / EX / U)</th>
+          <th>Historial (F/A/R/E/EX/U)</th>
+          <th class="pe-3">Puntos</th>
         </tr>
       </thead>
       <tbody>
@@ -149,7 +176,7 @@
         <tr class="fila-estudiante">
           <td class="ps-3">{{ forloop.counter }}</td>
           <td>{{ est.apellidos }} {{ est.nombres }}</td>
-          <td>{{ est.documento }}</td>
+          <td>{{ est.curso }}</td>
           <td>
             <div class="estado-grupo">
               {% for codigo, etiqueta in estados %}
@@ -160,7 +187,7 @@
               {% endfor %}
             </div>
           </td>
-          <td class="pe-3">
+          <td>
             <div class="resumen-badges">
               <span class="resumen-badge chip-F">F {{ resumen|get_item:est.id|get_item:"F"|default:0 }}</span>
               <span class="resumen-badge chip-A">A {{ resumen|get_item:est.id|get_item:"A"|default:0 }}</span>
@@ -170,9 +197,14 @@
               <span class="resumen-badge chip-U">U {{ resumen|get_item:est.id|get_item:"U"|default:0 }}</span>
             </div>
           </td>
+          <td class="pe-3">
+            {% with puntos=resumen|get_item:est.id|get_item:"puntos"|default:0 %}
+              <span class="puntos-badge {% if puntos < 0 %}puntos-neg{% else %}puntos-cero{% endif %}">{{ puntos }}</span>
+            {% endwith %}
+          </td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-4">No hay estudiantes en este grupo.</td></tr>
+        <tr><td colspan="6" class="text-center text-muted py-4">No hay estudiantes en este grupo.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -183,7 +215,7 @@
   </form>
 </div>
 {% elif es_directivo %}
-<p class="text-muted">Selecciona un grupo arriba para ver su planilla.</p>
+<p class="text-muted">Selecciona una línea arriba para ver su planilla.</p>
 {% endif %}
 
 {% endblock %}
