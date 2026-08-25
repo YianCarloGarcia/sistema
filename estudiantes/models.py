@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
+from decimal import Decimal
 
 # Create your models here.
 class Estudiante(models.Model):
@@ -121,7 +122,11 @@ class DocentePerfil(models.Model):
 
 
 class RegistroPlanilla(models.Model):
-    """Registro diario de la planilla del docente: un estado por estudiante, fecha y bloque de clase."""
+    """Registro diario de la planilla del docente: uno o más ítems (estado) por estudiante,
+    fecha y bloque de clase. Varios ítems pueden coexistir en el mismo bloque (por ejemplo,
+    llegada tarde + uniforme incompleto). La única excepción es la Falla (F): al marcarla,
+    ningún otro ítem puede coexistir en ese bloque salvo la Excusa justificada (EX), que la
+    remedia (ver `calcular_puntos_por_estudiante`)."""
     ESTADOS = [
         ('F',  'Falla'),
         ('A',  'Asistió'),
@@ -130,15 +135,17 @@ class RegistroPlanilla(models.Model):
         ('EX', 'Excusa justificada'),
         ('U',  'Uniforme incompleto'),
     ]
-    # Puntos que suma/resta cada estado a la nota definitiva del estudiante.
+    # Puntos por defecto que suma/resta cada estado a la nota definitiva del estudiante.
     # La excusa justificada (EX) anula la sanción: no resta puntos.
-    PUNTOS = {
-        'F':  -1,
-        'A':   0,
-        'R':  -1,
-        'E':  -5,
-        'EX':  0,
-        'U':  -1,
+    # Estos son solo el respaldo inicial: el valor real y editable vive en ConfiguracionPuntos
+    # (administrable desde el admin de Django) y se usa siempre que exista.
+    PUNTOS_POR_DEFECTO = {
+        'F':  Decimal('-1'),
+        'A':  Decimal('0'),
+        'R':  Decimal('-1'),
+        'E':  Decimal('-5'),
+        'EX': Decimal('0'),
+        'U':  Decimal('-1'),
     }
     BLOQUES = [
         (1, 'Bloque 1'),
@@ -156,7 +163,7 @@ class RegistroPlanilla(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['estudiante', 'fecha', 'bloque'], name='unico_estudiante_fecha_bloque')
+            models.UniqueConstraint(fields=['estudiante', 'fecha', 'bloque', 'estado'], name='unico_estudiante_fecha_bloque_estado')
         ]
         verbose_name = 'Registro de planilla'
         verbose_name_plural = 'Registros de planilla'
@@ -164,9 +171,66 @@ class RegistroPlanilla(models.Model):
     def __str__(self):
         return f"{self.estudiante} — {self.fecha} B{self.bloque}: {self.estado}"
 
+    @classmethod
+    def obtener_puntos(cls):
+        """Mapa estado -> puntos, tomando lo configurado en el admin (ConfiguracionPuntos)
+        y completando con los valores por defecto para cualquier estado sin configurar."""
+        configurados = dict(ConfiguracionPuntos.objects.values_list('estado', 'puntos'))
+        resultado = dict(cls.PUNTOS_POR_DEFECTO)
+        resultado.update(configurados)
+        return resultado
+
+    @classmethod
+    def calcular_puntos_por_estudiante(cls, registros):
+        """Agrupa `registros` (queryset, iterable de instancias, o de dicts con las claves
+        estudiante_id/fecha/bloque/estado) por bloque de clase y devuelve {estudiante_id: puntos}.
+
+        Varios ítems pueden coexistir en un mismo bloque y sus puntos se suman (ej: llegada
+        tarde + uniforme incompleto). La única excepción: si en el mismo bloque coinciden
+        Falla (F) y Excusa justificada (EX), la excusa remedia la falla y ese bloque no
+        resta puntos en absoluto."""
+        puntos_config = cls.obtener_puntos()
+        bloques = {}
+        for r in registros:
+            if isinstance(r, dict):
+                clave = (r['estudiante_id'], r['fecha'], r['bloque'])
+                estado = r['estado']
+            else:
+                clave = (r.estudiante_id, r.fecha, r.bloque)
+                estado = r.estado
+            bloques.setdefault(clave, set()).add(estado)
+
+        puntos_por_estudiante = {}
+        for (estudiante_id, fecha, bloque), estados in bloques.items():
+            if 'F' in estados and 'EX' in estados:
+                puntos_bloque = 0
+            else:
+                puntos_bloque = sum(puntos_config.get(e, 0) for e in estados)
+            puntos_por_estudiante[estudiante_id] = puntos_por_estudiante.get(estudiante_id, 0) + puntos_bloque
+        return puntos_por_estudiante
+
     @property
     def puntos(self):
-        return self.PUNTOS.get(self.estado, 0)
+        return self.obtener_puntos().get(self.estado, 0)
+
+
+class ConfiguracionPuntos(models.Model):
+    """Puntos que suma o resta cada estado de asistencia a la nota definitiva.
+    Editable desde el admin de Django: el cambio se refleja de inmediato en toda planilla,
+    notas y reporte exportado."""
+    estado = models.CharField(max_length=2, choices=RegistroPlanilla.ESTADOS, unique=True, verbose_name='Estado')
+    puntos = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        verbose_name='Puntos (use un número negativo para descontar; admite decimales, ej: -0.5)',
+    )
+
+    class Meta:
+        verbose_name = 'Puntos por estado de asistencia'
+        verbose_name_plural = 'Configuración de puntos por asistencia'
+        ordering = ['estado']
+
+    def __str__(self):
+        return f"{self.get_estado_display()}: {self.puntos:+.2f}"
 
 
 class Actividad(models.Model):

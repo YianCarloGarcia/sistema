@@ -373,15 +373,16 @@ def mi_historial(request):
 # ── Planilla de asistencia por grupo (docentes/directivos) ───
 
 def _resolver_grupo(request):
-    """Resuelve (es_directivo, linea, jornada, curso_filtro, grupos_disponibles, cursos_disponibles,
-    estudiantes_grupo) para las vistas de planilla y notas, a partir del docente o de los filtros GET/POST."""
+    """Resuelve (es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles,
+    estudiantes_grupo) para las vistas de planilla y notas, a partir del docente o de los filtros GET/POST.
+    El filtro es por línea, jornada y grado (10°/11°) — nunca por el código completo del curso."""
     es_directivo = _es_directivo(request.user)
     grupo_asignado = _grupo_docente(request.user)
     params = request.POST if request.method == 'POST' else request.GET
 
     linea = params.get('linea') or (grupo_asignado[0] if grupo_asignado else '')
     jornada = params.get('jornada') or (grupo_asignado[1] if grupo_asignado else '')
-    curso_filtro = params.get('curso', '')
+    grado_filtro = params.get('grado', '')
 
     if grupo_asignado and not es_directivo:
         linea, jornada = grupo_asignado
@@ -393,17 +394,17 @@ def _resolver_grupo(request):
         )
 
     estudiantes_grupo = Estudiante.objects.none()
-    cursos_disponibles = []
+    grados_disponibles = []
     if linea and jornada:
         estudiantes_grupo = Estudiante.objects.filter(linea=linea, jornada=jornada)
-        cursos_disponibles = list(
-            estudiantes_grupo.exclude(curso='').values_list('curso', flat=True).distinct().order_by('curso')
-        )
-        if curso_filtro:
-            estudiantes_grupo = estudiantes_grupo.filter(curso=curso_filtro)
+        grados_disponibles = sorted({
+            c[:2] for c in estudiantes_grupo.exclude(curso='').values_list('curso', flat=True) if len(c) >= 2
+        })
+        if grado_filtro:
+            estudiantes_grupo = estudiantes_grupo.filter(curso__startswith=grado_filtro)
         estudiantes_grupo = estudiantes_grupo.order_by('curso', 'apellidos', 'nombres')
 
-    return es_directivo, linea, jornada, curso_filtro, grupos_disponibles, cursos_disponibles, estudiantes_grupo
+    return es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles, estudiantes_grupo
 
 
 @login_required
@@ -413,7 +414,7 @@ def planilla_grupo(request):
         messages.error(request, "Su cuenta no tiene una línea asignada para la planilla. Pida a un directivo que se la asigne.")
         return redirect('inicio')
 
-    es_directivo, linea, jornada, curso_filtro, grupos_disponibles, cursos_disponibles, estudiantes_grupo = _resolver_grupo(request)
+    es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles, estudiantes_grupo = _resolver_grupo(request)
     params = request.POST if request.method == 'POST' else request.GET
 
     hoy = timezone.localdate()
@@ -433,21 +434,32 @@ def planilla_grupo(request):
 
     if linea and jornada:
         if request.method == 'POST':
+            estados_validos = set(dict(RegistroPlanilla.ESTADOS).keys())
             for est in estudiantes_grupo:
-                estado = request.POST.get(f'estado_{est.id}', '')
-                if estado in dict(RegistroPlanilla.ESTADOS):
+                seleccionados = set(request.POST.getlist(f'estado_{est.id}')) & estados_validos
+                # Regla de exclusividad: la Falla inhabilita los demás ítems del bloque,
+                # salvo la Excusa justificada, que la remedia.
+                if 'F' in seleccionados:
+                    seleccionados &= {'F', 'EX'}
+
+                existentes = set(
+                    RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque)
+                    .values_list('estado', flat=True)
+                )
+                for estado in seleccionados:
                     RegistroPlanilla.objects.update_or_create(
-                        estudiante=est, fecha=fecha, bloque=bloque,
-                        defaults={'estado': estado, 'registrado_por': request.user},
+                        estudiante=est, fecha=fecha, bloque=bloque, estado=estado,
+                        defaults={'registrado_por': request.user},
                     )
-                else:
-                    RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque).delete()
+                for estado in existentes - seleccionados:
+                    RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque, estado=estado).delete()
             messages.success(request, f"Planilla guardada para {fecha.strftime('%d/%m/%Y')} — Bloque {bloque}.")
-            qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso_filtro, 'fecha': fecha.isoformat(), 'bloque': bloque})
+            qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro, 'fecha': fecha.isoformat(), 'bloque': bloque})
             return redirect(f"{request.path}?{qs}")
 
         registros = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo, fecha=fecha, bloque=bloque)
-        registros_por_estudiante = {r.estudiante_id: r.estado for r in registros}
+        for r in registros:
+            registros_por_estudiante.setdefault(r.estudiante_id, set()).add(r.estado)
 
         conteo_qs = (
             RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo)
@@ -455,14 +467,19 @@ def planilla_grupo(request):
         )
         for fila in conteo_qs:
             resumen.setdefault(fila['estudiante_id'], {})[fila['estado']] = fila['total']
-        for datos in resumen.values():
-            datos['puntos'] = sum(RegistroPlanilla.PUNTOS.get(estado, 0) * cant for estado, cant in datos.items() if estado != 'puntos')
+
+        todos_los_registros = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo).values(
+            'estudiante_id', 'fecha', 'bloque', 'estado'
+        )
+        puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(todos_los_registros)
+        for est in estudiantes_grupo:
+            resumen.setdefault(est.id, {})['puntos'] = puntos_por_estudiante.get(est.id, 0)
 
     return render(request, 'estudiantes/planilla.html', {
         'es_directivo':       es_directivo,
         'grupos_disponibles': grupos_disponibles,
-        'cursos_disponibles': cursos_disponibles,
-        'linea': linea, 'jornada': jornada, 'curso_filtro': curso_filtro,
+        'grados_disponibles': grados_disponibles,
+        'linea': linea, 'jornada': jornada, 'grado_filtro': grado_filtro,
         'linea_display':   dict(Estudiante.LINEA_MEDIA).get(linea, linea),
         'jornada_display': dict(Estudiante.JORNADA).get(jornada, jornada),
         'fecha': fecha,
@@ -471,6 +488,7 @@ def planilla_grupo(request):
         'registros_por_estudiante':  registros_por_estudiante,
         'resumen': resumen,
         'estados': RegistroPlanilla.ESTADOS,
+        'puntos_config': RegistroPlanilla.obtener_puntos(),
     })
 
 
@@ -481,7 +499,7 @@ def notas_grupo(request):
         messages.error(request, "Su cuenta no tiene una línea asignada para calificar. Pida a un directivo que se la asigne.")
         return redirect('inicio')
 
-    es_directivo, linea, jornada, curso_filtro, grupos_disponibles, cursos_disponibles, estudiantes_grupo = _resolver_grupo(request)
+    es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles, estudiantes_grupo = _resolver_grupo(request)
 
     actividades = Actividad.objects.none()
     notas_grid = {}
@@ -497,48 +515,45 @@ def notas_grupo(request):
                     siguiente_orden = (actividades.aggregate(m=Max('orden'))['m'] or 0) + 1
                     Actividad.objects.create(linea=linea, jornada=jornada, nombre=nombre, orden=siguiente_orden, creado_por=request.user)
                     messages.success(request, f"Actividad '{nombre}' creada.")
-                qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso_filtro})
+                qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro})
                 return redirect(f"{request.path}?{qs}")
 
             elif 'eliminar_actividad' in request.POST:
                 Actividad.objects.filter(id=request.POST.get('eliminar_actividad'), linea=linea, jornada=jornada).delete()
                 messages.success(request, "Actividad eliminada.")
-                qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso_filtro})
+                qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro})
                 return redirect(f"{request.path}?{qs}")
 
             else:
+                # Una casilla en blanco significa "sin calificar todavía": se ignora y NO borra
+                # una nota que ya existiera. Solo se guarda cuando el docente escribe un valor.
                 for est in estudiantes_grupo:
                     for act in actividades:
                         campo = f'nota_{est.id}_{act.id}'
-                        if campo in request.POST:
-                            valor_txt = request.POST.get(campo, '').strip().replace(',', '.')
-                            if valor_txt == '':
-                                NotaActividad.objects.filter(estudiante=est, actividad=act).delete()
-                                continue
-                            try:
-                                valor = Decimal(valor_txt)
-                            except InvalidOperation:
-                                continue
-                            valor = max(Decimal('0.0'), min(Decimal('5.0'), valor))
-                            NotaActividad.objects.update_or_create(
-                                estudiante=est, actividad=act,
-                                defaults={'valor': valor, 'registrado_por': request.user},
-                            )
+                        valor_txt = request.POST.get(campo, '').strip().replace(',', '.')
+                        if valor_txt == '':
+                            continue
+                        try:
+                            valor = Decimal(valor_txt)
+                        except InvalidOperation:
+                            continue
+                        valor = max(Decimal('0.0'), min(Decimal('5.0'), valor)).quantize(Decimal('0.01'))
+                        NotaActividad.objects.update_or_create(
+                            estudiante=est, actividad=act,
+                            defaults={'valor': valor, 'registrado_por': request.user},
+                        )
                 messages.success(request, "Notas guardadas.")
-                qs = urlencode({'linea': linea, 'jornada': jornada, 'curso': curso_filtro})
+                qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro})
                 return redirect(f"{request.path}?{qs}")
 
         notas_qs = NotaActividad.objects.filter(estudiante__in=estudiantes_grupo, actividad__in=actividades)
         for n in notas_qs:
             notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = n.valor
 
-        conteo_qs = (
-            RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo)
-            .values('estudiante_id', 'estado').annotate(total=Count('id'))
+        registros_puntos = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo).values(
+            'estudiante_id', 'fecha', 'bloque', 'estado'
         )
-        puntos_por_estudiante = {}
-        for fila in conteo_qs:
-            puntos_por_estudiante[fila['estudiante_id']] = puntos_por_estudiante.get(fila['estudiante_id'], 0) + RegistroPlanilla.PUNTOS.get(fila['estado'], 0) * fila['total']
+        puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(registros_puntos)
 
         for est in estudiantes_grupo:
             notas_est = list(notas_grid.get(est.id, {}).values())
@@ -550,8 +565,8 @@ def notas_grupo(request):
     return render(request, 'estudiantes/notas.html', {
         'es_directivo':       es_directivo,
         'grupos_disponibles': grupos_disponibles,
-        'cursos_disponibles': cursos_disponibles,
-        'linea': linea, 'jornada': jornada, 'curso_filtro': curso_filtro,
+        'grados_disponibles': grados_disponibles,
+        'linea': linea, 'jornada': jornada, 'grado_filtro': grado_filtro,
         'linea_display':   dict(Estudiante.LINEA_MEDIA).get(linea, linea),
         'jornada_display': dict(Estudiante.JORNADA).get(jornada, jornada),
         'estudiantes_grupo': estudiantes_grupo,
@@ -559,6 +574,178 @@ def notas_grupo(request):
         'notas_grid': notas_grid,
         'resumen': resumen,
     })
+
+
+@login_required
+@bloquear_estudiantes
+def exportar_planilla(request):
+    if not _puede_usar_planilla(request.user):
+        messages.error(request, "Su cuenta no tiene una línea asignada.")
+        return redirect('inicio')
+
+    es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles, estudiantes_grupo = _resolver_grupo(request)
+    if not (linea and jornada):
+        messages.error(request, "Seleccione una línea y una jornada antes de exportar.")
+        return redirect('planilla')
+
+    estudiantes_grupo = list(estudiantes_grupo)
+    actividades = list(Actividad.objects.filter(linea=linea, jornada=jornada))
+
+    registros = (
+        RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo)
+        .select_related('estudiante', 'registrado_por')
+        .order_by('fecha', 'bloque', 'estudiante__curso', 'estudiante__apellidos')
+    )
+    notas_qs = NotaActividad.objects.filter(estudiante__in=estudiantes_grupo, actividad__in=actividades)
+
+    conteos = {}
+    for r in registros:
+        conteos.setdefault(r.estudiante_id, {})
+        conteos[r.estudiante_id][r.estado] = conteos[r.estudiante_id].get(r.estado, 0) + 1
+
+    puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(registros)
+
+    notas_grid = {}
+    for n in notas_qs:
+        notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = float(n.valor)
+
+    hf = PatternFill("solid", fgColor="1a3a6e")
+    hfont = Font(color="FFFFFF", bold=True, size=11)
+    halign = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    thin = Side(style="thin", color="D1D5DB")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    alt = PatternFill("solid", fgColor="F8FAFC")
+
+    COLORES_ESTADO = {
+        'F':  PatternFill("solid", fgColor="FF0000"),
+        'A':  PatternFill("solid", fgColor="FFFF00"),
+        'R':  PatternFill("solid", fgColor="FF9900"),
+        'E':  PatternFill("solid", fgColor="7030A0"),
+        'EX': PatternFill("solid", fgColor="92D050"),
+        'U':  PatternFill("solid", fgColor="002060"),
+    }
+    FUENTE_ESTADO = {
+        'F':  Font(color="FFFFFF", bold=True),
+        'A':  Font(color="333333", bold=True),
+        'R':  Font(color="C00000", bold=True),
+        'E':  Font(color="FFFF00", bold=True),
+        'EX': Font(color="333333", bold=True),
+        'U':  Font(color="FFFF00", bold=True),
+    }
+
+    wb = openpyxl.Workbook()
+
+    # ── Hoja 1: Resumen (asistencia + notas + definitiva) ───
+    ws1 = wb.active
+    ws1.title = "Resumen"
+    encabezados = ['Curso', 'Apellidos', 'Nombres', 'Documento',
+                    'F', 'A', 'R', 'E', 'EX', 'U', 'Puntos asistencia',
+                    'Promedio notas', 'Definitiva']
+    for ci, h in enumerate(encabezados, 1):
+        c = ws1.cell(row=1, column=ci, value=h)
+        c.fill = hf; c.font = hfont; c.alignment = halign; c.border = border
+    ws1.row_dimensions[1].height = 26
+
+    fila = 2
+    for est in estudiantes_grupo:
+        cdatos = conteos.get(est.id, {})
+        puntos = float(puntos_por_estudiante.get(est.id, 0))
+        notas_est = list(notas_grid.get(est.id, {}).values())
+        promedio = (sum(notas_est) / len(notas_est)) if notas_est else None
+        definitiva = (promedio + puntos) if promedio is not None else None
+
+        valores = [
+            est.curso, est.apellidos, est.nombres, est.documento,
+            cdatos.get('F', 0), cdatos.get('A', 0), cdatos.get('R', 0),
+            cdatos.get('E', 0), cdatos.get('EX', 0), cdatos.get('U', 0),
+            puntos,
+            round(promedio, 2) if promedio is not None else '',
+            round(definitiva, 2) if definitiva is not None else '',
+        ]
+        for ci, v in enumerate(valores, 1):
+            c = ws1.cell(row=fila, column=ci, value=v)
+            c.border = border
+            c.alignment = Alignment(vertical="center", horizontal="left" if ci <= 3 else "center")
+            if fila % 2 == 0:
+                c.fill = alt
+        fila += 1
+
+    for i, w in enumerate([10, 20, 20, 14, 6, 6, 6, 6, 6, 6, 16, 14, 12], 1):
+        ws1.column_dimensions[get_column_letter(i)].width = w
+    ws1.freeze_panes = "A2"
+
+    # ── Hoja 2: Detalle de asistencia (reporte de fallas y descuentos) ───
+    ws2 = wb.create_sheet("Detalle asistencia")
+    enc2 = ['Fecha', 'Bloque', 'Curso', 'Apellidos', 'Nombres', 'Documento', 'Estado', 'Puntos', 'Registrado por']
+    for ci, h in enumerate(enc2, 1):
+        c = ws2.cell(row=1, column=ci, value=h)
+        c.fill = hf; c.font = hfont; c.alignment = halign; c.border = border
+    ws2.row_dimensions[1].height = 26
+
+    fila = 2
+    for r in registros:
+        est = r.estudiante
+        valores = [
+            r.fecha.strftime('%d/%m/%Y'), f"Bloque {r.bloque}", est.curso, est.apellidos, est.nombres, est.documento,
+            dict(RegistroPlanilla.ESTADOS).get(r.estado, r.estado), r.puntos,
+            (r.registrado_por.get_full_name() or r.registrado_por.username) if r.registrado_por else '',
+        ]
+        for ci, v in enumerate(valores, 1):
+            c = ws2.cell(row=fila, column=ci, value=v)
+            c.border = border
+            c.alignment = Alignment(vertical="center", horizontal="left" if ci in (3, 4, 5) else "center")
+            if ci == 7:
+                c.fill = COLORES_ESTADO.get(r.estado, PatternFill())
+                c.font = FUENTE_ESTADO.get(r.estado, Font())
+        fila += 1
+
+    for i, w in enumerate([12, 10, 10, 20, 20, 14, 18, 8, 22], 1):
+        ws2.column_dimensions[get_column_letter(i)].width = w
+    ws2.freeze_panes = "A2"
+
+    # ── Hoja 3: Notas por actividad ───
+    if actividades:
+        ws3 = wb.create_sheet("Notas por actividad")
+        enc3 = ['Curso', 'Apellidos', 'Nombres', 'Documento'] + [a.nombre for a in actividades] + ['Promedio']
+        for ci, h in enumerate(enc3, 1):
+            c = ws3.cell(row=1, column=ci, value=h)
+            c.fill = hf; c.font = hfont; c.alignment = halign; c.border = border
+        ws3.row_dimensions[1].height = 26
+
+        fila = 2
+        for est in estudiantes_grupo:
+            notas_est_dict = notas_grid.get(est.id, {})
+            valores = [est.curso, est.apellidos, est.nombres, est.documento]
+            for a in actividades:
+                valores.append(notas_est_dict.get(a.id, ''))
+            notas_vals = list(notas_est_dict.values())
+            promedio = round(sum(notas_vals) / len(notas_vals), 2) if notas_vals else ''
+            valores.append(promedio)
+            for ci, v in enumerate(valores, 1):
+                c = ws3.cell(row=fila, column=ci, value=v)
+                c.border = border
+                c.alignment = Alignment(vertical="center", horizontal="left" if ci <= 3 else "center")
+                if fila % 2 == 0:
+                    c.fill = alt
+            fila += 1
+
+        anchos3 = [10, 20, 20, 14] + [16] * len(actividades) + [12]
+        for i, w in enumerate(anchos3, 1):
+            ws3.column_dimensions[get_column_letter(i)].width = w
+        ws3.freeze_panes = "A2"
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    partes_nombre = [linea, jornada] + ([f"{grado_filtro}"] if grado_filtro else [])
+    nombre_archivo = "planilla_" + "_".join(partes_nombre) + ".xlsx"
+    resp = HttpResponse(
+        buf.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+    return resp
 
 
 # ── Almuerzo ─────────────────────────────────────────────────

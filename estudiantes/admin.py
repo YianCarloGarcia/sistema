@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User, Group
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad
+from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, ConfiguracionPuntos
 from .utils.pdf import generar_certificado_pdf
 from .utils.carnet import generar_carnet_pdf
 from .utils.carnet_png import generar_carnet_png
@@ -568,3 +568,19 @@ class NotaActividadAdmin(admin.ModelAdmin):
     list_display  = ['estudiante', 'actividad', 'valor', 'registrado_por']
     list_filter   = ['actividad']
     search_fields = ['estudiante__documento', 'estudiante__apellidos', 'estudiante__nombres']
+
+
+@admin.register(ConfiguracionPuntos)
+class ConfiguracionPuntosAdmin(admin.ModelAdmin):
+    list_display = ['estado', 'puntos']
+    list_editable = ['puntos']
+    ordering = ['estado']
+
+    def has_add_permission(self, request):
+        # Ya existen las 6 filas (una por cada estado de asistencia); no se crean más desde aquí.
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        # Si se borrara una fila, ese estado volvería silenciosamente al valor por defecto,
+        # lo cual puede confundir. Mejor solo permitir editar el número de puntos.
+        return False
