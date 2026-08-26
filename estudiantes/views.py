@@ -603,11 +603,8 @@ def exportar_planilla(request):
         conteos.setdefault(r.estudiante_id, {})
         conteos[r.estudiante_id][r.estado] = conteos[r.estudiante_id].get(r.estado, 0) + 1
 
-<<<<<<< HEAD
     puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(registros)
 
-=======
->>>>>>> 303c06137a95ab6d44e5acea53ada428318c15ec
     notas_grid = {}
     for n in notas_qs:
         notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = float(n.valor)
@@ -652,11 +649,7 @@ def exportar_planilla(request):
     fila = 2
     for est in estudiantes_grupo:
         cdatos = conteos.get(est.id, {})
-<<<<<<< HEAD
         puntos = float(puntos_por_estudiante.get(est.id, 0))
-=======
-        puntos = sum(RegistroPlanilla.PUNTOS.get(estado, 0) * cant for estado, cant in cdatos.items())
->>>>>>> 303c06137a95ab6d44e5acea53ada428318c15ec
         notas_est = list(notas_grid.get(est.id, {}).values())
         promedio = (sum(notas_est) / len(notas_est)) if notas_est else None
         definitiva = (promedio + puntos) if promedio is not None else None
