@@ -20,6 +20,7 @@ urlpatterns = [
     path('cambiar-clave/', views.cambiar_clave_obligatorio, name='cambiar_clave_obligatorio'),
     path('planilla/', views.planilla_grupo, name='planilla'),
     path('notas/', views.notas_grupo, name='notas'),
+    path('planilla/exportar/', views.exportar_planilla, name='exportar_planilla'),
 
     # Escáner general (Almuerzo, Tardanzas, Uniforme, Asistencia)
     path('estudiantes/escaner/', views.escaner, name='escaner'),
