@@ -21,6 +21,7 @@ urlpatterns = [
     path('planilla/', views.planilla_grupo, name='planilla'),
     path('notas/', views.notas_grupo, name='notas'),
     path('planilla/exportar/', views.exportar_planilla, name='exportar_planilla'),
+    path('planilla/historial/', views.historial_planilla, name='historial_planilla'),
 
     # Escáner general (Almuerzo, Tardanzas, Uniforme, Asistencia)
     path('estudiantes/escaner/', views.escaner, name='escaner'),
