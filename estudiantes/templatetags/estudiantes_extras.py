@@ -9,3 +9,11 @@ def get_item(dictionary, key):
     if not dictionary:
         return None
     return dictionary.get(key)
+
+
+@register.filter
+def contains(contenedor, item):
+    """True si item está en contenedor (soporta sets, listas o None)."""
+    if not contenedor:
+        return False
+    return item in contenedor

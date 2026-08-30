@@ -46,6 +46,9 @@
     opacity: 1; border-color: #0f172a; box-shadow: 0 0 0 2px rgba(15,23,42,.15);
     transform: scale(1.05);
   }
+  .estado-chip-input:disabled + .estado-chip-label {
+    opacity: .2; cursor: not-allowed; filter: grayscale(60%);
+  }
   .chip-F  { background: #FF0000; color: #fff; }
   .chip-A  { background: #FFFF00; color: #333; }
   .chip-R  { background: #FF9900; color: #C00000; }
@@ -69,12 +72,16 @@
       <div class="opacity-90">Selecciona una línea para comenzar</div>
     {% endif %}
     <div class="convenciones">
-      <span class="conv-chip" style="background:#FF0000;color:#fff;"><span class="conv-swatch" style="background:#FF0000;border:1px solid #fff;"></span>F — Falla (-1)</span>
-      <span class="conv-chip" style="background:#FFFF00;color:#333;"><span class="conv-swatch" style="background:#FFFF00;border:1px solid #333;"></span>A — Asistió (0)</span>
-      <span class="conv-chip" style="background:#FF9900;color:#C00000;"><span class="conv-swatch" style="background:#FF9900;border:1px solid #C00000;"></span>R — Llegada tarde (-1)</span>
-      <span class="conv-chip" style="background:#7030A0;color:#FFFF00;"><span class="conv-swatch" style="background:#7030A0;border:1px solid #FFFF00;"></span>E — Evasión de clase (-5)</span>
+      <span class="conv-chip" style="background:#FF0000;color:#fff;"><span class="conv-swatch" style="background:#FF0000;border:1px solid #fff;"></span>F — Falla ({{ puntos_config.F }})</span>
+      <span class="conv-chip" style="background:#FFFF00;color:#333;"><span class="conv-swatch" style="background:#FFFF00;border:1px solid #333;"></span>A — Asistió ({{ puntos_config.A }})</span>
+      <span class="conv-chip" style="background:#FF9900;color:#C00000;"><span class="conv-swatch" style="background:#FF9900;border:1px solid #C00000;"></span>R — Llegada tarde ({{ puntos_config.R }})</span>
+      <span class="conv-chip" style="background:#7030A0;color:#FFFF00;"><span class="conv-swatch" style="background:#7030A0;border:1px solid #FFFF00;"></span>E — Evasión de clase ({{ puntos_config.E }})</span>
       <span class="conv-chip" style="background:#92D050;color:#333;"><span class="conv-swatch" style="background:#92D050;border:1px solid #333;"></span>EX — Excusa justificada (anula sanción)</span>
-      <span class="conv-chip" style="background:#002060;color:#FFFF00;"><span class="conv-swatch" style="background:#002060;border:1px solid #FFFF00;"></span>U — Uniforme incompleto (-1)</span>
+      <span class="conv-chip" style="background:#002060;color:#FFFF00;"><span class="conv-swatch" style="background:#002060;border:1px solid #FFFF00;"></span>U — Uniforme incompleto ({{ puntos_config.U }})</span>
+    </div>
+    <div class="conv-puntos" style="margin-top:.4rem;">
+      Puede marcar varios ítems a la vez en el mismo bloque (ej: R + U). La Falla (F) es la única excepción:
+      al marcarla, los demás ítems se deshabilitan — salvo la Excusa justificada (EX), que la remedia.
     </div>
   </div>
   {% if linea and jornada %}
@@ -181,13 +188,15 @@
           <td>{{ est.apellidos }} {{ est.nombres }}</td>
           <td>{{ est.curso }}</td>
           <td>
-            <div class="estado-grupo">
+            <div class="estado-grupo" data-est="{{ est.id }}">
+              {% with marcados=registros_por_estudiante|get_item:est.id %}
               {% for codigo, etiqueta in estados %}
-                <input type="radio" class="estado-chip-input" id="e{{ est.id }}_{{ codigo }}"
+                <input type="checkbox" class="estado-chip-input" id="e{{ est.id }}_{{ codigo }}"
                        name="estado_{{ est.id }}" value="{{ codigo }}"
-                       {% if registros_por_estudiante|get_item:est.id == codigo %}checked{% endif %}>
+                       {% if marcados|contains:codigo %}checked{% endif %}>
                 <label class="estado-chip-label chip-{{ codigo }}" for="e{{ est.id }}_{{ codigo }}" title="{{ etiqueta }}">{{ codigo }}</label>
               {% endfor %}
+              {% endwith %}
             </div>
           </td>
           <td>
@@ -220,5 +229,29 @@
 {% elif es_directivo %}
 <p class="text-muted">Selecciona una línea arriba para ver su planilla.</p>
 {% endif %}
+
+<script>
+// Regla: la Falla (F) inhabilita los demás ítems del bloque, salvo la Excusa justificada (EX).
+document.querySelectorAll('.estado-grupo').forEach(function (grupo) {
+  const inputs = Array.from(grupo.querySelectorAll('input.estado-chip-input'));
+  const inputF = grupo.querySelector('input[value="F"]');
+  if (!inputF) return;
+
+  function aplicarRegla() {
+    inputs.forEach(function (inp) {
+      if (inp.value === 'F' || inp.value === 'EX') return;
+      if (inputF.checked) {
+        inp.checked = false;
+        inp.disabled = true;
+      } else {
+        inp.disabled = false;
+      }
+    });
+  }
+
+  inputs.forEach(function (inp) { inp.addEventListener('change', aplicarRegla); });
+  aplicarRegla();
+});
+</script>
 
 {% endblock %}

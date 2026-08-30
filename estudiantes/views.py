@@ -434,21 +434,32 @@ def planilla_grupo(request):
 
     if linea and jornada:
         if request.method == 'POST':
+            estados_validos = set(dict(RegistroPlanilla.ESTADOS).keys())
             for est in estudiantes_grupo:
-                estado = request.POST.get(f'estado_{est.id}', '')
-                if estado in dict(RegistroPlanilla.ESTADOS):
+                seleccionados = set(request.POST.getlist(f'estado_{est.id}')) & estados_validos
+                # Regla de exclusividad: la Falla inhabilita los demás ítems del bloque,
+                # salvo la Excusa justificada, que la remedia.
+                if 'F' in seleccionados:
+                    seleccionados &= {'F', 'EX'}
+
+                existentes = set(
+                    RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque)
+                    .values_list('estado', flat=True)
+                )
+                for estado in seleccionados:
                     RegistroPlanilla.objects.update_or_create(
-                        estudiante=est, fecha=fecha, bloque=bloque,
-                        defaults={'estado': estado, 'registrado_por': request.user},
+                        estudiante=est, fecha=fecha, bloque=bloque, estado=estado,
+                        defaults={'registrado_por': request.user},
                     )
-                else:
-                    RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque).delete()
+                for estado in existentes - seleccionados:
+                    RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque, estado=estado).delete()
             messages.success(request, f"Planilla guardada para {fecha.strftime('%d/%m/%Y')} — Bloque {bloque}.")
             qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro, 'fecha': fecha.isoformat(), 'bloque': bloque})
             return redirect(f"{request.path}?{qs}")
 
         registros = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo, fecha=fecha, bloque=bloque)
-        registros_por_estudiante = {r.estudiante_id: r.estado for r in registros}
+        for r in registros:
+            registros_por_estudiante.setdefault(r.estudiante_id, set()).add(r.estado)
 
         conteo_qs = (
             RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo)
@@ -456,8 +467,13 @@ def planilla_grupo(request):
         )
         for fila in conteo_qs:
             resumen.setdefault(fila['estudiante_id'], {})[fila['estado']] = fila['total']
-        for datos in resumen.values():
-            datos['puntos'] = sum(RegistroPlanilla.PUNTOS.get(estado, 0) * cant for estado, cant in datos.items() if estado != 'puntos')
+
+        todos_los_registros = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo).values(
+            'estudiante_id', 'fecha', 'bloque', 'estado'
+        )
+        puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(todos_los_registros)
+        for est in estudiantes_grupo:
+            resumen.setdefault(est.id, {})['puntos'] = puntos_por_estudiante.get(est.id, 0)
 
     return render(request, 'estudiantes/planilla.html', {
         'es_directivo':       es_directivo,
@@ -472,6 +488,7 @@ def planilla_grupo(request):
         'registros_por_estudiante':  registros_por_estudiante,
         'resumen': resumen,
         'estados': RegistroPlanilla.ESTADOS,
+        'puntos_config': RegistroPlanilla.obtener_puntos(),
     })
 
 
@@ -533,13 +550,10 @@ def notas_grupo(request):
         for n in notas_qs:
             notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = n.valor
 
-        conteo_qs = (
-            RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo)
-            .values('estudiante_id', 'estado').annotate(total=Count('id'))
+        registros_puntos = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo).values(
+            'estudiante_id', 'fecha', 'bloque', 'estado'
         )
-        puntos_por_estudiante = {}
-        for fila in conteo_qs:
-            puntos_por_estudiante[fila['estudiante_id']] = puntos_por_estudiante.get(fila['estudiante_id'], 0) + RegistroPlanilla.PUNTOS.get(fila['estado'], 0) * fila['total']
+        puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(registros_puntos)
 
         for est in estudiantes_grupo:
             notas_est = list(notas_grid.get(est.id, {}).values())
@@ -589,6 +603,11 @@ def exportar_planilla(request):
         conteos.setdefault(r.estudiante_id, {})
         conteos[r.estudiante_id][r.estado] = conteos[r.estudiante_id].get(r.estado, 0) + 1
 
+<<<<<<< HEAD
+=======
+    puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(registros)
+
+>>>>>>> c9da08eb477f266ebeeadbbd5421e20db454a39a
     notas_grid = {}
     for n in notas_qs:
         notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = float(n.valor)
@@ -633,7 +652,11 @@ def exportar_planilla(request):
     fila = 2
     for est in estudiantes_grupo:
         cdatos = conteos.get(est.id, {})
+<<<<<<< HEAD
         puntos = sum(RegistroPlanilla.PUNTOS.get(estado, 0) * cant for estado, cant in cdatos.items())
+=======
+        puntos = float(puntos_por_estudiante.get(est.id, 0))
+>>>>>>> c9da08eb477f266ebeeadbbd5421e20db454a39a
         notas_est = list(notas_grid.get(est.id, {}).values())
         promedio = (sum(notas_est) / len(notas_est)) if notas_est else None
         definitiva = (promedio + puntos) if promedio is not None else None
