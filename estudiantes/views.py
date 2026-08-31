@@ -380,9 +380,9 @@ def _resolver_grupo(request):
     grupo_asignado = _grupo_docente(request.user)
     params = request.POST if request.method == 'POST' else request.GET
 
-    linea = params.get('linea') or (grupo_asignado[0] if grupo_asignado else '')
-    jornada = params.get('jornada') or (grupo_asignado[1] if grupo_asignado else '')
-    grado_filtro = params.get('grado', '')
+    linea = params.get('linea') or request.GET.get('linea') or (grupo_asignado[0] if grupo_asignado else '')
+    jornada = params.get('jornada') or request.GET.get('jornada') or (grupo_asignado[1] if grupo_asignado else '')
+    grado_filtro = params.get('grado') or request.GET.get('grado', '')
 
     if grupo_asignado and not es_directivo:
         linea, jornada = grupo_asignado
