@@ -87,6 +87,7 @@
   {% if linea and jornada %}
   <div class="d-flex gap-2">
     <a href="{% url 'notas' %}?linea={{ linea }}&jornada={{ jornada }}&grado={{ grado_filtro }}" class="btn btn-light btn-sm fw-bold">📝 Ir a Notas</a>
+    <a href="{% url 'historial_planilla' %}?linea={{ linea }}&jornada={{ jornada }}&grado={{ grado_filtro }}" class="btn btn-light btn-sm fw-bold">🗂 Historial</a>
     <a href="{% url 'exportar_planilla' %}?linea={{ linea }}&jornada={{ jornada }}&grado={{ grado_filtro }}" class="btn btn-outline-light btn-sm fw-bold">📥 Exportar a Excel</a>
   </div>
   {% endif %}

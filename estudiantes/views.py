@@ -527,9 +527,18 @@ def notas_grupo(request):
             else:
                 # Una casilla en blanco significa "sin calificar todavía": se ignora y NO borra
                 # una nota que ya existiera. Solo se guarda cuando el docente escribe un valor.
+                # Para borrar una nota puntual hay que marcar explícitamente su casilla
+                # "borrar_<estudiante>_<actividad>" (el botón 🗑 de la interfaz).
+                borrados = 0
                 for est in estudiantes_grupo:
                     for act in actividades:
                         campo = f'nota_{est.id}_{act.id}'
+                        campo_borrar = f'borrar_{est.id}_{act.id}'
+                        if request.POST.get(campo_borrar):
+                            eliminadas, _ = NotaActividad.objects.filter(estudiante=est, actividad=act).delete()
+                            if eliminadas:
+                                borrados += 1
+                            continue
                         valor_txt = request.POST.get(campo, '').strip().replace(',', '.')
                         if valor_txt == '':
                             continue
@@ -542,7 +551,10 @@ def notas_grupo(request):
                             estudiante=est, actividad=act,
                             defaults={'valor': valor, 'registrado_por': request.user},
                         )
-                messages.success(request, "Notas guardadas.")
+                if borrados:
+                    messages.success(request, f"Notas guardadas ({borrados} eliminada{'s' if borrados != 1 else ''}).")
+                else:
+                    messages.success(request, "Notas guardadas.")
                 qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro})
                 return redirect(f"{request.path}?{qs}")
 
@@ -573,6 +585,70 @@ def notas_grupo(request):
         'actividades': actividades,
         'notas_grid': notas_grid,
         'resumen': resumen,
+    })
+
+
+@login_required
+@bloquear_estudiantes
+def historial_planilla(request):
+    """Permite ver, ajustar y borrar registros ya guardados de la planilla (llegadas tarde,
+    fallas, etc.) sin tener que ubicar la fecha exacta en la planilla del día."""
+    if not _puede_usar_planilla(request.user):
+        messages.error(request, "Su cuenta no tiene una línea asignada.")
+        return redirect('inicio')
+
+    es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles, estudiantes_grupo = _resolver_grupo(request)
+
+    if request.method == 'POST':
+        reg_id = request.POST.get('registro_id')
+        registro = RegistroPlanilla.objects.filter(id=reg_id, estudiante__in=estudiantes_grupo).first()
+
+        if registro and 'eliminar' in request.POST:
+            registro.delete()
+            messages.success(request, "Registro eliminado.")
+
+        elif registro and 'ajustar' in request.POST:
+            nuevo_estado = request.POST.get('nuevo_estado', '')
+            if nuevo_estado not in dict(RegistroPlanilla.ESTADOS):
+                messages.error(request, "Estado no válido.")
+            elif RegistroPlanilla.objects.filter(
+                estudiante=registro.estudiante, fecha=registro.fecha, bloque=registro.bloque, estado=nuevo_estado
+            ).exclude(id=registro.id).exists():
+                messages.error(request, "Ese estudiante ya tiene ese ítem registrado en ese mismo bloque.")
+            else:
+                registro.estado = nuevo_estado
+                registro.registrado_por = request.user
+                registro.save()
+                messages.success(request, "Registro ajustado.")
+        else:
+            messages.error(request, "No se encontró el registro o no pertenece a su grupo.")
+
+        qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro, 'q': request.POST.get('q', ''), 'page': request.POST.get('page', '')})
+        return redirect(f"{request.path}?{qs}")
+
+    busqueda = request.GET.get('q', '').strip()
+    registros_qs = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo).select_related('estudiante', 'registrado_por')
+    if busqueda:
+        registros_qs = registros_qs.filter(
+            Q(estudiante__nombres__icontains=busqueda)
+            | Q(estudiante__apellidos__icontains=busqueda)
+            | Q(estudiante__documento__icontains=busqueda)
+        )
+    registros_qs = registros_qs.order_by('-fecha', '-bloque', 'estudiante__apellidos')
+
+    paginator = Paginator(registros_qs, 50)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    return render(request, 'estudiantes/historial_planilla.html', {
+        'es_directivo':       es_directivo,
+        'grupos_disponibles': grupos_disponibles,
+        'grados_disponibles': grados_disponibles,
+        'linea': linea, 'jornada': jornada, 'grado_filtro': grado_filtro,
+        'linea_display':   dict(Estudiante.LINEA_MEDIA).get(linea, linea),
+        'jornada_display': dict(Estudiante.JORNADA).get(jornada, jornada),
+        'busqueda': busqueda,
+        'page_obj': page_obj,
+        'estados': RegistroPlanilla.ESTADOS,
     })
 
 
