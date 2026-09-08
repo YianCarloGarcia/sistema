@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.http import HttpResponse
+from django.http import HttpResponseNotAllowed
 from django.utils import timezone
 from datetime import timedelta
 from django.core.paginator import Paginator
@@ -11,6 +12,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User, Group
 from django.core.mail import send_mail
 from django.db.models import Q, Count, Max
+from django.db import transaction
 from django.conf import settings
 import io, csv, zipfile, json, os
 from datetime import datetime
@@ -288,6 +290,8 @@ def editar(request, id):
 @login_required
 @solo_directivo
 def eliminar(request, id):
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
     get_object_or_404(Estudiante, id=id).delete()
     messages.success(request, "Estudiante eliminado.")
     return redirect('estudiantes')
@@ -904,30 +908,39 @@ def escaner_registrar(request):
         return JsonResponse({'ok': False, 'mensaje': 'Documento vacío'})
 
     try:
-        est    = Estudiante.objects.get(documento=documento)
-        ahora  = timezone.now()
-        limite = ahora - timedelta(seconds=BLOQUEO_SEGUNDOS)
-        ultimo = Asistencia.objects.filter(
-            estudiante=est, tipo=tipo_actual
-        ).order_by('-fecha', '-hora').first()
+        with transaction.atomic():
+            # select_for_update bloquea la fila del estudiante mientras dura la
+            # transacción: en una base con soporte real de bloqueo por fila
+            # (ej. PostgreSQL) evita que dos escaneos casi simultáneos pasen
+            # ambos la validación antes de que se cree el primer registro. En
+            # SQLite (la usada actualmente) el bloqueo por fila se ignora, pero
+            # SQLite solo permite una escritura a la vez sobre todo el archivo,
+            # lo que ya limita bastante el riesgo a la escala actual de un solo
+            # punto de escaneo.
+            est = Estudiante.objects.select_for_update().get(documento=documento)
+            ahora  = timezone.now()
+            limite = ahora - timedelta(seconds=BLOQUEO_SEGUNDOS)
+            ultimo = Asistencia.objects.filter(
+                estudiante=est, tipo=tipo_actual
+            ).order_by('-fecha', '-hora').first()
 
-        if ultimo:
-            fhu = timezone.make_aware(
-                timezone.datetime.combine(ultimo.fecha, ultimo.hora)
-            )
-            if fhu > limite:
-                return JsonResponse({
-                    'ok': False,
-                    'tipo': 'espera',
-                    'mensaje': f'Espere {BLOQUEO_SEGUNDOS} segundos antes de volver a escanear',
-                    'nombre': f'{est.nombres} {est.apellidos}',
-                })
+            if ultimo:
+                fhu = timezone.make_aware(
+                    timezone.datetime.combine(ultimo.fecha, ultimo.hora)
+                )
+                if fhu > limite:
+                    return JsonResponse({
+                        'ok': False,
+                        'tipo': 'espera',
+                        'mensaje': f'Espere {BLOQUEO_SEGUNDOS} segundos antes de volver a escanear',
+                        'nombre': f'{est.nombres} {est.apellidos}',
+                    })
 
-        Asistencia.objects.create(estudiante=est, tipo=tipo_actual)
-        hoy      = timezone.localdate()
-        contador = Asistencia.objects.filter(
-            estudiante=est, fecha=hoy, tipo=tipo_actual
-        ).count()
+            Asistencia.objects.create(estudiante=est, tipo=tipo_actual)
+            hoy      = timezone.localdate()
+            contador = Asistencia.objects.filter(
+                estudiante=est, fecha=hoy, tipo=tipo_actual
+            ).count()
 
         return JsonResponse({
             'ok':       True,
@@ -1136,6 +1149,9 @@ def crear_usuario(request):
 def editar_usuario(request, id):
     _asegurar_grupos()
     usuario = get_object_or_404(User, id=id)
+    if usuario.is_superuser and not request.user.is_superuser:
+        messages.error(request, "No puede modificar esta cuenta.")
+        return redirect('lista_usuarios')
     if request.method == 'POST':
         form = UsuarioEditarForm(request.POST, instance=usuario)
         if form.is_valid():
@@ -1169,9 +1185,14 @@ def editar_usuario(request, id):
 @login_required
 @solo_directivo
 def eliminar_usuario(request, id):
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
     usuario = get_object_or_404(User, id=id)
     if usuario == request.user:
         messages.error(request, "No puede eliminar su propia cuenta.")
+        return redirect('lista_usuarios')
+    if usuario.is_superuser and not request.user.is_superuser:
+        messages.error(request, "No puede modificar esta cuenta.")
         return redirect('lista_usuarios')
     nombre = usuario.get_full_name() or usuario.username
     usuario.delete()

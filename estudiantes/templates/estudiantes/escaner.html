@@ -309,18 +309,40 @@ function mostrarEstado(estado) {
 
 function mostrarResultado(data) {
     const box = document.getElementById('result-box');
+    box.innerHTML = ''; // limpiar de forma segura antes de reconstruir
+
     if (data.ok) {
         box.className = 'result-box result-success mx-3 mb-3';
-        box.innerHTML = `
-            <div class="student-name mb-1">${data.nombre}</div>
-            <span class="counter">${data.contador}</span>
-            <div class="counter-label">registro(s) de "${data.label}" hoy</div>`;
+
+        const nombreDiv = document.createElement('div');
+        nombreDiv.className = 'student-name mb-1';
+        nombreDiv.textContent = data.nombre;
+
+        const contadorSpan = document.createElement('span');
+        contadorSpan.className = 'counter';
+        contadorSpan.textContent = data.contador;
+
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'counter-label';
+        labelDiv.textContent = `registro(s) de "${data.label}" hoy`;
+
+        box.append(nombreDiv, contadorSpan, labelDiv);
     } else if (data.tipo === 'espera') {
         box.className = 'result-box result-warn mx-3 mb-3';
-        box.innerHTML = `<div>${data.mensaje}</div><div style="font-size:0.8rem;margin-top:4px;opacity:0.8">${data.nombre || ''}</div>`;
+
+        const mensajeDiv = document.createElement('div');
+        mensajeDiv.textContent = data.mensaje;
+
+        const nombreDiv = document.createElement('div');
+        nombreDiv.style.fontSize = '0.8rem';
+        nombreDiv.style.marginTop = '4px';
+        nombreDiv.style.opacity = '0.8';
+        nombreDiv.textContent = data.nombre || '';
+
+        box.append(mensajeDiv, nombreDiv);
     } else {
         box.className = 'result-box result-error mx-3 mb-3';
-        box.innerHTML = data.mensaje || 'Error desconocido';
+        box.textContent = data.mensaje || 'Error desconocido';
     }
     box.style.display = 'block';
 }

@@ -109,11 +109,8 @@
           <form method="post" class="d-flex gap-1 align-items-center form-inline-mini">
             {% csrf_token %}
             <input type="hidden" name="registro_id" value="{{ r.id }}">
-<<<<<<< HEAD
-=======
             <input type="hidden" name="linea" value="{{ linea }}">
             <input type="hidden" name="jornada" value="{{ jornada }}">
->>>>>>> d9460ee6b2e373f45457249151e82060ae10a9d2
             <input type="hidden" name="q" value="{{ busqueda }}">
             <input type="hidden" name="page" value="{{ page_obj.number }}">
             <select name="nuevo_estado" class="select-ajuste">
@@ -130,11 +127,8 @@
           <form method="post" class="form-inline-mini" onsubmit="return confirm('¿Eliminar este registro?');">
             {% csrf_token %}
             <input type="hidden" name="registro_id" value="{{ r.id }}">
-<<<<<<< HEAD
-=======
             <input type="hidden" name="linea" value="{{ linea }}">
             <input type="hidden" name="jornada" value="{{ jornada }}">
->>>>>>> d9460ee6b2e373f45457249151e82060ae10a9d2
             <input type="hidden" name="q" value="{{ busqueda }}">
             <input type="hidden" name="page" value="{{ page_obj.number }}">
             <button type="submit" name="eliminar" value="1" class="btn btn-outline-danger btn-mini">Eliminar</button>

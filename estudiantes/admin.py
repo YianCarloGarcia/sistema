@@ -5,10 +5,7 @@ from django.contrib.auth.models import User, Group
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, ConfiguracionPuntos
-from .utils.pdf import generar_certificado_pdf
-from .utils.carnet import generar_carnet_pdf
 from .utils.carnet_png import generar_carnet_png
-from .utils.mosaico_pdf import generar_mosaico_pdf_por_linea
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -350,48 +347,6 @@ def exportar_estudiantes_csv(ma, request, qs):
     return _csv_estudiantes(qs)
 
 
-@admin.action(description='📄 Generar certificado (PDF)')
-def generar_certificado(ma, request, qs):
-    if not request.user.is_superuser:
-        return
-    if qs.count() != 1:
-        ma.message_user(request, 'Seleccione un solo estudiante.', level='warning')
-        return
-    e = qs.first()
-    pdf = generar_certificado_pdf(e)
-    r = HttpResponse(pdf, content_type='application/pdf')
-    r['Content-Disposition'] = f'attachment; filename=certificado_{e.documento}.pdf'
-    return r
-
-
-@admin.action(description='🪪 Generar carnet (PDF)')
-def generar_carnet(ma, request, qs):
-    if not request.user.is_superuser:
-        return
-    if qs.count() != 1:
-        ma.message_user(request, 'Seleccione un solo estudiante.', level='warning')
-        return
-    e = qs.first()
-    pdf = generar_carnet_pdf(e)
-    r = HttpResponse(pdf, content_type='application/pdf')
-    r['Content-Disposition'] = f'attachment; filename=carnet_{e.documento}.pdf'
-    return r
-
-
-@admin.action(description='🪪 Carnets seleccionados (ZIP de PDF)')
-def generar_carnets_zip(ma, request, qs):
-    if not request.user.is_superuser:
-        return
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for e in qs:
-            zf.writestr(f'carnet_{e.documento}.pdf', generar_carnet_pdf(e))
-    buf.seek(0)
-    r = HttpResponse(buf, content_type='application/zip')
-    r['Content-Disposition'] = 'attachment; filename=carnets_pdf.zip'
-    return r
-
-
 @admin.action(description='🖼️ Carnets PNG automáticos (ZIP)')
 def generar_carnets_png_zip(ma, request, qs):
     """
@@ -432,17 +387,6 @@ def generar_carnets_png_zip(ma, request, qs):
     ts = datetime.now().strftime('%Y%m%d_%H%M')
     r = HttpResponse(buf, content_type='application/zip')
     r['Content-Disposition'] = f'attachment; filename=carnets_png_{ts}.zip'
-    return r
-
-
-@admin.action(description='🗂️ Mosaico por línea (PDF)')
-def generar_mosaico_linea(ma, request, qs):
-    if not request.user.is_superuser:
-        return
-    linea = qs.first().linea
-    pdf   = generar_mosaico_pdf_por_linea(qs.filter(linea=linea), linea)
-    r = HttpResponse(pdf, content_type='application/pdf')
-    r['Content-Disposition'] = f'attachment; filename=mosaico_{linea}.pdf'
     return r
 
 
@@ -514,11 +458,7 @@ class EstudianteAdmin(admin.ModelAdmin):
     readonly_fields = ['usuario']
     actions = [
         exportar_estudiantes_csv,
-        generar_certificado,
-        generar_carnet,
-        generar_carnets_zip,
         generar_carnets_png_zip,
-        generar_mosaico_linea,
         crear_acceso_estudiantes,
         restablecer_clave_estudiantes,
         eliminar_acceso_estudiantes,
@@ -532,9 +472,7 @@ class EstudianteAdmin(admin.ModelAdmin):
     def get_actions(self, request):
         actions = super().get_actions(request)
         if not request.user.is_superuser:
-            for n in ['generar_certificado', 'generar_carnet',
-                      'generar_carnets_zip', 'generar_carnets_png_zip',
-                      'generar_mosaico_linea', 'crear_acceso_estudiantes',
+            for n in ['generar_carnets_png_zip', 'crear_acceso_estudiantes',
                       'restablecer_clave_estudiantes', 'eliminar_acceso_estudiantes']:
                 actions.pop(n, None)
         return actions

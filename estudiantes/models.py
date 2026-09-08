@@ -29,7 +29,7 @@ class Estudiante(models.Model):
     ]
     jornada = models.CharField(max_length=50, choices=JORNADA, verbose_name="Jornada", default='JM')
     tipo = models.CharField(max_length=2,choices=TIPOS_DOCUMENTO, verbose_name="Tipo", default='CC')
-    documento = models.CharField(max_length=20, verbose_name="Documento")
+    documento = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Documento")
     apellidos = models.CharField(max_length=100, verbose_name="Apellidos")
     nombres = models.CharField(max_length=100, verbose_name="Nombres")
     curso = models.CharField(max_length=100, verbose_name="Curso")
