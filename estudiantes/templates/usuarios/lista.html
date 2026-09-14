@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load estudiantes_extras %}
 {% block Titulo %}Usuarios{% endblock %}
 {% block contenido %}
 
@@ -53,7 +54,7 @@
           <td>{{ u.get_full_name|default:"—" }}</td>
           <td style="font-size:.82rem;color:#64748b;">{{ u.email|default:"—" }}</td>
           <td>
-            {% if u.groups.all.0.name == 'directivo' %}
+            {% if u|es_directivo %}
               <span class="badge-rol rol-directivo">&#11088; Directivo</span>
             {% else %}
               <span class="badge-rol rol-docente">&#128203; Docente</span>

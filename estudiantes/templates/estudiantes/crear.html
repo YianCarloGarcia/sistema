@@ -152,11 +152,18 @@
 
     <div class="form-section">
       <div class="section-title">Información académica</div>
-      <div class="fields-row col-2">
+      <div class="fields-row col-3">
         <div class="field-group">
           <label class="field-label">Curso<span class="req">*</span></label>
           {{ formulario.curso }}
           {% if formulario.curso.errors %}<div class="field-error">{{ formulario.curso.errors }}</div>{% endif %}
+        </div>
+        <div class="field-group">
+          <label class="field-label">Grado</label>
+          {{ formulario.grado }}
+          <div class="field-help" style="font-size:.75rem;color:#94a3b8;margin-top:.2rem;">
+            Si se deja en blanco, se deduce del curso (10xx → 10°, 11xx → 11°).
+          </div>
         </div>
         <div class="field-group">
           <label class="field-label">Línea de media<span class="req">*</span></label>

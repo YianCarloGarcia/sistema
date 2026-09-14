@@ -1,5 +1,7 @@
 from django import template
 
+from estudiantes.views import _es_directivo
+
 register = template.Library()
 
 
@@ -17,3 +19,10 @@ def contains(contenedor, item):
     if not contenedor:
         return False
     return item in contenedor
+
+
+@register.filter
+def es_directivo(usuario):
+    """Aplica la misma verificación de permisos que usan las vistas (no adivina
+    el rol mirando el primer grupo de la lista, que es un orden no garantizado)."""
+    return _es_directivo(usuario)

@@ -16,6 +16,7 @@ class EstudianteForm(forms.ModelForm):
             'apellidos':           forms.TextInput(attrs={'class': 'form-control'}),
             'nombres':             forms.TextInput(attrs={'class': 'form-control'}),
             'curso':               forms.TextInput(attrs={'class': 'form-control'}),
+            'grado':               forms.Select(attrs={'class': 'form-select'}),
             'celular':             forms.TextInput(attrs={'class': 'form-control'}),
             'email':               forms.EmailInput(attrs={'class': 'form-control'}),
             'acudiente':           forms.TextInput(attrs={'class': 'form-control'}),

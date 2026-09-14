@@ -27,12 +27,20 @@ class Estudiante(models.Model):
         ('DIS', 'Diseño multimedia'),
         ('OT', 'Otro'),
     ]
+    GRADOS = [
+        ('10', '10°'),
+        ('11', '11°'),
+    ]
     jornada = models.CharField(max_length=50, choices=JORNADA, verbose_name="Jornada", default='JM')
     tipo = models.CharField(max_length=2,choices=TIPOS_DOCUMENTO, verbose_name="Tipo", default='CC')
     documento = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Documento")
     apellidos = models.CharField(max_length=100, verbose_name="Apellidos")
     nombres = models.CharField(max_length=100, verbose_name="Nombres")
     curso = models.CharField(max_length=100, verbose_name="Curso")
+    grado = models.CharField(
+        max_length=5, choices=GRADOS, blank=True, db_index=True, verbose_name="Grado",
+        help_text="Se usa para filtrar por 10°/11° sin depender del formato del código de curso.",
+    )
     linea = models.CharField(max_length=50,choices=LINEA_MEDIA, verbose_name="Línea", default='OT')
     celular = models.CharField(max_length=20, verbose_name="Celular", null=True, blank=True)
     email = models.EmailField(max_length=100, verbose_name="Email", null=True, blank=True)
@@ -76,6 +84,20 @@ class Estudiante(models.Model):
     # mostrrar datos en el admin
     def __str__(self):
         return f"{self.apellidos}, {self.nombres}"
+
+    def save(self, *args, **kwargs):
+        # Si no se indicó explícitamente el grado, se intenta deducir de los dos
+        # primeros caracteres del curso (ej. "1101" -> "11"), pero SOLO si eso
+        # coincide con un grado conocido (10/11). Si el curso viene en un formato
+        # distinto (ej. "Décimo A"), el grado queda en blanco en vez de adivinar
+        # mal — así el filtro por grado nunca clasifica algo de forma silenciosa
+        # e incorrecta. Un grado puesto a mano nunca se sobreescribe aquí.
+        if not self.grado and self.curso:
+            prefijo = self.curso.strip()[:2]
+            if prefijo in dict(self.GRADOS):
+                self.grado = prefijo
+        super().save(*args, **kwargs)
+
     # Borrar imagen al eliminar registro
     def delete(self, using=None, keep_parents=False):
         if self.foto and self.foto.name:
@@ -155,6 +177,16 @@ class RegistroPlanilla(models.Model):
     fecha = models.DateField(verbose_name='Fecha')
     bloque = models.PositiveSmallIntegerField(choices=BLOQUES, default=1, verbose_name='Bloque')
     estado = models.CharField(max_length=2, choices=ESTADOS, verbose_name='Estado')
+    puntos_aplicados = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal('0'),
+        verbose_name='Puntos aplicados',
+        help_text=(
+            'Puntos que tenía configurado este estado en el momento en que se registró. '
+            'Queda fijo aquí a propósito: si luego se cambia la configuración de puntos '
+            'del admin, las definitivas ya calculadas de meses anteriores NO cambian '
+            'retroactivamente.'
+        ),
+    )
     registrado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='registros_planilla_creados',
@@ -183,35 +215,42 @@ class RegistroPlanilla(models.Model):
     @classmethod
     def calcular_puntos_por_estudiante(cls, registros):
         """Agrupa `registros` (queryset, iterable de instancias, o de dicts con las claves
-        estudiante_id/fecha/bloque/estado) por bloque de clase y devuelve {estudiante_id: puntos}.
+        estudiante_id/fecha/bloque/estado/puntos_aplicados) por bloque de clase y devuelve
+        {estudiante_id: puntos}.
+
+        Usa el puntaje que quedó guardado en cada registro en el momento en que se creó
+        (`puntos_aplicados`), NO la configuración actual — así, cambiar la configuración de
+        puntos hoy no altera retroactivamente las definitivas de meses anteriores.
 
         Varios ítems pueden coexistir en un mismo bloque y sus puntos se suman (ej: llegada
         tarde + uniforme incompleto). La única excepción: si en el mismo bloque coinciden
         Falla (F) y Excusa justificada (EX), la excusa remedia la falla y ese bloque no
-        resta puntos en absoluto."""
-        puntos_config = cls.obtener_puntos()
+        resta puntos en absoluto, sin importar los puntos que tuviera cada ítem guardado."""
         bloques = {}
         for r in registros:
             if isinstance(r, dict):
                 clave = (r['estudiante_id'], r['fecha'], r['bloque'])
                 estado = r['estado']
+                puntos = r.get('puntos_aplicados', 0) or 0
             else:
                 clave = (r.estudiante_id, r.fecha, r.bloque)
                 estado = r.estado
-            bloques.setdefault(clave, set()).add(estado)
+                puntos = r.puntos_aplicados or 0
+            bloques.setdefault(clave, []).append((estado, puntos))
 
         puntos_por_estudiante = {}
-        for (estudiante_id, fecha, bloque), estados in bloques.items():
+        for (estudiante_id, fecha, bloque), items in bloques.items():
+            estados = {estado for estado, _ in items}
             if 'F' in estados and 'EX' in estados:
                 puntos_bloque = 0
             else:
-                puntos_bloque = sum(puntos_config.get(e, 0) for e in estados)
+                puntos_bloque = sum(puntos for _, puntos in items)
             puntos_por_estudiante[estudiante_id] = puntos_por_estudiante.get(estudiante_id, 0) + puntos_bloque
         return puntos_por_estudiante
 
     @property
     def puntos(self):
-        return self.obtener_puntos().get(self.estado, 0)
+        return self.puntos_aplicados
 
 
 class ConfiguracionPuntos(models.Model):

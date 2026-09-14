@@ -50,6 +50,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'estudiantes.context_processors.rol',
             ],
         },
     },
@@ -57,12 +58,39 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'sistema.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'estudiantes.sqlite3',
+# ── Base de datos ─────────────────────────────────────────────
+# Si se definen las variables de entorno de PostgreSQL (DB_NAME y DB_USER),
+# se usa PostgreSQL — la opción recomendada para producción. Si no están
+# definidas, se sigue usando SQLite automáticamente (útil para desarrollo
+# local sin tener que instalar Postgres). No hace falta tocar este archivo
+# para alternar entre los dos: basta con definir o quitar las variables.
+DB_NAME     = os.environ.get('DB_NAME', '')
+DB_USER     = os.environ.get('DB_USER', '')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '')
+DB_HOST     = os.environ.get('DB_HOST', 'localhost')
+DB_PORT     = os.environ.get('DB_PORT', '5432')
+
+if DB_NAME and DB_USER:
+    DATABASES = {
+        'default': {
+            'ENGINE':   'django.db.backends.postgresql',
+            'NAME':     DB_NAME,
+            'USER':     DB_USER,
+            'PASSWORD': DB_PASSWORD,
+            'HOST':     DB_HOST,
+            'PORT':     DB_PORT,
+            # Reutiliza conexiones hasta 60s en vez de abrir/cerrar una por
+            # cada request — reduce bastante la latencia bajo carga real.
+            'CONN_MAX_AGE': 60,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'estudiantes.sqlite3',
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
