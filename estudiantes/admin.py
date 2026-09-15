@@ -112,7 +112,7 @@ class GradoFilter(admin.SimpleListFilter):
         from django.db.models import Q
         q = Q()
         for g in vals:
-            q |= Q(curso__startswith=g)
+            q |= Q(grado=g)
         return queryset.filter(q)
 
 
@@ -179,7 +179,7 @@ class GradoAsistenciaFilter(admin.SimpleListFilter):
         from django.db.models import Q
         q = Q()
         for g in vals:
-            q |= Q(estudiante__curso__startswith=g)
+            q |= Q(estudiante__grado=g)
         return queryset.filter(q)
 
 
@@ -190,7 +190,7 @@ class GradoAsistenciaFilter(admin.SimpleListFilter):
 def _csv_estudiantes(qs):
     campos = [
         ('documento','Documento'), ('tipo','Tipo Doc.'), ('apellidos','Apellidos'),
-        ('nombres','Nombres'), ('jornada','Jornada'), ('curso','Curso'), ('linea','Linea'),
+        ('nombres','Nombres'), ('jornada','Jornada'), ('curso','Curso'), ('grado','Grado'), ('linea','Linea'),
         ('celular','Celular'), ('email','Email'), ('acudiente','Acudiente'),
         ('parentesco','Parentesco'), ('tel_acudiente','Tel. Acudiente'),
         ('tel2_acudiente','Tel. Acudiente 2'), ('direccion','Direccion'),
@@ -488,7 +488,7 @@ class DocentePerfilAdmin(admin.ModelAdmin):
 
 @admin.register(RegistroPlanilla)
 class RegistroPlanillaAdmin(admin.ModelAdmin):
-    list_display  = ['estudiante', 'fecha', 'bloque', 'estado', 'registrado_por']
+    list_display  = ['estudiante', 'fecha', 'bloque', 'estado', 'puntos_aplicados', 'registrado_por']
     list_filter   = ['estado', 'bloque', 'fecha']
     search_fields = ['estudiante__documento', 'estudiante__apellidos', 'estudiante__nombres']
     date_hierarchy = 'fecha'

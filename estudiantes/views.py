@@ -119,6 +119,7 @@ CAMPOS_EXPORTAR = [
     ('nombres',             'Nombres'),
     ('jornada',             'Jornada'),
     ('curso',               'Curso'),
+    ('grado',               'Grado'),
     ('linea',               'Linea'),
     ('celular',             'Celular'),
     ('email',               'Email'),
@@ -150,10 +151,7 @@ def _qs_filtrada(get):
     if jornadas:
         qs = qs.filter(jornada__in=jornadas)
     if grados:
-        q_grado = Q()
-        for g in grados:
-            q_grado |= Q(curso__startswith=g)
-        qs = qs.filter(q_grado)
+        qs = qs.filter(grado__in=grados)
     if lineas:
         qs = qs.filter(linea__in=lineas)
     if cursos:
@@ -184,7 +182,7 @@ def _build_excel(queryset):
             c = ws.cell(row=ri, column=ci, value=str(val))
             c.alignment = Alignment(vertical="center"); c.border = border
             if ri % 2 == 0: c.fill = alt
-    anchos = [14,8,20,20,10,8,10,14,24,22,12,14,14,24,20,14,30,20]
+    anchos = [14,8,20,20,10,8,8,10,14,24,22,12,14,14,24,20,14,30,20]
     for i, w in enumerate(anchos, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = "A2"
@@ -401,11 +399,11 @@ def _resolver_grupo(request):
     grados_disponibles = []
     if linea and jornada:
         estudiantes_grupo = Estudiante.objects.filter(linea=linea, jornada=jornada)
-        grados_disponibles = sorted({
-            c[:2] for c in estudiantes_grupo.exclude(curso='').values_list('curso', flat=True) if len(c) >= 2
-        })
+        grados_disponibles = sorted(
+            g for g in estudiantes_grupo.exclude(grado='').values_list('grado', flat=True).distinct() if g
+        )
         if grado_filtro:
-            estudiantes_grupo = estudiantes_grupo.filter(curso__startswith=grado_filtro)
+            estudiantes_grupo = estudiantes_grupo.filter(grado=grado_filtro)
         estudiantes_grupo = estudiantes_grupo.order_by('curso', 'apellidos', 'nombres')
 
     return es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles, estudiantes_grupo
@@ -439,6 +437,17 @@ def planilla_grupo(request):
     if linea and jornada:
         if request.method == 'POST':
             estados_validos = set(dict(RegistroPlanilla.ESTADOS).keys())
+            puntos_config = RegistroPlanilla.obtener_puntos()
+
+            # Una sola consulta para TODO el grupo en vez de una por estudiante.
+            existentes_por_estudiante = {}
+            for r in RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo, fecha=fecha, bloque=bloque):
+                existentes_por_estudiante.setdefault(r.estudiante_id, {})[r.estado] = r
+
+            a_crear = []
+            a_actualizar = []
+            ids_a_borrar = []
+
             for est in estudiantes_grupo:
                 seleccionados = set(request.POST.getlist(f'estado_{est.id}')) & estados_validos
                 # Regla de exclusividad: la Falla inhabilita los demás ítems del bloque,
@@ -446,17 +455,35 @@ def planilla_grupo(request):
                 if 'F' in seleccionados:
                     seleccionados &= {'F', 'EX'}
 
-                existentes = set(
-                    RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque)
-                    .values_list('estado', flat=True)
-                )
+                existentes_est = existentes_por_estudiante.get(est.id, {})
+
                 for estado in seleccionados:
-                    RegistroPlanilla.objects.update_or_create(
-                        estudiante=est, fecha=fecha, bloque=bloque, estado=estado,
-                        defaults={'registrado_por': request.user},
-                    )
-                for estado in existentes - seleccionados:
-                    RegistroPlanilla.objects.filter(estudiante=est, fecha=fecha, bloque=bloque, estado=estado).delete()
+                    if estado in existentes_est:
+                        registro = existentes_est[estado]
+                        # El registro ya existía: se deja su 'puntos_aplicados' tal cual
+                        # quedó guardado (ver el campo del modelo) — no se recalcula con
+                        # la configuración de hoy, solo se refresca quién lo tocó.
+                        if registro.registrado_por_id != request.user.id:
+                            registro.registrado_por = request.user
+                            a_actualizar.append(registro)
+                    else:
+                        a_crear.append(RegistroPlanilla(
+                            estudiante=est, fecha=fecha, bloque=bloque, estado=estado,
+                            puntos_aplicados=puntos_config.get(estado, 0),
+                            registrado_por=request.user,
+                        ))
+
+                for estado, registro in existentes_est.items():
+                    if estado not in seleccionados:
+                        ids_a_borrar.append(registro.id)
+
+            if a_crear:
+                RegistroPlanilla.objects.bulk_create(a_crear)
+            if a_actualizar:
+                RegistroPlanilla.objects.bulk_update(a_actualizar, ['registrado_por'])
+            if ids_a_borrar:
+                RegistroPlanilla.objects.filter(id__in=ids_a_borrar).delete()
+
             messages.success(request, f"Planilla guardada para {fecha.strftime('%d/%m/%Y')} — Bloque {bloque}.")
             qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro, 'fecha': fecha.isoformat(), 'bloque': bloque})
             return redirect(f"{request.path}?{qs}")
@@ -473,7 +500,7 @@ def planilla_grupo(request):
             resumen.setdefault(fila['estudiante_id'], {})[fila['estado']] = fila['total']
 
         todos_los_registros = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo).values(
-            'estudiante_id', 'fecha', 'bloque', 'estado'
+            'estudiante_id', 'fecha', 'bloque', 'estado', 'puntos_aplicados'
         )
         puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(todos_los_registros)
         for est in estudiantes_grupo:
@@ -533,16 +560,26 @@ def notas_grupo(request):
                 # una nota que ya existiera. Solo se guarda cuando el docente escribe un valor.
                 # Para borrar una nota puntual hay que marcar explícitamente su casilla
                 # "borrar_<estudiante>_<actividad>" (el botón 🗑 de la interfaz).
-                borrados = 0
+                notas_existentes = {
+                    (n.estudiante_id, n.actividad_id): n
+                    for n in NotaActividad.objects.filter(estudiante__in=estudiantes_grupo, actividad__in=actividades)
+                }
+                a_crear = []
+                a_actualizar = []
+                ids_a_borrar = []
+
                 for est in estudiantes_grupo:
                     for act in actividades:
+                        clave = (est.id, act.id)
                         campo = f'nota_{est.id}_{act.id}'
                         campo_borrar = f'borrar_{est.id}_{act.id}'
+
                         if request.POST.get(campo_borrar):
-                            eliminadas, _ = NotaActividad.objects.filter(estudiante=est, actividad=act).delete()
-                            if eliminadas:
-                                borrados += 1
+                            existente = notas_existentes.get(clave)
+                            if existente:
+                                ids_a_borrar.append(existente.id)
                             continue
+
                         valor_txt = request.POST.get(campo, '').strip().replace(',', '.')
                         if valor_txt == '':
                             continue
@@ -551,10 +588,26 @@ def notas_grupo(request):
                         except InvalidOperation:
                             continue
                         valor = max(Decimal('0.0'), min(Decimal('5.0'), valor)).quantize(Decimal('0.01'))
-                        NotaActividad.objects.update_or_create(
-                            estudiante=est, actividad=act,
-                            defaults={'valor': valor, 'registrado_por': request.user},
-                        )
+
+                        existente = notas_existentes.get(clave)
+                        if existente:
+                            if existente.valor != valor:
+                                existente.valor = valor
+                                existente.registrado_por = request.user
+                                a_actualizar.append(existente)
+                        else:
+                            a_crear.append(NotaActividad(
+                                estudiante=est, actividad=act, valor=valor, registrado_por=request.user,
+                            ))
+
+                if a_crear:
+                    NotaActividad.objects.bulk_create(a_crear)
+                if a_actualizar:
+                    NotaActividad.objects.bulk_update(a_actualizar, ['valor', 'registrado_por'])
+                if ids_a_borrar:
+                    NotaActividad.objects.filter(id__in=ids_a_borrar).delete()
+
+                borrados = len(ids_a_borrar)
                 if borrados:
                     messages.success(request, f"Notas guardadas ({borrados} eliminada{'s' if borrados != 1 else ''}).")
                 else:
@@ -567,7 +620,7 @@ def notas_grupo(request):
             notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = n.valor
 
         registros_puntos = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo).values(
-            'estudiante_id', 'fecha', 'bloque', 'estado'
+            'estudiante_id', 'fecha', 'bloque', 'estado', 'puntos_aplicados'
         )
         puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(registros_puntos)
 
@@ -621,6 +674,7 @@ def historial_planilla(request):
                 messages.error(request, "Ese estudiante ya tiene ese ítem registrado en ese mismo bloque.")
             else:
                 registro.estado = nuevo_estado
+                registro.puntos_aplicados = RegistroPlanilla.obtener_puntos().get(nuevo_estado, 0)
                 registro.registrado_por = request.user
                 registro.save()
                 messages.success(request, "Registro ajustado.")
