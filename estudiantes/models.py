@@ -12,10 +12,10 @@ class Estudiante(models.Model):
         ('JT', 'Jornada Tarde'),
     ]
     TIPOS_DOCUMENTO = [
-        ('CC', 'Cédula de Ciudadanía'),
-        ('TI', 'Tarjeta de Identidad'),
-        ('PP', 'Permito de Protección'),
-        ('OT', 'Otro'),
+        ('CC',  'Cédula de Ciudadanía'),
+        ('TI',  'Tarjeta de Identidad'),
+        ('PPT', 'Permiso por Protección Temporal'),
+        ('OT',  'Otro'),
     ]
     LINEA_MEDIA = [
         ('AA', 'Asistencia Administrativa'),
@@ -32,7 +32,7 @@ class Estudiante(models.Model):
         ('11', '11°'),
     ]
     jornada = models.CharField(max_length=50, choices=JORNADA, verbose_name="Jornada", default='JM')
-    tipo = models.CharField(max_length=2,choices=TIPOS_DOCUMENTO, verbose_name="Tipo", default='CC')
+    tipo = models.CharField(max_length=5,choices=TIPOS_DOCUMENTO, verbose_name="Tipo", default='CC')
     documento = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Documento")
     apellidos = models.CharField(max_length=100, verbose_name="Apellidos")
     nombres = models.CharField(max_length=100, verbose_name="Nombres")
