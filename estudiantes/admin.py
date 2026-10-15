@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User, Group
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, ConfiguracionPuntos
+from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, ConfiguracionPuntos, ActividadLinea, CalificacionLinea
 from .utils.carnet_png import generar_carnet_png
 
 
@@ -522,3 +522,16 @@ class ConfiguracionPuntosAdmin(admin.ModelAdmin):
         # Si se borrara una fila, ese estado volvería silenciosamente al valor por defecto,
         # lo cual puede confundir. Mejor solo permitir editar el número de puntos.
         return False
+
+
+@admin.register(ActividadLinea)
+class ActividadLineaAdmin(admin.ModelAdmin):
+    list_display = ('linea', 'descripcion', 'actualizado')
+
+
+@admin.register(CalificacionLinea)
+class CalificacionLineaAdmin(admin.ModelAdmin):
+    list_display = ('estudiante', 'linea', 'valor', 'registrado_por', 'actualizado')
+    list_filter = ('linea',)
+    search_fields = ('estudiante__apellidos', 'estudiante__nombres', 'estudiante__documento')
+    autocomplete_fields = ('estudiante',)

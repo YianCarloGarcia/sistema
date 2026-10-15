@@ -314,3 +314,70 @@ class NotaActividad(models.Model):
 
     def __str__(self):
         return f"{self.estudiante} — {self.actividad.nombre}: {self.valor}"
+
+# ── Actividad por línea (módulo de progreso gráfico) ────────────
+
+NIVELES_DESEMPENO = [
+    # (nota mínima, clave, etiqueta, color)
+    (Decimal('4.6'), 'superior', 'Superior', '#16a34a'),
+    (Decimal('4.0'), 'alto',     'Alto',     '#2563eb'),
+    (Decimal('3.0'), 'basico',   'Básico',   '#d97706'),
+    (Decimal('0'),   'bajo',     'Bajo',     '#dc2626'),
+]
+
+
+def nivel_desempeno(valor):
+    """Devuelve (clave, etiqueta, color) del nivel de desempeño para una nota 0–5."""
+    valor = Decimal(valor)
+    for minimo, clave, etiqueta, color in NIVELES_DESEMPENO:
+        if valor >= minimo:
+            return clave, etiqueta, color
+    return 'bajo', 'Bajo', '#dc2626'
+
+
+class ActividadLinea(models.Model):
+    """Actividad única de cada línea de media. Su nombre es el de la línea; el docente
+    puede añadir una descripción que el estudiante verá junto a su gráfica."""
+    linea = models.CharField(
+        max_length=50, choices=[c for c in Estudiante.LINEA_MEDIA if c[0] != 'OT'],
+        unique=True, verbose_name='Línea',
+    )
+    descripcion = models.TextField(blank=True, verbose_name='Descripción de la actividad')
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Actividad de línea'
+        verbose_name_plural = 'Actividades de línea'
+
+    @property
+    def nombre(self):
+        return self.get_linea_display()
+
+    def __str__(self):
+        return self.nombre
+
+
+class CalificacionLinea(models.Model):
+    """Nota (0.0 a 5.0) de un estudiante en la actividad de una línea."""
+    estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE, related_name='calificaciones_linea')
+    linea = models.CharField(
+        max_length=50, choices=[c for c in Estudiante.LINEA_MEDIA if c[0] != 'OT'], verbose_name='Línea',
+    )
+    valor = models.DecimalField(max_digits=3, decimal_places=2, verbose_name='Nota (0.0 a 5.0)')
+    observacion = models.CharField(max_length=200, blank=True, verbose_name='Observación')
+    registrado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='calificaciones_linea_registradas',
+    )
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['estudiante', 'linea'], name='unica_calificacion_estudiante_linea'),
+            models.CheckConstraint(condition=models.Q(valor__gte=0, valor__lte=5), name='calificacion_linea_0_a_5'),
+        ]
+        verbose_name = 'Calificación de línea'
+        verbose_name_plural = 'Calificaciones de línea'
+
+    def __str__(self):
+        return f"{self.estudiante} — {self.get_linea_display()}: {self.valor}"

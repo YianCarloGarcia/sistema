@@ -1,0 +1,28 @@
+# ── Datos sensibles: NUNCA deben subirse a Git ───────────────
+# Fotos de estudiantes (menores de edad). Van al bucket de R2, no al repositorio.
+fotos/
+# Base de datos local y sus respaldos.
+*.sqlite3
+*.sqlite3.bak*
+# Variables de entorno con credenciales reales.
+.env
+.env.*
+!.env.example
+# Exportaciones de datos (contienen datos personales de estudiantes).
+datos.json
+*.dump
+
+# ── Artefactos de build ──────────────────────────────────────
+staticfiles/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ── Editor / sistema operativo ───────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

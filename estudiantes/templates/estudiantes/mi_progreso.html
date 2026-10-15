@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block Titulo %}Mi Progreso{% endblock %}
+
+{% block contenido %}
+<style>
+  .pr-header { background: linear-gradient(135deg, #1a3a6e, #274d9e); color:#fff; border-radius:16px; padding:1.25rem 1.5rem; margin-bottom:1.25rem; }
+  .pr-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); padding:1.4rem; height:100%; }
+  .pr-card h5 { font-weight:800; font-size:1rem; margin-bottom:1rem; }
+
+  /* Anillo */
+  .ring-wrap { position:relative; width:220px; height:220px; margin:0 auto; }
+  .ring-wrap svg { transform: rotate(-90deg); width:100%; height:100%; }
+  .ring-bg { fill:none; stroke:#e2e8f0; stroke-width:16; }
+  .ring-fg { fill:none; stroke-width:16; stroke-linecap:round; stroke-dasharray: 534.07; stroke-dashoffset: 534.07;
+             transition: stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1); }
+  .ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring-num { font-size:3rem; font-weight:800; line-height:1; }
+  .ring-sub { font-size:.8rem; color:#64748b; }
+  .nivel-pill { display:inline-block; padding:.25rem .9rem; border-radius:999px; color:#fff; font-weight:700; font-size:.85rem; }
+
+  /* Escala de niveles */
+  .escala { position:relative; height:18px; border-radius:999px; overflow:hidden; display:flex; margin:2.2rem 0 .4rem; }
+  .escala span { height:100%; }
+  .escala-wrap { position:relative; }
+  .marcador { position:absolute; top:-6px; left:0; width:0; transition:left 1.6s cubic-bezier(.2,.8,.2,1); }
+  .marcador::after { content:""; position:absolute; left:-8px; top:0; border:8px solid transparent; border-top:11px solid #0f172a; }
+  .marcador b { position:absolute; left:0; top:-22px; transform:translateX(-50%); font-size:.8rem; white-space:nowrap; }
+  .escala-etiquetas { display:flex; font-size:.7rem; color:#64748b; }
+  .escala-etiquetas span { text-align:center; }
+
+  /* Barras */
+  .barras { display:flex; align-items:flex-end; gap:.6rem; height:260px; padding:0 .2rem; border-bottom:2px solid #cbd5e1; position:relative; }
+  .barras .linea-aprobar { z-index:2; pointer-events:none; position:absolute; left:0; right:0; border-top:2px dashed #94a3b8; }
+  .barras .linea-aprobar small { position:absolute; left:0; top:-1.3rem; font-size:.68rem; color:#64748b; }
+  .barra-col { flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; position:relative; min-width:0; }
+  .barra { width:100%; max-width:56px; height:0; border-radius:10px 10px 0 0; transition:height 1.3s cubic-bezier(.2,.8,.2,1); position:relative; }
+  .barra.pendiente { background: repeating-linear-gradient(45deg,#e2e8f0,#e2e8f0 6px,#f1f5f9 6px,#f1f5f9 12px); }
+  .barra-val { font-weight:800; font-size:.85rem; margin-bottom:.2rem; }
+  .prom-marca { position:absolute; width:100%; max-width:56px; border-top:3px solid #0f172a; opacity:.55; }
+  .barra-col.mia .barra { box-shadow:0 0 0 3px rgba(39,77,158,.25); }
+  .barras-etq { display:flex; gap:.6rem; padding:.4rem .2rem 0; }
+  .barras-etq div { flex:1; text-align:center; font-size:.72rem; font-weight:700; color:#475569; min-width:0; }
+  .leyenda { font-size:.75rem; color:#64748b; margin-top:.6rem; }
+  .leyenda i { display:inline-block; width:18px; border-top:3px solid #0f172a; opacity:.55; vertical-align:middle; margin-right:4px; }
+
+  /* Lista con medidores */
+  .medidor { height:10px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+  .medidor > div { height:100%; width:0; border-radius:999px; transition:width 1.4s cubic-bezier(.2,.8,.2,1); }
+  .stat-box { text-align:center; padding:.8rem; border-radius:12px; background:#f1f5f9; }
+  .stat-box b { display:block; font-size:1.6rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .ring-fg, .marcador, .barra, .medidor > div { transition:none; }
+  }
+</style>
+
+<div class="container py-4">
+  <div class="pr-header">
+    <h3 class="mb-1"><i class="bi bi-graph-up-arrow"></i> Mi Progreso</h3>
+    <div class="small opacity-75">{{ estudiante.nombres }} {{ estudiante.apellidos }} · {{ estudiante.get_linea_display }}</div>
+  </div>
+
+  {% if not principal %}
+  <div class="pr-card text-center py-5">
+    <div style="font-size:3rem;">&#128200;</div>
+    <h5 class="mt-2">Aún no tienes calificaciones</h5>
+    <p class="text-muted mb-0">Cuando tu docente califique la actividad de tu línea, aquí verás tu progreso en gráficas.</p>
+  </div>
+  {% else %}
+  <div class="row g-3 mb-3">
+    <div class="col-lg-5">
+      <div class="pr-card text-center">
+        <h5>Actividad: {{ principal.nombre }}</h5>
+        <div class="ring-wrap">
+          <svg viewBox="0 0 200 200" role="img" aria-label="Nota {{ principal.valor|floatformat:2 }} de 5">
+            <circle class="ring-bg" cx="100" cy="100" r="85"></circle>
+            <circle class="ring-fg" id="ringFg" cx="100" cy="100" r="85" stroke="{{ principal.color }}" data-pct="{{ principal.porcentaje|stringformat:'.1f' }}"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-num" id="ringNum" data-valor="{{ principal.valor|stringformat:'.2f' }}" style="color:{{ principal.color }}">0.00</div>
+            <div class="ring-sub">de 5.0</div>
+          </div>
+        </div>
+        <div class="mt-3"><span class="nivel-pill" style="background:{{ principal.color }}">{{ principal.etiqueta }}</span></div>
+        {% if principal.descripcion %}<p class="small text-muted mt-3 mb-0">{{ principal.descripcion }}</p>{% endif %}
+        {% if principal.observacion %}<p class="small mt-2 mb-0"><i class="bi bi-chat-left-text"></i> {{ principal.observacion }}</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="pr-card">
+        <h5>¿En qué nivel estás?</h5>
+        <div class="escala-wrap">
+          <div class="marcador" id="marcador" data-pct="{{ principal.porcentaje|stringformat:'.1f' }}"><b>{{ principal.valor|stringformat:'.2f' }}</b></div>
+          <div class="escala">
+            <span style="width:60%;background:#dc2626"></span>
+            <span style="width:20%;background:#d97706"></span>
+            <span style="width:12%;background:#2563eb"></span>
+            <span style="width:8%;background:#16a34a"></span>
+          </div>
+          <div class="escala-etiquetas">
+            <span style="width:60%">Bajo (0 – 2.9)</span><span style="width:20%">Básico</span><span style="width:12%">Alto</span><span style="width:8%">Sup.</span>
+          </div>
+        </div>
+        <div class="mt-4">
+          {% if siguiente %}
+          <div class="alert alert-light border mb-0">
+            <i class="bi bi-flag-fill text-primary"></i>
+            Te faltan <b>{{ siguiente.faltan|stringformat:".2f" }}</b> puntos para llegar al nivel <b>{{ siguiente.etiqueta }}</b> ({{ siguiente.minimo|stringformat:".1f" }}).
+          </div>
+          {% else %}
+          <div class="alert alert-success mb-0"><i class="bi bi-trophy-fill"></i> ¡Alcanzaste el nivel más alto! Excelente trabajo.</div>
+          {% endif %}
+        </div>
+        <div class="row g-2 mt-2">
+          <div class="col-4"><div class="stat-box"><b class="contador" data-n="{{ calificadas }}">0</b><span class="small text-muted">Actividades calificadas</span></div></div>
+          <div class="col-4"><div class="stat-box"><b>{{ total_lineas }}</b><span class="small text-muted">Líneas en total</span></div></div>
+          <div class="col-4"><div class="stat-box"><b>{{ promedio_general|default:"—"|stringformat:"s" }}</b><span class="small text-muted">Promedio</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="pr-card">
+        <h5>Mis notas por línea</h5>
+        <div class="barras" id="barras">
+          <div class="linea-aprobar" style="bottom:60%"><small>3.0 mínimo</small></div>
+          {% for l in lineas %}
+          <div class="barra-col {% if l.es_mia %}mia{% endif %}">
+            {% if l.calificada %}<div class="barra-val">{{ l.valor|stringformat:".1f" }}</div>{% endif %}
+            <div class="barra {% if not l.calificada %}pendiente{% endif %}" data-pct="{% if l.calificada %}{{ l.porcentaje|stringformat:'.1f' }}{% else %}8{% endif %}"
+                 style="background-color:{{ l.color }};{% if not l.calificada %}background-color:transparent;{% endif %}" title="{{ l.nombre }}"></div>
+            {% if l.promedio_grupo %}<div class="prom-marca" style="bottom:{{ l.porcentaje_grupo|stringformat:'.1f' }}%"></div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <div class="barras-etq">{% for l in lineas %}<div>{{ l.codigo }}</div>{% endfor %}</div>
+        <div class="leyenda"><i></i> Promedio de tu grado en esa línea (se muestra cuando hay 3 o más notas). Barras rayadas: aún sin calificar.</div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="pr-card">
+        <h5>Detalle por línea</h5>
+        {% for l in lineas %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small">
+            <span class="fw-bold">{{ l.nombre }}{% if l.es_mia %} <span class="badge text-bg-primary">Mi línea</span>{% endif %}</span>
+            <span>{% if l.calificada %}{{ l.valor|stringformat:".2f" }} · {{ l.etiqueta }}{% else %}<span class="text-muted">Pendiente</span>{% endif %}</span>
+          </div>
+          <div class="medidor"><div data-pct="{{ l.porcentaje|stringformat:'.1f' }}" style="background:{{ l.color }}"></div></div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+(function () {
+  var reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var C = 2 * Math.PI * 85;
+
+  function contar(el, hasta, decimales) {
+    if (reducir) { el.textContent = hasta.toFixed(decimales); return; }
+    var t0 = null, dur = 1600;
+    function paso(t) {
+      if (t0 === null) t0 = t;
+      var p = Math.min((t - t0) / dur, 1), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = (hasta * e).toFixed(decimales);
+      if (p < 1) requestAnimationFrame(paso);
+    }
+    requestAnimationFrame(paso);
+  }
+
+  function animar() {
+    var ring = document.getElementById('ringFg');
+    if (ring) ring.style.strokeDashoffset = C * (1 - parseFloat(ring.dataset.pct) / 100);
+    var num = document.getElementById('ringNum');
+    if (num) contar(num, parseFloat(num.dataset.valor), 2);
+    var m = document.getElementById('marcador');
+    if (m) m.style.left = Math.min(parseFloat(m.dataset.pct), 99) + '%';
+    document.querySelectorAll('.barra').forEach(function (b, i) {
+      setTimeout(function () { b.style.height = b.dataset.pct + '%'; }, reducir ? 0 : 150 + i * 120);
+    });
+    document.querySelectorAll('.medidor > div').forEach(function (d, i) {
+      setTimeout(function () { d.style.width = d.dataset.pct + '%'; }, reducir ? 0 : 300 + i * 100);
+    });
+    document.querySelectorAll('.contador').forEach(function (c) { contar(c, parseFloat(c.dataset.n), 0); });
+  }
+  // Dos cuadros de espera para que el navegador pinte el estado inicial y la transición se vea.
+  requestAnimationFrame(function () { requestAnimationFrame(animar); });
+})();
+</script>
+{% endblock %}
