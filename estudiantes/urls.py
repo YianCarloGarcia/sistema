@@ -19,6 +19,7 @@ urlpatterns = [
     path('mi-historial/', views.mi_historial, name='mi_historial'),
     path('cambiar-clave/', views.cambiar_clave_obligatorio, name='cambiar_clave_obligatorio'),
     path('mi-progreso/', views_progreso.mi_progreso, name='mi_progreso'),
+    path('mi-proceso/', views_progreso.mi_proceso, name='mi_proceso'),
     path('actividad-linea/', views_progreso.actividad_linea, name='actividad_linea'),
     path('planilla/', views.planilla_grupo, name='planilla'),
     path('notas/', views.notas_grupo, name='notas'),

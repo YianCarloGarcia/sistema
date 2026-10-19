@@ -272,18 +272,78 @@ class ConfiguracionPuntos(models.Model):
         return f"{self.get_estado_display()}: {self.puntos:+.2f}"
 
 
+class Periodo(models.Model):
+    """Periodo académico (tres por año). Las actividades de Notas pertenecen a un periodo, y la
+    planilla de asistencia se asigna al periodo según su fecha. Nada se borra al cambiar de
+    periodo: cada uno conserva su historial y el año completo se obtiene sumándolos."""
+    anio = models.PositiveSmallIntegerField(verbose_name='Año')
+    numero = models.PositiveSmallIntegerField(
+        choices=[(1, 'Periodo 1'), (2, 'Periodo 2'), (3, 'Periodo 3')], verbose_name='Periodo',
+    )
+    fecha_inicio = models.DateField(verbose_name='Fecha de inicio')
+    fecha_fin = models.DateField(verbose_name='Fecha de fin')
+
+    # Fechas iniciales (editables en el admin): tres bloques de cuatro meses.
+    FECHAS_POR_DEFECTO = {1: ((1, 1), (4, 30)), 2: ((5, 1), (8, 31)), 3: ((9, 1), (12, 31))}
+
+    class Meta:
+        ordering = ['anio', 'numero']
+        constraints = [models.UniqueConstraint(fields=['anio', 'numero'], name='unico_periodo_anio_numero')]
+        verbose_name = 'Periodo académico'
+        verbose_name_plural = 'Periodos académicos'
+
+    def __str__(self):
+        return f"Periodo {self.numero} — {self.anio}"
+
+    @property
+    def nombre(self):
+        return f"Periodo {self.numero}"
+
+    @classmethod
+    def asegurar_anio(cls, anio):
+        """Crea los tres periodos del año con fechas por defecto si todavía no existen."""
+        if cls.objects.filter(anio=anio).count() >= 3:
+            return
+        import datetime as _dt
+        for numero, ((mi, di), (mf, df)) in cls.FECHAS_POR_DEFECTO.items():
+            cls.objects.get_or_create(anio=anio, numero=numero, defaults={
+                'fecha_inicio': _dt.date(anio, mi, di), 'fecha_fin': _dt.date(anio, mf, df),
+            })
+
+    @classmethod
+    def actual(cls, hoy=None):
+        """Periodo en curso: el que contiene la fecha; si cae en un hueco, el último iniciado."""
+        hoy = hoy or timezone.localdate()
+        cls.asegurar_anio(hoy.year)
+        return (
+            cls.objects.filter(fecha_inicio__lte=hoy, fecha_fin__gte=hoy).first()
+            or cls.objects.filter(fecha_inicio__lte=hoy).order_by('-fecha_inicio').first()
+            or cls.objects.order_by('fecha_inicio').first()
+        )
+
+
 class Actividad(models.Model):
     """Actividad calificable definida por el docente para su línea/jornada (equivalente a las
     columnas D:O 'ACTIVIDADES' de la planilla en Excel)."""
     linea = models.CharField(max_length=50, choices=Estudiante.LINEA_MEDIA, verbose_name='Línea')
     jornada = models.CharField(max_length=50, choices=Estudiante.JORNADA, verbose_name='Jornada')
     nombre = models.CharField(max_length=100, verbose_name='Nombre de la actividad')
+    periodo = models.ForeignKey(
+        'Periodo', on_delete=models.PROTECT, null=True, blank=True, related_name='actividades',
+        verbose_name='Periodo académico',
+        help_text='Si se deja vacío se usa el periodo en curso. Un periodo con actividades no se puede borrar.',
+    )
     orden = models.PositiveIntegerField(default=0)
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='actividades_creadas',
     )
     creado = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.periodo_id is None:
+            self.periodo = Periodo.actual()
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ['orden', 'id']

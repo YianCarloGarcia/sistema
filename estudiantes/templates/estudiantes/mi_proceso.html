@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block Titulo %}Mi Proceso{% endblock %}
+
+{% block contenido %}
+<style>
+  .pc-header { background: linear-gradient(135deg, #1a3a6e, #274d9e); color:#fff; border-radius:16px; padding:1.25rem 1.5rem; margin-bottom:1rem; }
+  .pc-tabs { display:flex; gap:.5rem; margin-bottom:1.1rem; flex-wrap:wrap; }
+  .pc-tab { border:2px solid #cbd5e1; background:#fff; color:#334155; border-radius:999px; padding:.5rem 1.2rem; font-weight:700; font-size:.9rem; cursor:pointer; }
+  .pc-tab.activa { background:#1a3a6e; border-color:#1a3a6e; color:#fff; }
+  .pc-panel { display:none; }
+  .pc-panel.activo { display:block; }
+  .pc-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); padding:1.4rem; height:100%; }
+  .pc-card h5 { font-weight:800; font-size:1rem; margin-bottom:1rem; }
+
+  .ring-wrap { position:relative; width:200px; height:200px; margin:0 auto; }
+  .ring-wrap svg { transform:rotate(-90deg); width:100%; height:100%; }
+  .ring-bg { fill:none; stroke:#e2e8f0; stroke-width:16; }
+  .ring-fg { fill:none; stroke-width:16; stroke-linecap:round; stroke-dasharray:534.07; stroke-dashoffset:534.07; transition:stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1); }
+  .ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring-num { font-size:2.7rem; font-weight:800; line-height:1; }
+  .ring-sub { font-size:.78rem; color:#64748b; }
+  .nivel-pill { display:inline-block; padding:.25rem .9rem; border-radius:999px; color:#fff; font-weight:700; font-size:.85rem; }
+
+  .tiempo { height:12px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+  .tiempo > div { height:100%; width:0; background:linear-gradient(90deg,#38bdf8,#2563eb); border-radius:999px; transition:width 1.6s cubic-bezier(.2,.8,.2,1); }
+
+  .formula { display:flex; align-items:stretch; gap:.5rem; flex-wrap:wrap; }
+  .formula .caja { flex:1 1 110px; text-align:center; padding:.8rem .4rem; border-radius:12px; background:#f1f5f9; }
+  .formula .caja b { display:block; font-size:1.6rem; line-height:1.1; }
+  .formula .caja small { color:#64748b; font-size:.72rem; }
+  .formula .op { align-self:center; font-size:1.4rem; font-weight:800; color:#94a3b8; }
+  .caja.neg b { color:#dc2626; } .caja.pos b { color:#16a34a; }
+
+  .barras { display:flex; align-items:flex-end; gap:.6rem; height:230px; border-bottom:2px solid #cbd5e1; position:relative; }
+  .barras .min { position:absolute; left:0; right:0; border-top:2px dashed #94a3b8; z-index:2; pointer-events:none; }
+  .barras .min small { position:absolute; left:0; top:-1.25rem; font-size:.68rem; color:#64748b; }
+  .b-col { flex:1; min-width:0; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; }
+  .b-val { font-weight:800; font-size:.85rem; margin-bottom:.2rem; }
+  .b { width:100%; max-width:56px; height:0; border-radius:10px 10px 0 0; transition:height 1.3s cubic-bezier(.2,.8,.2,1); }
+  .b.pend { background:repeating-linear-gradient(45deg,#e2e8f0,#e2e8f0 6px,#f1f5f9 6px,#f1f5f9 12px); }
+  .b-etq { display:flex; gap:.6rem; padding-top:.4rem; }
+  .b-etq div { flex:1; text-align:center; font-size:.72rem; font-weight:700; color:#475569; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .nov { margin-bottom:.8rem; }
+  .nov .medidor { height:10px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+  .nov .medidor > div { height:100%; width:0; border-radius:999px; transition:width 1.3s cubic-bezier(.2,.8,.2,1); }
+
+  .linea-svg { width:100%; height:auto; }
+  .linea-svg .eje { stroke:#e2e8f0; } .linea-svg text { font-size:11px; fill:#64748b; }
+  .linea-svg .trazo { fill:none; stroke:#2563eb; stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+  .linea-svg .pto { transform-box:fill-box; transform-origin:center; transform:scale(0); transition:transform .5s cubic-bezier(.3,1.6,.5,1); }
+  .linea-svg .pto.on { transform:scale(1); }
+  .per-card { border:2px solid #e2e8f0; border-radius:14px; padding:1rem; height:100%; background:#fff; }
+  .per-card.curso { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+  .per-card.proximo { opacity:.6; }
+  .per-card .big { font-size:1.9rem; font-weight:800; line-height:1; }
+  .delta { font-size:.8rem; font-weight:700; }
+  .delta.up { color:#16a34a; } .delta.down { color:#dc2626; }
+  .mini { height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin-top:.6rem; }
+  .mini > div { height:100%; width:0; border-radius:999px; transition:width 1.3s cubic-bezier(.2,.8,.2,1); }
+  @media (prefers-reduced-motion: reduce) { .ring-fg,.tiempo>div,.b,.medidor>div,.mini>div,.linea-svg .pto { transition:none; } }
+</style>
+
+<div class="container py-4">
+  <div class="pc-header">
+    <h3 class="mb-1"><i class="bi bi-calendar-range"></i> Mi Proceso</h3>
+    <div class="small opacity-75">{{ estudiante.nombres }} {{ estudiante.apellidos }} · {{ estudiante.get_linea_display }} · {{ anio }}</div>
+  </div>
+
+  <div class="pc-tabs" role="tablist">
+    <button class="pc-tab activa" data-panel="p-periodo" role="tab">Periodo en curso · P{{ actual.numero }}</button>
+    <button class="pc-tab" data-panel="p-anio" role="tab">Todo el año {{ anio }}</button>
+  </div>
+
+  <!-- ══ Periodo en curso ══ -->
+  <div class="pc-panel activo" id="p-periodo">
+    <div class="pc-card mb-3">
+      <div class="d-flex justify-content-between small mb-1">
+        <span class="fw-bold">Periodo {{ actual.numero }}: {{ actual.fecha_inicio|date:"d/m" }} – {{ actual.fecha_fin|date:"d/m" }}</span>
+        <span class="text-muted">{% if dias_restantes %}Faltan {{ dias_restantes }} días{% else %}Periodo finalizado{% endif %}</span>
+      </div>
+      <div class="tiempo"><div data-w="{{ avance_tiempo }}"></div></div>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-lg-5">
+        <div class="pc-card text-center">
+          <h5>Mi nota del periodo</h5>
+          <div class="ring-wrap">
+            <svg viewBox="0 0 200 200"><circle class="ring-bg" cx="100" cy="100" r="85"></circle>
+              <circle class="ring-fg" cx="100" cy="100" r="85" stroke="{{ cur.color }}" data-pct="{{ cur.pct|stringformat:'.1f' }}"></circle></svg>
+            <div class="ring-center">
+              {% if cur.definitiva is not None %}
+              <div class="ring-num count" data-n="{{ cur.definitiva|stringformat:'.2f' }}" data-dec="2" style="color:{{ cur.color }}">0.00</div>
+              <div class="ring-sub">de 5.0</div>
+              {% else %}<div class="ring-num" style="color:#94a3b8">—</div><div class="ring-sub">sin notas aún</div>{% endif %}
+            </div>
+          </div>
+          <div class="mt-3"><span class="nivel-pill" style="background:{{ cur.color }}">{{ cur.nivel }}</span></div>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="pc-card">
+          <h5>Cómo se construye tu nota</h5>
+          <div class="formula">
+            <div class="caja"><b class="count" data-n="{{ cur.promedio|default_if_none:0|stringformat:'.2f' }}" data-dec="2">0.00</b><small>Promedio de actividades</small></div>
+            <div class="op">{% if cur.puntos is not None and cur.puntos < 0 %}−{% else %}+{% endif %}</div>
+            <div class="caja {% if cur.puntos < 0 %}neg{% endif %}"><b class="count" data-n="{% if cur.puntos < 0 %}{{ cur.puntos|stringformat:'.2f'|slice:'1:' }}{% else %}{{ cur.puntos|stringformat:'.2f' }}{% endif %}" data-dec="2">0.00</b><small>Puntos de asistencia</small></div>
+            <div class="op">=</div>
+            <div class="caja"><b>{% if cur.definitiva is not None %}<span class="count" data-n="{{ cur.definitiva|stringformat:'.2f' }}" data-dec="2">0.00</span>{% else %}—{% endif %}</b><small>Definitiva</small></div>
+          </div>
+          <h5 class="mt-4">Novedades de asistencia</h5>
+          {% for n in novedades %}
+          <div class="nov">
+            <div class="d-flex justify-content-between small"><span class="fw-bold">{{ n.nombre }}</span><span>{{ n.n }} vez{{ n.n|pluralize:"es" }} · {{ n.puntos|stringformat:".2f" }} pts</span></div>
+            <div class="medidor"><div data-w="{{ n.pct }}" style="background:{% if n.estado == 'EX' %}#16a34a{% else %}#f59e0b{% endif %}"></div></div>
+          </div>
+          {% empty %}
+          <div class="alert alert-success mb-0"><i class="bi bi-emoji-smile"></i> Sin novedades en este periodo. ¡Sigue así!</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="pc-card">
+      <h5>Mis actividades del periodo</h5>
+      {% if actividades %}
+      <div class="barras">
+        <div class="min" style="bottom:60%"><small>3.0 mínimo</small></div>
+        {% for a in actividades %}
+        <div class="b-col">
+          {% if a.calificada %}<div class="b-val">{{ a.valor|stringformat:".1f" }}</div>{% endif %}
+          <div class="b {% if not a.calificada %}pend{% endif %}" data-h="{{ a.pct|stringformat:'.1f' }}" style="{% if a.calificada %}background:{{ a.color }}{% endif %}" title="{{ a.nombre }}"></div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="b-etq">{% for a in actividades %}<div title="{{ a.nombre }}">{{ a.nombre }}</div>{% endfor %}</div>
+      {% else %}
+      <p class="text-muted mb-0">Tu docente aún no ha creado actividades en este periodo.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ══ Todo el año ══ -->
+  <div class="pc-panel" id="p-anio">
+    <div class="row g-3 mb-3">
+      <div class="col-lg-4">
+        <div class="pc-card text-center">
+          <h5>Mi nota del año</h5>
+          <div class="ring-wrap">
+            <svg viewBox="0 0 200 200"><circle class="ring-bg" cx="100" cy="100" r="85"></circle>
+              <circle class="ring-fg" cx="100" cy="100" r="85" stroke="{{ anual.color }}" data-pct="{{ anual.pct|stringformat:'.1f' }}"></circle></svg>
+            <div class="ring-center">
+              {% if anual.valor is not None %}
+              <div class="ring-num count" data-n="{{ anual.valor|stringformat:'.2f' }}" data-dec="2" style="color:{{ anual.color }}">0.00</div>
+              <div class="ring-sub">{{ anual.con_nota }} de {{ anual.total }} periodos</div>
+              {% else %}<div class="ring-num" style="color:#94a3b8">—</div><div class="ring-sub">sin notas aún</div>{% endif %}
+            </div>
+          </div>
+          <div class="mt-3"><span class="nivel-pill" style="background:{{ anual.color }}">{{ anual.nivel }}</span></div>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <div class="pc-card">
+          <h5>Mi evolución durante el año</h5>
+          <svg class="linea-svg" id="linea" viewBox="0 0 600 260" role="img" aria-label="Definitiva por periodo"></svg>
+        </div>
+      </div>
+    </div>
+    <div class="row g-3">
+      {% for p in periodos %}
+      <div class="col-md-4">
+        <div class="per-card {% if p.estado == 'en curso' %}curso{% elif p.estado == 'próximo' %}proximo{% endif %}">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-bold">Periodo {{ p.numero }}</span>
+            <span class="text-muted">{{ p.estado|capfirst }} · {{ p.inicio }}–{{ p.fin }}</span>
+          </div>
+          {% if p.definitiva is not None %}
+          <div class="big" style="color:{{ p.color }}"><span class="count" data-n="{{ p.definitiva|stringformat:'.2f' }}" data-dec="2">0.00</span></div>
+          {% if p.delta is not None %}<div class="delta {% if p.delta >= 0 %}up{% else %}down{% endif %}">{% if p.delta >= 0 %}▲ +{{ p.delta|stringformat:".2f" }}{% else %}▼ {{ p.delta|stringformat:".2f" }}{% endif %} vs periodo anterior</div>{% endif %}
+          <div class="small text-muted mt-1">Actividades {{ p.promedio|stringformat:".2f" }} · Asistencia {{ p.puntos|stringformat:".2f" }}</div>
+          <div class="mini"><div data-w="{{ p.pct|stringformat:'.1f' }}" style="background:{{ p.color }}"></div></div>
+          {% else %}
+          <div class="big text-muted">—</div>
+          <div class="small text-muted mt-1">{% if p.estado == 'próximo' %}Aún no comienza{% else %}Sin notas registradas{% endif %}</div>
+          <div class="mini"><div data-w="0"></div></div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{{ datos_js|json_script:"datos-proceso" }}
+<script>
+(function () {
+  var reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var C = 2 * Math.PI * 85;
+  var DATOS = JSON.parse(document.getElementById('datos-proceso').textContent);
+
+  function contar(el) {
+    var hasta = parseFloat(el.dataset.n), dec = parseInt(el.dataset.dec || '0', 10);
+    if (reducir) { el.textContent = hasta.toFixed(dec); return; }
+    var t0 = null;
+    function paso(t) {
+      if (t0 === null) t0 = t;
+      var p = Math.min((t - t0) / 1500, 1), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = (hasta * e).toFixed(dec);
+      if (p < 1) requestAnimationFrame(paso);
+    }
+    requestAnimationFrame(paso);
+  }
+
+  function ejeY(y) { return 220 - (Math.max(0, Math.min(5, y)) / 5) * 190; }
+  function dibujarLinea() {
+    var svg = document.getElementById('linea'), NS = 'http://www.w3.org/2000/svg';
+    svg.innerHTML = '';
+    function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); svg.appendChild(e); return e; }
+    [0, 1, 2, 3, 4, 5].forEach(function (v) {
+      el('line', {x1: 50, x2: 580, y1: ejeY(v), y2: ejeY(v), 'class': 'eje', 'stroke-dasharray': v === 3 ? '5 4' : ''});
+      el('text', {x: 40, y: ejeY(v) + 4, 'text-anchor': 'end'}).textContent = v;
+    });
+    var n = DATOS.periodos.length, paso = 480 / n, pts = [];
+    DATOS.periodos.forEach(function (p, i) {
+      var x = 50 + paso * (i + 0.5);
+      el('text', {x: x, y: 247, 'text-anchor': 'middle'}).textContent = 'Periodo ' + p.numero;
+      if (p.definitiva !== null) pts.push({x: x, y: ejeY(p.definitiva), p: p});
+    });
+    if (pts.length > 1) {
+      var d = pts.map(function (q, i) { return (i ? 'L' : 'M') + q.x + ' ' + q.y; }).join(' ');
+      var path = el('path', {d: d, 'class': 'trazo'});
+      var L = path.getTotalLength();
+      path.style.strokeDasharray = L; path.style.strokeDashoffset = reducir ? 0 : L;
+      path.getBoundingClientRect();
+      if (!reducir) { path.style.transition = 'stroke-dashoffset 1.6s ease'; requestAnimationFrame(function () { path.style.strokeDashoffset = 0; }); }
+    }
+    pts.forEach(function (q, i) {
+      var g = el('circle', {cx: q.x, cy: q.y, r: 9, fill: q.p.color, stroke: '#fff', 'stroke-width': 3, 'class': 'pto'});
+      setTimeout(function () { g.classList.add('on'); }, reducir ? 0 : 400 + i * 500);
+      var t = el('text', {x: q.x, y: q.y - 16, 'text-anchor': 'middle'}); t.style.fontWeight = '700'; t.style.fill = '#0f172a';
+      t.textContent = q.p.definitiva.toFixed(2);
+    });
+  }
+
+  function animar(panel) {
+    panel.querySelectorAll('.ring-fg').forEach(function (r) { r.style.strokeDashoffset = C; });
+    panel.querySelectorAll('[data-w]').forEach(function (e) { e.style.width = '0%'; });
+    panel.querySelectorAll('[data-h]').forEach(function (e) { e.style.height = '0%'; });
+    panel.querySelectorAll('.count').forEach(function (e) { e.textContent = (0).toFixed(parseInt(e.dataset.dec || '0', 10)); });
+    panel.getBoundingClientRect();
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      panel.querySelectorAll('.ring-fg').forEach(function (r) { r.style.strokeDashoffset = C * (1 - parseFloat(r.dataset.pct) / 100); });
+      panel.querySelectorAll('[data-w]').forEach(function (e, i) { setTimeout(function () { e.style.width = e.dataset.w + '%'; }, reducir ? 0 : 150 + i * 90); });
+      panel.querySelectorAll('[data-h]').forEach(function (e, i) { setTimeout(function () { e.style.height = e.dataset.h + '%'; }, reducir ? 0 : 150 + i * 110); });
+      panel.querySelectorAll('.count').forEach(contar);
+      if (panel.id === 'p-anio') dibujarLinea();
+    }); });
+  }
+
+  var tabs = document.querySelectorAll('.pc-tab'), paneles = document.querySelectorAll('.pc-panel');
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () {
+      tabs.forEach(function (x) { x.classList.toggle('activa', x === t); });
+      paneles.forEach(function (p) { p.classList.toggle('activo', p.id === t.dataset.panel); });
+      animar(document.getElementById(t.dataset.panel));
+    });
+  });
+  animar(document.getElementById('p-periodo'));
+})();
+</script>
+{% endblock %}

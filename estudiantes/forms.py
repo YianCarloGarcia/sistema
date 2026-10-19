@@ -37,6 +37,7 @@ class EstudianteForm(forms.ModelForm):
 ROL_CHOICES = [
     ('docente',   'Docente — puede ver y buscar, no editar'),
     ('directivo', 'Directivo — acceso completo'),
+    ('estudiante', 'Estudiante — solo consulta su propio historial y progreso'),
 ]
 
 
@@ -51,9 +52,14 @@ class UsuarioCrearForm(UserCreationForm):
         widget=forms.TextInput(attrs={'class': 'form-control'}),
     )
     email = forms.EmailField(
-        label='Correo electrónico',
+        label='Correo electrónico', required=False,
         widget=forms.EmailInput(attrs={'class': 'form-control'}),
         help_text='Se enviará un correo de bienvenida con las credenciales.',
+    )
+    estudiante_documento = forms.CharField(
+        label='Documento del estudiante', max_length=30, required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        help_text='Documento de una ficha de estudiante existente que aún no tenga cuenta.',
     )
     rol = forms.ChoiceField(
         label='Rol', choices=ROL_CHOICES,
@@ -83,10 +89,21 @@ class UsuarioCrearForm(UserCreationForm):
 
     def clean(self):
         cleaned = super().clean()
-        if cleaned.get('rol') == 'docente':
+        rol = cleaned.get('rol')
+        if rol == 'docente':
             faltantes = [f for f in ('grupo_linea', 'grupo_jornada') if not cleaned.get(f)]
             if faltantes:
                 raise forms.ValidationError('Para un docente debe indicar la línea y la jornada que va a manejar en la planilla.')
+        if rol != 'estudiante' and not cleaned.get('email'):
+            self.add_error('email', 'Este campo es obligatorio.')
+        if rol == 'estudiante':
+            documento = (cleaned.get('estudiante_documento') or '').strip()
+            ficha = Estudiante.objects.filter(documento=documento).first() if documento else None
+            if ficha is None:
+                raise forms.ValidationError('Indique el documento de una ficha de estudiante existente.')
+            if ficha.usuario_id:
+                raise forms.ValidationError('Ese estudiante ya tiene una cuenta de acceso.')
+            cleaned['estudiante_obj'] = ficha
         return cleaned
 
 
@@ -122,7 +139,9 @@ class UsuarioEditarForm(forms.ModelForm):
         initial  = kwargs.get('initial', {})
         if instance:
             grupos = list(instance.groups.values_list('name', flat=True))
-            if 'directivo' in grupos:
+            if hasattr(instance, 'estudiante_perfil'):
+                initial['rol'] = 'estudiante'
+            elif 'directivo' in grupos:
                 initial['rol'] = 'directivo'
             else:
                 initial['rol'] = 'docente'
@@ -135,8 +154,14 @@ class UsuarioEditarForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if cleaned.get('rol') == 'docente':
+        rol = cleaned.get('rol')
+        es_cuenta_estudiante = bool(self.instance.pk and hasattr(self.instance, 'estudiante_perfil'))
+        if rol == 'docente':
             faltantes = [f for f in ('grupo_linea', 'grupo_jornada') if not cleaned.get(f)]
             if faltantes:
                 raise forms.ValidationError('Para un docente debe indicar la línea y la jornada que va a manejar en la planilla.')
+        if es_cuenta_estudiante and rol != 'estudiante':
+            raise forms.ValidationError('Esta cuenta pertenece a un estudiante; su rol no se puede cambiar.')
+        if rol == 'estudiante' and not es_cuenta_estudiante:
+            raise forms.ValidationError('Para una cuenta de estudiante use «Crear usuario» y elija su ficha.')
         return cleaned

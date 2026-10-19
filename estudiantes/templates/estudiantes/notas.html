@@ -70,7 +70,7 @@
   {% if linea and jornada %}
   <div class="d-flex gap-2">
     <a href="{% url 'planilla' %}?linea={{ linea }}&jornada={{ jornada }}&grado={{ grado_filtro }}" class="btn btn-light btn-sm fw-bold">📋 Ir a Planilla</a>
-    <a href="{% url 'exportar_planilla' %}?linea={{ linea }}&jornada={{ jornada }}&grado={{ grado_filtro }}" class="btn btn-outline-light btn-sm fw-bold">📥 Exportar a Excel</a>
+    <a href="{% url 'exportar_planilla' %}?linea={{ linea }}&jornada={{ jornada }}&grado={{ grado_filtro }}&periodo={{ periodo.id }}" class="btn btn-outline-light btn-sm fw-bold">📥 Exportar a Excel</a>
   </div>
   {% endif %}
 </div>
@@ -89,6 +89,7 @@
       </select>
       <input type="hidden" name="linea" value="{{ linea }}">
       <input type="hidden" name="jornada" value="{{ jornada }}">
+      <input type="hidden" name="periodo" value="{{ periodo.id }}">
     </div>
     <div class="col-6 col-md-3">
       <label class="form-label small fw-bold">Grado (filtro)</label>
@@ -106,6 +107,7 @@
   <form method="get" class="row g-2 align-items-end">
     <input type="hidden" name="linea" value="{{ linea }}">
     <input type="hidden" name="jornada" value="{{ jornada }}">
+    <input type="hidden" name="periodo" value="{{ periodo.id }}">
     <div class="col-6 col-md-4">
       <label class="form-label small fw-bold">Grado (filtro, opcional)</label>
       <select name="grado" class="form-select form-select-sm" onchange="this.form.submit();">
@@ -116,6 +118,17 @@
       </select>
     </div>
   </form>
+</div>
+{% endif %}
+
+{% if linea and jornada %}
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+  <span class="small fw-bold text-muted">Periodo académico {{ periodo.anio }}:</span>
+  {% for p in periodos_anio %}
+  <a href="?linea={{ linea }}&jornada={{ jornada }}&grado={{ grado_filtro }}&periodo={{ p.id }}"
+     class="btn btn-sm {% if p.id == periodo.id %}btn-primary{% else %}btn-outline-secondary{% endif %}">Periodo {{ p.numero }}</a>
+  {% endfor %}
+  <span class="small text-muted ms-2">{{ periodo.fecha_inicio|date:"d/m/Y" }} – {{ periodo.fecha_fin|date:"d/m/Y" }} · los puntos de asistencia de este periodo se cuentan por fecha</span>
 </div>
 {% endif %}
 
@@ -133,6 +146,7 @@
           <input type="hidden" name="linea" value="{{ linea }}">
           <input type="hidden" name="jornada" value="{{ jornada }}">
           <input type="hidden" name="grado" value="{{ grado_filtro }}">
+          <input type="hidden" name="periodo" value="{{ periodo.id }}">
           <input type="hidden" name="eliminar_actividad" value="{{ act.id }}">
           <button type="submit" title="Eliminar actividad">&times;</button>
         </form>
@@ -146,6 +160,7 @@
     <input type="hidden" name="linea" value="{{ linea }}">
     <input type="hidden" name="jornada" value="{{ jornada }}">
     <input type="hidden" name="grado" value="{{ grado_filtro }}">
+          <input type="hidden" name="periodo" value="{{ periodo.id }}">
     <input type="text" name="nueva_actividad" class="form-control form-control-sm" placeholder="Nombre de la nueva actividad (ej: Taller 1)" required>
     <button type="submit" class="btn btn-sm btn-primary">Agregar</button>
   </form>
@@ -158,6 +173,7 @@
     <input type="hidden" name="linea" value="{{ linea }}">
     <input type="hidden" name="jornada" value="{{ jornada }}">
     <input type="hidden" name="grado" value="{{ grado_filtro }}">
+          <input type="hidden" name="periodo" value="{{ periodo.id }}">
 
     <table class="tabla-notas">
       <thead>
@@ -169,6 +185,7 @@
           <th>Promedio</th>
           <th>Puntos asist.</th>
           <th>Definitiva</th>
+          <th title="Promedio de las definitivas de los periodos del año">Año {{ periodo.anio }}</th>
         </tr>
       </thead>
       <tbody>
@@ -196,10 +213,11 @@
           <td class="celda-promedio">{{ fila.promedio|floatformat:2|default:"—" }}</td>
           <td class="celda-puntos {% if fila.puntos < 0 %}neg{% endif %}">{{ fila.puntos|default:0 }}</td>
           <td class="celda-definitiva">{{ fila.definitiva|floatformat:2|default:"—" }}</td>
+          <td class="celda-promedio">{{ fila.anio|floatformat:2|default:"—" }}</td>
           {% endwith %}
         </tr>
         {% empty %}
-        <tr><td colspan="{{ actividades|length|add:6 }}" class="text-center text-muted py-4">No hay estudiantes en este grupo.</td></tr>
+        <tr><td colspan="{{ actividades|length|add:7 }}" class="text-center text-muted py-4">No hay estudiantes en este grupo.</td></tr>
         {% endfor %}
       </tbody>
     </table>

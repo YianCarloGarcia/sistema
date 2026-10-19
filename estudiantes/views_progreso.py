@@ -14,8 +14,10 @@ from django.db.models import Avg, Count
 from django.shortcuts import redirect, render
 
 from .models import (
-    ActividadLinea, CalificacionLinea, Estudiante, NIVELES_DESEMPENO, nivel_desempeno,
+    Actividad, ActividadLinea, CalificacionLinea, Estudiante, NIVELES_DESEMPENO, NotaActividad,
+    Periodo, RegistroPlanilla, nivel_desempeno,
 )
+from .periodos import calcular_periodos, puntos_en_periodo
 from .views import (
     _es_estudiante, _puede_usar_planilla, _resolver_grupo, bloquear_estudiantes,
 )
@@ -197,4 +199,103 @@ def mi_progreso(request):
             {'etiqueta': e, 'minimo': float(m), 'color': c}
             for m, _k, e, c in sorted(NIVELES_DESEMPENO, key=lambda n: n[0])
         ],
+    })
+
+
+# ── Estudiante: proceso del periodo en curso y del año ──────
+
+def _pct(valor):
+    """Porcentaje 0–100 para dibujar una nota 0–5 (acotada: una definitiva puede salirse del rango)."""
+    if valor is None:
+        return 0
+    return round(max(0.0, min(5.0, float(valor))) / 5 * 100, 1)
+
+
+def _num(d):
+    return None if d is None else round(float(d), 2)
+
+
+@login_required
+def mi_proceso(request):
+    if not _es_estudiante(request.user):
+        messages.info(request, "Su cuenta no está asociada a una ficha de estudiante.")
+        return redirect('inicio')
+
+    from django.utils import timezone
+    hoy = timezone.localdate()
+    est = request.user.estudiante_perfil
+    actual = Periodo.actual(hoy)
+    periodos, datos = calcular_periodos([est.id], actual.anio)
+    d = datos[est.id]
+    cur = d['periodos'][actual.id]
+
+    # Actividades del periodo en curso con la nota del estudiante.
+    notas = {n.actividad_id: n.valor for n in NotaActividad.objects.filter(
+        estudiante=est, actividad__periodo=actual)}
+    actividades = []
+    for a in Actividad.objects.filter(linea=est.linea, jornada=est.jornada, periodo=actual):
+        valor = notas.get(a.id)
+        _k, etiqueta, color = nivel_desempeno(valor) if valor is not None else ('', '', '#94a3b8')
+        actividades.append({
+            'nombre': a.nombre, 'valor': _num(valor), 'pct': _pct(valor) if valor is not None else 8,
+            'calificada': valor is not None, 'color': color, 'etiqueta': etiqueta,
+        })
+
+    # Descuentos / novedades de asistencia dentro del periodo.
+    registros = list(RegistroPlanilla.objects.filter(
+        estudiante=est, fecha__gte=actual.fecha_inicio, fecha__lte=actual.fecha_fin,
+    ).values('estudiante_id', 'fecha', 'bloque', 'estado', 'puntos_aplicados'))
+    conteo = {}
+    for r in registros:
+        c = conteo.setdefault(r['estado'], {'n': 0, 'puntos': Decimal('0')})
+        c['n'] += 1
+        c['puntos'] += r['puntos_aplicados'] or 0
+    maximo = max([c['n'] for c in conteo.values()] or [1])
+    novedades = [
+        {'estado': cod, 'nombre': nombre, 'n': conteo[cod]['n'], 'puntos': _num(conteo[cod]['puntos']),
+         'pct': round(conteo[cod]['n'] / maximo * 100)}
+        for cod, nombre in RegistroPlanilla.ESTADOS if cod in conteo and cod != 'A'
+    ]
+
+    total_dias = max((actual.fecha_fin - actual.fecha_inicio).days, 1)
+    avance_tiempo = round(max(0, min(total_dias, (hoy - actual.fecha_inicio).days)) / total_dias * 100)
+
+    def nivel(v):
+        return nivel_desempeno(max(Decimal('0'), v)) if v is not None else ('', 'Sin nota', '#94a3b8')
+
+    k, etq, col = nivel(cur['definitiva'])
+    lista_periodos, anterior = [], None
+    for p in periodos:
+        x = d['periodos'][p.id]
+        estado = 'en curso' if p.id == actual.id else ('cerrado' if p.fecha_fin < hoy else 'próximo')
+        delta = None
+        if x['definitiva'] is not None and anterior is not None:
+            delta = round(float(x['definitiva'] - anterior), 2)
+        if x['definitiva'] is not None:
+            anterior = x['definitiva']
+        lista_periodos.append({
+            'id': p.id, 'numero': p.numero, 'estado': estado,
+            'inicio': p.fecha_inicio.strftime('%d/%m'), 'fin': p.fecha_fin.strftime('%d/%m'),
+            'promedio': _num(x['promedio']), 'puntos': _num(x['puntos']), 'definitiva': _num(x['definitiva']),
+            'pct': _pct(x['definitiva']), 'delta': delta, 'n_notas': x['n_notas'],
+            'color': nivel(x['definitiva'])[2],
+        })
+    ka, etqa, cola = nivel(d['anio'])
+
+    datos_js = {
+        'periodos': [{'numero': p['numero'], 'definitiva': p['definitiva'], 'estado': p['estado'],
+                      'color': p['color']} for p in lista_periodos],
+    }
+    return render(request, 'estudiantes/mi_proceso.html', {
+        'estudiante': est, 'actual': actual, 'anio': actual.anio,
+        'cur': {'promedio': _num(cur['promedio']), 'puntos': _num(cur['puntos']),
+                'definitiva': _num(cur['definitiva']), 'pct': _pct(cur['definitiva']),
+                'nivel': etq, 'color': col},
+        'actividades': actividades, 'novedades': novedades, 'avance_tiempo': avance_tiempo,
+        'dias_restantes': max((actual.fecha_fin - hoy).days, 0),
+        'periodos': lista_periodos,
+        'anual': {'valor': _num(d['anio']), 'pct': _pct(d['anio']), 'nivel': etqa, 'color': cola,
+                  'con_nota': sum(1 for p in lista_periodos if p['definitiva'] is not None),
+                  'total': len(lista_periodos)},
+        'datos_js': datos_js,
     })

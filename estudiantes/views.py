@@ -22,7 +22,8 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad
+from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, Periodo
+from .periodos import calcular_periodos
 from .forms import EstudianteForm, UsuarioCrearForm, UsuarioEditarForm
 
 
@@ -84,9 +85,11 @@ def _asegurar_grupos():
 # ── Email helpers ───────────────────────────────────────────
 
 def _enviar_bienvenida(user, password_plano, rol):
-    rol_label = 'Directivo' if rol == 'directivo' else 'Docente'
-    permisos  = ('Acceso completo al sistema.' if rol == 'directivo'
-                 else 'Puede ver y buscar estudiantes. No puede editar ni eliminar.')
+    rol_label = {'directivo': 'Directivo', 'estudiante': 'Estudiante'}.get(rol, 'Docente')
+    permisos  = {
+        'directivo':  'Acceso completo al sistema.',
+        'estudiante': 'Solo puede consultar su propio historial y su progreso. No puede editar nada.',
+    }.get(rol, 'Puede ver y buscar estudiantes. No puede editar ni eliminar.')
     try:
         send_mail(
             subject='Bienvenido al Sistema Escolar — Sus credenciales',
@@ -409,6 +412,23 @@ def _resolver_grupo(request):
     return es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles, estudiantes_grupo
 
 
+def _resolver_periodo(request):
+    """Periodo seleccionado (parámetro `periodo`) o, si no viene o no existe, el periodo en curso.
+    Devuelve (periodo, periodos_del_mismo_anio)."""
+    params = request.POST if request.method == 'POST' else request.GET
+    periodo = None
+    pid = params.get('periodo') or request.GET.get('periodo')
+    if pid and str(pid).isdigit():
+        periodo = Periodo.objects.filter(id=int(pid)).first()
+    if periodo is None:
+        periodo = Periodo.actual()
+    periodos = list(Periodo.objects.filter(anio=periodo.anio).order_by('numero'))
+    if len(periodos) < 3:
+        Periodo.asegurar_anio(periodo.anio)
+        periodos = list(Periodo.objects.filter(anio=periodo.anio).order_by('numero'))
+    return periodo, periodos
+
+
 @login_required
 @bloquear_estudiantes
 def planilla_grupo(request):
@@ -531,28 +551,29 @@ def notas_grupo(request):
         return redirect('inicio')
 
     es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles, estudiantes_grupo = _resolver_grupo(request)
+    periodo, periodos_anio = _resolver_periodo(request)
 
     actividades = Actividad.objects.none()
     notas_grid = {}
     resumen = {}
 
     if linea and jornada:
-        actividades = Actividad.objects.filter(linea=linea, jornada=jornada)
+        actividades = Actividad.objects.filter(linea=linea, jornada=jornada, periodo=periodo)
 
         if request.method == 'POST':
             if 'nueva_actividad' in request.POST:
                 nombre = request.POST.get('nueva_actividad', '').strip()
                 if nombre:
                     siguiente_orden = (actividades.aggregate(m=Max('orden'))['m'] or 0) + 1
-                    Actividad.objects.create(linea=linea, jornada=jornada, nombre=nombre, orden=siguiente_orden, creado_por=request.user)
+                    Actividad.objects.create(linea=linea, jornada=jornada, periodo=periodo, nombre=nombre, orden=siguiente_orden, creado_por=request.user)
                     messages.success(request, f"Actividad '{nombre}' creada.")
-                qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro})
+                qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro, 'periodo': periodo.id})
                 return redirect(f"{request.path}?{qs}")
 
             elif 'eliminar_actividad' in request.POST:
-                Actividad.objects.filter(id=request.POST.get('eliminar_actividad'), linea=linea, jornada=jornada).delete()
+                Actividad.objects.filter(id=request.POST.get('eliminar_actividad'), linea=linea, jornada=jornada, periodo=periodo).delete()
                 messages.success(request, "Actividad eliminada.")
-                qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro})
+                qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro, 'periodo': periodo.id})
                 return redirect(f"{request.path}?{qs}")
 
             else:
@@ -612,24 +633,27 @@ def notas_grupo(request):
                     messages.success(request, f"Notas guardadas ({borrados} eliminada{'s' if borrados != 1 else ''}).")
                 else:
                     messages.success(request, "Notas guardadas.")
-                qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro})
+                qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro, 'periodo': periodo.id})
                 return redirect(f"{request.path}?{qs}")
 
         notas_qs = NotaActividad.objects.filter(estudiante__in=estudiantes_grupo, actividad__in=actividades)
         for n in notas_qs:
             notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = n.valor
 
-        registros_puntos = RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo).values(
-            'estudiante_id', 'fecha', 'bloque', 'estado', 'puntos_aplicados'
-        )
+        registros_puntos = RegistroPlanilla.objects.filter(
+            estudiante__in=estudiantes_grupo, fecha__gte=periodo.fecha_inicio, fecha__lte=periodo.fecha_fin,
+        ).values('estudiante_id', 'fecha', 'bloque', 'estado', 'puntos_aplicados')
         puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(registros_puntos)
+
+        _, datos_anio = calcular_periodos([e.id for e in estudiantes_grupo], periodo.anio, periodos_anio)
 
         for est in estudiantes_grupo:
             notas_est = list(notas_grid.get(est.id, {}).values())
             promedio = (sum(notas_est) / len(notas_est)) if notas_est else None
             puntos = puntos_por_estudiante.get(est.id, 0)
             definitiva = (promedio + Decimal(puntos)) if promedio is not None else None
-            resumen[est.id] = {'promedio': promedio, 'puntos': puntos, 'definitiva': definitiva}
+            resumen[est.id] = {'promedio': promedio, 'puntos': puntos, 'definitiva': definitiva,
+                           'anio': datos_anio[est.id]['anio']}
 
     return render(request, 'estudiantes/notas.html', {
         'es_directivo':       es_directivo,
@@ -640,6 +664,7 @@ def notas_grupo(request):
         'jornada_display': dict(Estudiante.JORNADA).get(jornada, jornada),
         'estudiantes_grupo': estudiantes_grupo,
         'actividades': actividades,
+        'periodo': periodo, 'periodos_anio': periodos_anio,
         'notas_grid': notas_grid,
         'resumen': resumen,
     })
@@ -723,10 +748,11 @@ def exportar_planilla(request):
         return redirect('planilla')
 
     estudiantes_grupo = list(estudiantes_grupo)
-    actividades = list(Actividad.objects.filter(linea=linea, jornada=jornada))
+    periodo, _periodos = _resolver_periodo(request)
+    actividades = list(Actividad.objects.filter(linea=linea, jornada=jornada, periodo=periodo))
 
     registros = (
-        RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo)
+        RegistroPlanilla.objects.filter(estudiante__in=estudiantes_grupo, fecha__gte=periodo.fecha_inicio, fecha__lte=periodo.fecha_fin)
         .select_related('estudiante', 'registrado_por')
         .order_by('fecha', 'bloque', 'estudiante__curso', 'estudiante__apellidos')
     )
@@ -868,11 +894,43 @@ def exportar_planilla(request):
             ws3.column_dimensions[get_column_letter(i)].width = w
         ws3.freeze_panes = "A2"
 
+    # ── Hoja 4: Año completo (definitiva de cada periodo y del año) ───
+    periodos_anio, datos_anio = calcular_periodos([e.id for e in estudiantes_grupo], periodo.anio, _periodos)
+    ws4 = wb.create_sheet(f"Año {periodo.anio}")
+    enc4 = ['Curso', 'Apellidos', 'Nombres', 'Documento']
+    for p in periodos_anio:
+        enc4 += [f'P{p.numero} Promedio', f'P{p.numero} Puntos', f'P{p.numero} Definitiva']
+    enc4.append('Definitiva del año')
+    for ci, h in enumerate(enc4, 1):
+        c = ws4.cell(row=1, column=ci, value=h)
+        c.fill = hf; c.font = hfont; c.alignment = halign; c.border = border
+    ws4.row_dimensions[1].height = 30
+    fila = 2
+    for est in estudiantes_grupo:
+        d = datos_anio[est.id]
+        valores = [est.curso, est.apellidos, est.nombres, est.documento]
+        for p in periodos_anio:
+            x = d['periodos'][p.id]
+            valores += [float(x['promedio']) if x['promedio'] is not None else '',
+                        float(x['puntos']) if x['n_notas'] or x['puntos'] else '',
+                        float(x['definitiva']) if x['definitiva'] is not None else '']
+        valores.append(float(d['anio']) if d['anio'] is not None else '')
+        for ci, v_ in enumerate(valores, 1):
+            c = ws4.cell(row=fila, column=ci, value=v_)
+            c.border = border
+            c.alignment = Alignment(vertical="center", horizontal="left" if ci <= 3 else "center")
+            if fila % 2 == 0:
+                c.fill = alt
+        fila += 1
+    for i_, w in enumerate([10, 20, 20, 14] + [11] * (3 * len(periodos_anio)) + [14], 1):
+        ws4.column_dimensions[get_column_letter(i_)].width = w
+    ws4.freeze_panes = "A2"
+
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
 
-    partes_nombre = [linea, jornada] + ([f"{grado_filtro}"] if grado_filtro else [])
+    partes_nombre = [linea, jornada, f"P{periodo.numero}"] + ([f"{grado_filtro}"] if grado_filtro else [])
     nombre_archivo = "planilla_" + "_".join(partes_nombre) + ".xlsx"
     resp = HttpResponse(
         buf.getvalue(),
@@ -1144,7 +1202,7 @@ def editar_masivo(request):
 @login_required
 @solo_directivo
 def lista_usuarios(request):
-    usuarios = User.objects.exclude(is_superuser=True).select_related().prefetch_related('groups').order_by('last_name', 'first_name')
+    usuarios = User.objects.exclude(is_superuser=True).select_related('estudiante_perfil').prefetch_related('groups').order_by('last_name', 'first_name')
     return render(request, 'usuarios/lista.html', {
         'usuarios': usuarios,
         'es_directivo': True,
@@ -1180,7 +1238,17 @@ def crear_usuario(request):
             else:
                 DocentePerfil.objects.filter(usuario=user).delete()
 
-            # Enviar correo de bienvenida
+            # Cuenta de estudiante: se vincula a su ficha y debe cambiar la clave al entrar
+            if rol == 'estudiante':
+                ficha = form.cleaned_data['estudiante_obj']
+                ficha.usuario = user
+                ficha.debe_cambiar_clave = True
+                ficha.save()
+
+            # Enviar correo de bienvenida (solo si se indicó correo)
+            if not user.email:
+                messages.success(request, f"Usuario '{user.username}' creado. Entrégale la contraseña en persona (no tiene correo).")
+                return redirect('lista_usuarios')
             resultado = _enviar_bienvenida(user, password_plano, rol)
             if resultado is True:
                 messages.success(request, f"Usuario '{user.username}' creado. Se envió correo de bienvenida a {user.email}.")

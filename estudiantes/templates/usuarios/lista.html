@@ -54,7 +54,9 @@
           <td>{{ u.get_full_name|default:"—" }}</td>
           <td style="font-size:.82rem;color:#64748b;">{{ u.email|default:"—" }}</td>
           <td>
-            {% if u|es_directivo %}
+            {% if u.estudiante_perfil %}
+              <span class="badge-rol" style="background:#dcfce7;color:#166534;">&#127891; Estudiante</span>
+            {% elif u|es_directivo %}
               <span class="badge-rol rol-directivo">&#11088; Directivo</span>
             {% else %}
               <span class="badge-rol rol-docente">&#128203; Docente</span>

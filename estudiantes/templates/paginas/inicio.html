@@ -86,6 +86,20 @@
         </a>
     </div>
 
+    <div class="col-12">
+        <a href="{% url 'mi_proceso' %}" class="text-decoration-none">
+            <div class="card border-0 shadow-sm" style="border-radius: 14px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="card-body d-flex align-items-center gap-3 p-4">
+                    <div style="font-size: 2.2rem;">&#128197;</div>
+                    <div>
+                        <h5 class="fw-bold mb-1">Ver mi proceso académico</h5>
+                        <p class="text-muted small mb-0">Su avance del periodo en curso y de todo el año, en gráficas</p>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
     {% else %}
     <!-- Tarjetas de acceso rapido -->
     <div class="col-md-4">

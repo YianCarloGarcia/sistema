@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User, Group
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, ConfiguracionPuntos, ActividadLinea, CalificacionLinea
+from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, ConfiguracionPuntos, ActividadLinea, CalificacionLinea, Periodo
 from .utils.carnet_png import generar_carnet_png
 
 
@@ -496,8 +496,8 @@ class RegistroPlanillaAdmin(admin.ModelAdmin):
 
 @admin.register(Actividad)
 class ActividadAdmin(admin.ModelAdmin):
-    list_display  = ['nombre', 'linea', 'jornada', 'orden', 'creado_por']
-    list_filter   = ['linea', 'jornada']
+    list_display  = ['nombre', 'periodo', 'linea', 'jornada', 'orden', 'creado_por']
+    list_filter   = ['periodo', 'linea', 'jornada']
     search_fields = ['nombre']
 
 
@@ -535,3 +535,10 @@ class CalificacionLineaAdmin(admin.ModelAdmin):
     list_filter = ('linea',)
     search_fields = ('estudiante__apellidos', 'estudiante__nombres', 'estudiante__documento')
     autocomplete_fields = ('estudiante',)
+
+
+@admin.register(Periodo)
+class PeriodoAdmin(admin.ModelAdmin):
+    list_display = ('anio', 'numero', 'fecha_inicio', 'fecha_fin')
+    list_editable = ('fecha_inicio', 'fecha_fin')
+    list_filter = ('anio',)

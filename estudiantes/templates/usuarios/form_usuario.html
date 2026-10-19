@@ -70,7 +70,7 @@
       </div>
 
       <div class="field-group">
-        <label class="field-label">Correo electrónico<span class="req">*</span></label>
+        <label class="field-label">Correo electrónico<span class="req" id="email-req">*</span></label>
         {{ form.email }}
         {% if form.email.errors %}<div class="field-error">{{ form.email.errors }}</div>{% endif %}
         {% if es_nuevo %}
@@ -105,6 +105,17 @@
       <div class="rol-info" id="rol-info">
         <p id="rol-desc">Seleccione un rol para ver sus permisos.</p>
       </div>
+
+      {% if es_nuevo %}
+      <div id="estudiante-fields" style="display:none; margin-top:1rem;">
+        <div class="field-group">
+          <label class="field-label">Documento del estudiante<span class="req">*</span></label>
+          {{ form.estudiante_documento }}
+          <div class="field-help">{{ form.estudiante_documento.help_text }} El correo es opcional y la persona deberá cambiar su contraseña al primer ingreso.</div>
+        </div>
+        {% if form.non_field_errors %}<div class="field-error">{{ form.non_field_errors }}</div>{% endif %}
+      </div>
+      {% endif %}
 
       <div id="grupo-fields" style="display:none; margin-top:1rem;">
         <div class="field-help" style="margin-bottom:.6rem;">
@@ -145,6 +156,7 @@
 <script>
 const rolDesc = {
   docente:   '&#128203; <strong>Docente:</strong> puede ver y buscar estudiantes, y registrar almuerzos. <em>No puede editar, eliminar ni acceder a gestión masiva.</em>',
+  estudiante: '&#127891; <strong>Estudiante:</strong> solo consulta su propio historial y su progreso en gráficas. <em>No puede editar nada ni ver a otros estudiantes.</em>',
   directivo: '&#11088; <strong>Directivo:</strong> acceso completo al sistema, incluyendo crear/editar/eliminar estudiantes, gestión masiva y administración de usuarios.',
 };
 const select = document.querySelector('select[name="rol"]');
@@ -153,6 +165,10 @@ const grupoFields = document.getElementById('grupo-fields');
 function actualizarDesc() {
   desc.innerHTML = rolDesc[select.value] || 'Seleccione un rol.';
   grupoFields.style.display = (select.value === 'docente') ? 'block' : 'none';
+  var est = document.getElementById('estudiante-fields');
+  if (est) est.style.display = (select.value === 'estudiante') ? 'block' : 'none';
+  var req = document.getElementById('email-req');
+  if (req) req.style.display = (select.value === 'estudiante') ? 'none' : '';
 }
 select.addEventListener('change', actualizarDesc);
 actualizarDesc();
