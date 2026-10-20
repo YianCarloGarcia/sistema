@@ -23,7 +23,8 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, Periodo
-from .periodos import calcular_periodos
+from .periodos import calcular_periodos, promedio_de_estudiante
+from .models import ConfiguracionPorcentajes
 from .forms import EstudianteForm, UsuarioCrearForm, UsuarioEditarForm
 
 
@@ -563,9 +564,12 @@ def notas_grupo(request):
         if request.method == 'POST':
             if 'nueva_actividad' in request.POST:
                 nombre = request.POST.get('nueva_actividad', '').strip()
+                tipo = request.POST.get('tipo_actividad', 'GEN')
+                if tipo not in dict(Actividad.TIPOS):
+                    tipo = 'GEN'
                 if nombre:
                     siguiente_orden = (actividades.aggregate(m=Max('orden'))['m'] or 0) + 1
-                    Actividad.objects.create(linea=linea, jornada=jornada, periodo=periodo, nombre=nombre, orden=siguiente_orden, creado_por=request.user)
+                    Actividad.objects.create(linea=linea, jornada=jornada, periodo=periodo, tipo=tipo, nombre=nombre, orden=siguiente_orden, creado_por=request.user)
                     messages.success(request, f"Actividad '{nombre}' creada.")
                 qs = urlencode({'linea': linea, 'jornada': jornada, 'grado': grado_filtro, 'periodo': periodo.id})
                 return redirect(f"{request.path}?{qs}")
@@ -646,10 +650,11 @@ def notas_grupo(request):
         puntos_por_estudiante = RegistroPlanilla.calcular_puntos_por_estudiante(registros_puntos)
 
         _, datos_anio = calcular_periodos([e.id for e in estudiantes_grupo], periodo.anio, periodos_anio)
+        pesos = ConfiguracionPorcentajes.obtener().por_tipo()
+        tipo_por_actividad = {a.id: a.tipo for a in actividades}
 
         for est in estudiantes_grupo:
-            notas_est = list(notas_grid.get(est.id, {}).values())
-            promedio = (sum(notas_est) / len(notas_est)) if notas_est else None
+            promedio = promedio_de_estudiante(notas_grid.get(est.id, {}), tipo_por_actividad, pesos)
             puntos = puntos_por_estudiante.get(est.id, 0)
             definitiva = (promedio + Decimal(puntos)) if promedio is not None else None
             resumen[est.id] = {'promedio': promedio, 'puntos': puntos, 'definitiva': definitiva,
@@ -665,6 +670,7 @@ def notas_grupo(request):
         'estudiantes_grupo': estudiantes_grupo,
         'actividades': actividades,
         'periodo': periodo, 'periodos_anio': periodos_anio,
+        'tipos_actividad': Actividad.TIPOS, 'porcentajes': ConfiguracionPorcentajes.obtener(),
         'notas_grid': notas_grid,
         'resumen': resumen,
     })
@@ -768,6 +774,8 @@ def exportar_planilla(request):
     notas_grid = {}
     for n in notas_qs:
         notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = float(n.valor)
+    pesos = ConfiguracionPorcentajes.obtener().por_tipo()
+    tipo_por_actividad = {a.id: a.tipo for a in actividades}
 
     hf = PatternFill("solid", fgColor="1a3a6e")
     hfont = Font(color="FFFFFF", bold=True, size=11)
@@ -800,7 +808,7 @@ def exportar_planilla(request):
     ws1.title = "Resumen"
     encabezados = ['Curso', 'Apellidos', 'Nombres', 'Documento',
                     'F', 'A', 'R', 'E', 'EX', 'U', 'Puntos asistencia',
-                    'Promedio notas', 'Definitiva']
+                    'Promedio ponderado', 'Definitiva']
     for ci, h in enumerate(encabezados, 1):
         c = ws1.cell(row=1, column=ci, value=h)
         c.fill = hf; c.font = hfont; c.alignment = halign; c.border = border
@@ -810,8 +818,8 @@ def exportar_planilla(request):
     for est in estudiantes_grupo:
         cdatos = conteos.get(est.id, {})
         puntos = float(puntos_por_estudiante.get(est.id, 0))
-        notas_est = list(notas_grid.get(est.id, {}).values())
-        promedio = (sum(notas_est) / len(notas_est)) if notas_est else None
+        promedio = promedio_de_estudiante(notas_grid.get(est.id, {}), tipo_por_actividad, pesos)
+        promedio = float(promedio) if promedio is not None else None
         definitiva = (promedio + puntos) if promedio is not None else None
 
         valores = [
@@ -866,7 +874,7 @@ def exportar_planilla(request):
     # ── Hoja 3: Notas por actividad ───
     if actividades:
         ws3 = wb.create_sheet("Notas por actividad")
-        enc3 = ['Curso', 'Apellidos', 'Nombres', 'Documento'] + [a.nombre for a in actividades] + ['Promedio']
+        enc3 = ['Curso', 'Apellidos', 'Nombres', 'Documento'] + [f"{a.nombre} ({a.get_tipo_display()})" for a in actividades] + ['Promedio ponderado']
         for ci, h in enumerate(enc3, 1):
             c = ws3.cell(row=1, column=ci, value=h)
             c.fill = hf; c.font = hfont; c.alignment = halign; c.border = border
@@ -878,8 +886,8 @@ def exportar_planilla(request):
             valores = [est.curso, est.apellidos, est.nombres, est.documento]
             for a in actividades:
                 valores.append(notas_est_dict.get(a.id, ''))
-            notas_vals = list(notas_est_dict.values())
-            promedio = round(sum(notas_vals) / len(notas_vals), 2) if notas_vals else ''
+            promedio_h3 = promedio_de_estudiante(notas_est_dict, tipo_por_actividad, pesos)
+            promedio = float(promedio_h3) if promedio_h3 is not None else ''
             valores.append(promedio)
             for ci, v in enumerate(valores, 1):
                 c = ws3.cell(row=fila, column=ci, value=v)

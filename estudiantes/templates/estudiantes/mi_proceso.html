@@ -105,12 +105,19 @@
         <div class="pc-card">
           <h5>Cómo se construye tu nota</h5>
           <div class="formula">
-            <div class="caja"><b class="count" data-n="{{ cur.promedio|default_if_none:0|stringformat:'.2f' }}" data-dec="2">0.00</b><small>Promedio de actividades</small></div>
+            <div class="caja"><b class="count" data-n="{{ cur.promedio|default_if_none:0|stringformat:'.2f' }}" data-dec="2">0.00</b><small>Promedio ponderado</small></div>
             <div class="op">{% if cur.puntos is not None and cur.puntos < 0 %}−{% else %}+{% endif %}</div>
             <div class="caja {% if cur.puntos < 0 %}neg{% endif %}"><b class="count" data-n="{% if cur.puntos < 0 %}{{ cur.puntos|stringformat:'.2f'|slice:'1:' }}{% else %}{{ cur.puntos|stringformat:'.2f' }}{% endif %}" data-dec="2">0.00</b><small>Puntos de asistencia</small></div>
             <div class="op">=</div>
             <div class="caja"><b>{% if cur.definitiva is not None %}<span class="count" data-n="{{ cur.definitiva|stringformat:'.2f' }}" data-dec="2">0.00</span>{% else %}—{% endif %}</b><small>Definitiva</small></div>
           </div>
+          <h5 class="mt-4">Qué pesa cada parte</h5>
+          {% for c in componentes %}
+          <div class="nov">
+            <div class="d-flex justify-content-between small"><span class="fw-bold">{{ c.nombre }} <span class="text-muted">({{ c.peso|stringformat:".0f" }}%)</span></span><span>{% if c.valor is not None %}{{ c.valor|stringformat:".2f" }}{% else %}<span class="text-muted">Pendiente</span>{% endif %}</span></div>
+            <div class="medidor"><div data-w="{% if c.valor is not None %}{% widthratio c.valor 5 100 %}{% else %}0{% endif %}" style="background:#2563eb"></div></div>
+          </div>
+          {% endfor %}
           <h5 class="mt-4">Novedades de asistencia</h5>
           {% for n in novedades %}
           <div class="nov">
@@ -136,7 +143,7 @@
         </div>
         {% endfor %}
       </div>
-      <div class="b-etq">{% for a in actividades %}<div title="{{ a.nombre }}">{{ a.nombre }}</div>{% endfor %}</div>
+      <div class="b-etq">{% for a in actividades %}<div title="{{ a.nombre }}{% if a.tipo %} · {{ a.tipo }}{% endif %}">{{ a.nombre }}{% if a.tipo %}<br><span style="font-weight:400;color:#b45309">{{ a.tipo }}</span>{% endif %}</div>{% endfor %}</div>
       {% else %}
       <p class="text-muted mb-0">Tu docente aún no ha creado actividades en este periodo.</p>
       {% endif %}

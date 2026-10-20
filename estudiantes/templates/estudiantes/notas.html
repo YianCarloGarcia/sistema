@@ -129,6 +129,7 @@
      class="btn btn-sm {% if p.id == periodo.id %}btn-primary{% else %}btn-outline-secondary{% endif %}">Periodo {{ p.numero }}</a>
   {% endfor %}
   <span class="small text-muted ms-2">{{ periodo.fecha_inicio|date:"d/m/Y" }} – {{ periodo.fecha_fin|date:"d/m/Y" }} · los puntos de asistencia de este periodo se cuentan por fecha</span>
+  <span class="small text-muted w-100">Peso en la nota: actividades generales (promediadas) {{ porcentajes.generales|floatformat:"-2" }}% · evaluación trimestral {{ porcentajes.evaluacion|floatformat:"-2" }}% · autoevaluación {{ porcentajes.autoevaluacion|floatformat:"-2" }}%. Los porcentajes se cambian en el admin.</span>
 </div>
 {% endif %}
 
@@ -140,7 +141,7 @@
   <div class="d-flex flex-wrap gap-2">
     {% for act in actividades %}
       <span class="actividad-chip">
-        {{ act.nombre }}
+        {{ act.nombre }}{% if act.tipo != 'GEN' %} <span class="badge text-bg-warning">{{ act.get_tipo_display }}</span>{% endif %}
         <form method="post" onsubmit="return confirm('¿Eliminar la actividad {{ act.nombre }} y todas sus notas?');">
           {% csrf_token %}
           <input type="hidden" name="linea" value="{{ linea }}">
@@ -162,6 +163,9 @@
     <input type="hidden" name="grado" value="{{ grado_filtro }}">
           <input type="hidden" name="periodo" value="{{ periodo.id }}">
     <input type="text" name="nueva_actividad" class="form-control form-control-sm" placeholder="Nombre de la nueva actividad (ej: Taller 1)" required>
+    <select name="tipo_actividad" class="form-select form-select-sm" style="max-width:230px" title="Tipo: define el peso en la nota">
+      {% for cod, nombre in tipos_actividad %}<option value="{{ cod }}">{{ nombre }}{% if cod == 'GEN' %} ({{ porcentajes.generales|floatformat:"-2" }}%){% elif cod == 'EVA' %} ({{ porcentajes.evaluacion|floatformat:"-2" }}%){% else %} ({{ porcentajes.autoevaluacion|floatformat:"-2" }}%){% endif %}</option>{% endfor %}
+    </select>
     <button type="submit" class="btn btn-sm btn-primary">Agregar</button>
   </form>
 </div>
@@ -181,8 +185,8 @@
           <th>#</th>
           <th>Estudiante</th>
           <th>Curso</th>
-          {% for act in actividades %}<th>{{ act.nombre }}</th>{% endfor %}
-          <th>Promedio</th>
+          {% for act in actividades %}<th>{{ act.nombre }}{% if act.tipo != 'GEN' %}<br><small>{{ act.get_tipo_display }}</small>{% endif %}</th>{% endfor %}
+          <th title="Generales {{ porcentajes.generales|floatformat:'-2' }}% · Evaluación {{ porcentajes.evaluacion|floatformat:'-2' }}% · Autoevaluación {{ porcentajes.autoevaluacion|floatformat:'-2' }}%">Promedio ponderado</th>
           <th>Puntos asist.</th>
           <th>Definitiva</th>
           <th title="Promedio de las definitivas de los periodos del año">Año {{ periodo.anio }}</th>

@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User, Group
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, ConfiguracionPuntos, ActividadLinea, CalificacionLinea, Periodo
+from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, ConfiguracionPuntos, ActividadLinea, CalificacionLinea, Periodo, ConfiguracionPorcentajes
 from .utils.carnet_png import generar_carnet_png
 
 
@@ -496,8 +496,8 @@ class RegistroPlanillaAdmin(admin.ModelAdmin):
 
 @admin.register(Actividad)
 class ActividadAdmin(admin.ModelAdmin):
-    list_display  = ['nombre', 'periodo', 'linea', 'jornada', 'orden', 'creado_por']
-    list_filter   = ['periodo', 'linea', 'jornada']
+    list_display  = ['nombre', 'tipo', 'periodo', 'linea', 'jornada', 'orden', 'creado_por']
+    list_filter   = ['periodo', 'tipo', 'linea', 'jornada']
     search_fields = ['nombre']
 
 
@@ -542,3 +542,15 @@ class PeriodoAdmin(admin.ModelAdmin):
     list_display = ('anio', 'numero', 'fecha_inicio', 'fecha_fin')
     list_editable = ('fecha_inicio', 'fecha_fin')
     list_filter = ('anio',)
+
+
+@admin.register(ConfiguracionPorcentajes)
+class ConfiguracionPorcentajesAdmin(admin.ModelAdmin):
+    """Una sola fila. Los tres porcentajes deben sumar 100."""
+    list_display = ('__str__',)
+
+    def has_add_permission(self, request):
+        return not ConfiguracionPorcentajes.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

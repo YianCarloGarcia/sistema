@@ -265,3 +265,81 @@ class PeriodosTests(BaseTestCase):
         self.client.login(username='docente1', password=CLAVE_PRUEBA)
         r = self.client.get(reverse('mi_proceso'))
         self.assertRedirects(r, reverse('inicio'), fetch_redirect_response=False)
+
+
+class PorcentajesTests(BaseTestCase):
+    def setUp(self):
+        from datetime import date
+        from estudiantes.models import Periodo
+        Periodo.asegurar_anio(date.today().year)
+        self.docente = self.crear_docente(linea='ROB', jornada='JM')
+        self.est = self.crear_estudiante_con_acceso(linea='ROB', jornada='JM')
+
+    def _nota(self, nombre, tipo, valor):
+        from estudiantes.models import Actividad, NotaActividad
+        a = Actividad.objects.create(linea='ROB', jornada='JM', nombre=nombre, tipo=tipo)
+        NotaActividad.objects.create(estudiante=self.est, actividad=a, valor=Decimal(valor))
+        return a
+
+    def test_defecto_70_20_10(self):
+        from estudiantes.models import ConfiguracionPorcentajes
+        self.assertEqual(ConfiguracionPorcentajes.obtener().por_tipo(),
+                         {'GEN': Decimal('70'), 'EVA': Decimal('20'), 'AUT': Decimal('10')})
+
+    def test_ponderacion_completa(self):
+        from estudiantes.periodos import promedio_ponderado
+        prom, comp = promedio_ponderado(
+            {'GEN': [Decimal('4'), Decimal('3')], 'EVA': [Decimal('5')], 'AUT': [Decimal('2')]},
+            {'GEN': Decimal('70'), 'EVA': Decimal('20'), 'AUT': Decimal('10')})
+        # 3.5*0.7 + 5*0.2 + 2*0.1 = 2.45 + 1.0 + 0.2
+        self.assertEqual(prom, Decimal('3.65'))
+
+    def test_solo_generales_equivale_al_promedio_simple(self):
+        from estudiantes.periodos import promedio_ponderado
+        prom, _ = promedio_ponderado({'GEN': [Decimal('4'), Decimal('3')]},
+                                     {'GEN': Decimal('70'), 'EVA': Decimal('20'), 'AUT': Decimal('10')})
+        self.assertEqual(prom, Decimal('3.50'))
+
+    def test_si_falta_un_tipo_se_reparte_entre_los_que_hay(self):
+        from estudiantes.periodos import promedio_ponderado
+        prom, _ = promedio_ponderado({'GEN': [Decimal('4')], 'EVA': [Decimal('2')]},
+                                     {'GEN': Decimal('70'), 'EVA': Decimal('20'), 'AUT': Decimal('10')})
+        self.assertEqual(prom, Decimal('3.56'))   # (4*70 + 2*20) / 90
+
+    def test_cambiar_porcentajes_cambia_la_definitiva(self):
+        from estudiantes.models import ConfiguracionPorcentajes
+        from estudiantes.periodos import calcular_periodos
+        from datetime import date
+        self._nota('G', 'GEN', '4')
+        self._nota('E', 'EVA', '2')
+        cfg = ConfiguracionPorcentajes.obtener()
+        cfg.generales, cfg.evaluacion, cfg.autoevaluacion = Decimal('50'), Decimal('50'), Decimal('0')
+        cfg.save()
+        periodos, datos = calcular_periodos([self.est.id], date.today().year)
+        actual = next(p for p in periodos if p.fecha_inicio <= date.today() <= p.fecha_fin)
+        self.assertEqual(datos[self.est.id]['periodos'][actual.id]['promedio'], Decimal('3.00'))
+
+    def test_validacion_exige_suma_100(self):
+        from django.core.exceptions import ValidationError
+        from estudiantes.models import ConfiguracionPorcentajes
+        cfg = ConfiguracionPorcentajes(generales=Decimal('60'), evaluacion=Decimal('20'), autoevaluacion=Decimal('10'))
+        with self.assertRaises(ValidationError):
+            cfg.full_clean()
+
+    def test_docente_crea_evaluacion_y_se_refleja_en_notas(self):
+        from estudiantes.models import Actividad
+        self.client.login(username='docente1', password=CLAVE_PRUEBA)
+        self.client.post(reverse('notas'), {'nueva_actividad': 'Evaluación P3', 'tipo_actividad': 'EVA'})
+        a = Actividad.objects.get(nombre='Evaluación P3')
+        self.assertEqual(a.tipo, 'EVA')
+        self.client.post(reverse('notas'), {f'nota_{self.est.id}_{a.id}': '4'})
+        g = self._nota('Taller', 'GEN', '2')
+        r = self.client.get(reverse('notas'))
+        fila = r.context['resumen'][self.est.id]
+        self.assertEqual(fila['promedio'], Decimal('2.44'))   # (2*70 + 4*20) / 90
+
+    def test_tipo_invalido_cae_en_general(self):
+        from estudiantes.models import Actividad
+        self.client.login(username='docente1', password=CLAVE_PRUEBA)
+        self.client.post(reverse('notas'), {'nueva_actividad': 'Rara', 'tipo_actividad': 'XXX'})
+        self.assertEqual(Actividad.objects.get(nombre='Rara').tipo, 'GEN')

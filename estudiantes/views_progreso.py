@@ -18,6 +18,7 @@ from .models import (
     Periodo, RegistroPlanilla, nivel_desempeno,
 )
 from .periodos import calcular_periodos, puntos_en_periodo
+from .models import ConfiguracionPorcentajes
 from .views import (
     _es_estudiante, _puede_usar_planilla, _resolver_grupo, bloquear_estudiantes,
 )
@@ -237,7 +238,7 @@ def mi_proceso(request):
         valor = notas.get(a.id)
         _k, etiqueta, color = nivel_desempeno(valor) if valor is not None else ('', '', '#94a3b8')
         actividades.append({
-            'nombre': a.nombre, 'valor': _num(valor), 'pct': _pct(valor) if valor is not None else 8,
+            'nombre': a.nombre, 'tipo': a.get_tipo_display() if a.tipo != 'GEN' else '', 'valor': _num(valor), 'pct': _pct(valor) if valor is not None else 8,
             'calificada': valor is not None, 'color': color, 'etiqueta': etiqueta,
         })
 
@@ -255,6 +256,13 @@ def mi_proceso(request):
         {'estado': cod, 'nombre': nombre, 'n': conteo[cod]['n'], 'puntos': _num(conteo[cod]['puntos']),
          'pct': round(conteo[cod]['n'] / maximo * 100)}
         for cod, nombre in RegistroPlanilla.ESTADOS if cod in conteo and cod != 'A'
+    ]
+
+    pesos = ConfiguracionPorcentajes.obtener().por_tipo()
+    nombres = {'GEN': 'Actividades generales', 'EVA': 'Evaluación trimestral', 'AUT': 'Autoevaluación'}
+    componentes = [
+        {'nombre': nombres[t], 'peso': float(pesos[t]), 'valor': _num(cur['componentes'].get(t))}
+        for t in ('GEN', 'EVA', 'AUT')
     ]
 
     total_dias = max((actual.fecha_fin - actual.fecha_inicio).days, 1)
@@ -291,7 +299,7 @@ def mi_proceso(request):
         'cur': {'promedio': _num(cur['promedio']), 'puntos': _num(cur['puntos']),
                 'definitiva': _num(cur['definitiva']), 'pct': _pct(cur['definitiva']),
                 'nivel': etq, 'color': col},
-        'actividades': actividades, 'novedades': novedades, 'avance_tiempo': avance_tiempo,
+        'actividades': actividades, 'componentes': componentes, 'novedades': novedades, 'avance_tiempo': avance_tiempo,
         'dias_restantes': max((actual.fecha_fin - hoy).days, 0),
         'periodos': lista_periodos,
         'anual': {'valor': _num(d['anio']), 'pct': _pct(d['anio']), 'nivel': etqa, 'color': cola,

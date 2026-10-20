@@ -322,12 +322,58 @@ class Periodo(models.Model):
         )
 
 
+class ConfiguracionPorcentajes(models.Model):
+    """Peso de cada tipo de actividad en la nota del periodo. Una sola fila, editable desde el
+    admin: el cambio se refleja de inmediato en Notas, exportes y en la vista del estudiante.
+    Por defecto: actividades generales 70 %, evaluación trimestral 20 %, autoevaluación 10 %."""
+    generales = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('70'),
+                                    verbose_name='Actividades generales promediadas (%)')
+    evaluacion = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('20'),
+                                     verbose_name='Evaluación trimestral (%)')
+    autoevaluacion = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('10'),
+                                         verbose_name='Autoevaluación (%)')
+
+    class Meta:
+        verbose_name = 'Porcentajes de la nota'
+        verbose_name_plural = 'Porcentajes de la nota'
+
+    def __str__(self):
+        return f"Generales {self.generales}% · Evaluación {self.evaluacion}% · Autoevaluación {self.autoevaluacion}%"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        valores = [self.generales, self.evaluacion, self.autoevaluacion]
+        if any(v is None for v in valores):
+            return
+        if any(v < 0 for v in valores):
+            raise ValidationError('Los porcentajes no pueden ser negativos.')
+        if sum(valores) != Decimal('100'):
+            raise ValidationError(f'Los porcentajes deben sumar 100 (ahora suman {sum(valores)}).')
+
+    @classmethod
+    def obtener(cls):
+        obj = cls.objects.order_by('pk').first()
+        return obj or cls.objects.create()
+
+    def por_tipo(self):
+        return {'GEN': self.generales, 'EVA': self.evaluacion, 'AUT': self.autoevaluacion}
+
+
 class Actividad(models.Model):
     """Actividad calificable definida por el docente para su línea/jornada (equivalente a las
     columnas D:O 'ACTIVIDADES' de la planilla en Excel)."""
     linea = models.CharField(max_length=50, choices=Estudiante.LINEA_MEDIA, verbose_name='Línea')
     jornada = models.CharField(max_length=50, choices=Estudiante.JORNADA, verbose_name='Jornada')
     nombre = models.CharField(max_length=100, verbose_name='Nombre de la actividad')
+    TIPOS = [
+        ('GEN', 'Actividad general'),
+        ('EVA', 'Evaluación trimestral'),
+        ('AUT', 'Autoevaluación'),
+    ]
+    tipo = models.CharField(
+        max_length=3, choices=TIPOS, default='GEN', verbose_name='Tipo',
+        help_text='Define cuánto pesa en la nota (ver «Porcentajes de la nota» en el admin).',
+    )
     periodo = models.ForeignKey(
         'Periodo', on_delete=models.PROTECT, null=True, blank=True, related_name='actividades',
         verbose_name='Periodo académico',
