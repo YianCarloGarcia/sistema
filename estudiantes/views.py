@@ -556,6 +556,7 @@ def notas_grupo(request):
 
     actividades = Actividad.objects.none()
     notas_grid = {}
+    obs_grid = {}
     resumen = {}
 
     if linea and jornada:
@@ -593,45 +594,66 @@ def notas_grupo(request):
                 a_actualizar = []
                 ids_a_borrar = []
 
+                obs_ignoradas = 0
                 for est in estudiantes_grupo:
                     for act in actividades:
                         clave = (est.id, act.id)
                         campo = f'nota_{est.id}_{act.id}'
                         campo_borrar = f'borrar_{est.id}_{act.id}'
+                        campo_obs = f'obs_{est.id}_{act.id}'
+                        existente = notas_existentes.get(clave)
+                        # La observación es opcional: solo se toca si el formulario la envía.
+                        hay_obs = campo_obs in request.POST
+                        obs = request.POST.get(campo_obs, '').strip()[:300] if hay_obs else None
 
                         if request.POST.get(campo_borrar):
-                            existente = notas_existentes.get(clave)
                             if existente:
                                 ids_a_borrar.append(existente.id)
                             continue
 
                         valor_txt = request.POST.get(campo, '').strip().replace(',', '.')
-                        if valor_txt == '':
-                            continue
-                        try:
-                            valor = Decimal(valor_txt)
-                        except InvalidOperation:
-                            continue
-                        valor = max(Decimal('0.0'), min(Decimal('5.0'), valor)).quantize(Decimal('0.01'))
+                        valor = None
+                        if valor_txt != '':
+                            try:
+                                valor = Decimal(valor_txt)
+                            except InvalidOperation:
+                                valor = None
+                        if valor is not None:
+                            valor = max(Decimal('0.0'), min(Decimal('5.0'), valor)).quantize(Decimal('0.01'))
 
-                        existente = notas_existentes.get(clave)
+                        if valor is None:
+                            # Casilla vacía: no borra la nota. Si ya existía, solo se actualiza su observación.
+                            if existente and hay_obs and existente.observacion != obs:
+                                existente.observacion = obs
+                                existente.registrado_por = request.user
+                                a_actualizar.append(existente)
+                            elif not existente and obs:
+                                obs_ignoradas += 1   # una observación necesita una nota a la que explicar
+                            continue
+
                         if existente:
-                            if existente.valor != valor:
+                            cambia_obs = hay_obs and existente.observacion != obs
+                            if existente.valor != valor or cambia_obs:
                                 existente.valor = valor
+                                if hay_obs:
+                                    existente.observacion = obs
                                 existente.registrado_por = request.user
                                 a_actualizar.append(existente)
                         else:
                             a_crear.append(NotaActividad(
-                                estudiante=est, actividad=act, valor=valor, registrado_por=request.user,
+                                estudiante=est, actividad=act, valor=valor, observacion=obs or '',
+                                registrado_por=request.user,
                             ))
 
                 if a_crear:
                     NotaActividad.objects.bulk_create(a_crear)
                 if a_actualizar:
-                    NotaActividad.objects.bulk_update(a_actualizar, ['valor', 'registrado_por'])
+                    NotaActividad.objects.bulk_update(a_actualizar, ['valor', 'observacion', 'registrado_por'])
                 if ids_a_borrar:
                     NotaActividad.objects.filter(id__in=ids_a_borrar).delete()
 
+                if obs_ignoradas:
+                    messages.warning(request, f"{obs_ignoradas} observación(es) no se guardaron porque esa casilla no tiene nota.")
                 borrados = len(ids_a_borrar)
                 if borrados:
                     messages.success(request, f"Notas guardadas ({borrados} eliminada{'s' if borrados != 1 else ''}).")
@@ -643,6 +665,8 @@ def notas_grupo(request):
         notas_qs = NotaActividad.objects.filter(estudiante__in=estudiantes_grupo, actividad__in=actividades)
         for n in notas_qs:
             notas_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = n.valor
+            if n.observacion:
+                obs_grid.setdefault(n.estudiante_id, {})[n.actividad_id] = n.observacion
 
         registros_puntos = RegistroPlanilla.objects.filter(
             estudiante__in=estudiantes_grupo, fecha__gte=periodo.fecha_inicio, fecha__lte=periodo.fecha_fin,
@@ -671,7 +695,7 @@ def notas_grupo(request):
         'actividades': actividades,
         'periodo': periodo, 'periodos_anio': periodos_anio,
         'tipos_actividad': Actividad.TIPOS, 'porcentajes': ConfiguracionPorcentajes.obtener(),
-        'notas_grid': notas_grid,
+        'notas_grid': notas_grid, 'obs_grid': obs_grid,
         'resumen': resumen,
     })
 
@@ -901,6 +925,24 @@ def exportar_planilla(request):
         for i, w in enumerate(anchos3, 1):
             ws3.column_dimensions[get_column_letter(i)].width = w
         ws3.freeze_panes = "A2"
+
+    # ── Observaciones de las notas (solo si hay alguna) ───
+    obs_filas = [n for n in notas_qs.select_related('estudiante', 'actividad').order_by(
+        'estudiante__apellidos', 'estudiante__nombres', 'actividad__orden') if n.observacion]
+    if obs_filas:
+        wso = wb.create_sheet("Observaciones")
+        for ci, h in enumerate(['Curso', 'Apellidos', 'Nombres', 'Actividad', 'Nota', 'Observación'], 1):
+            c = wso.cell(row=1, column=ci, value=h)
+            c.fill = hf; c.font = hfont; c.alignment = halign; c.border = border
+        for fi, n in enumerate(obs_filas, 2):
+            for ci, val in enumerate([n.estudiante.curso, n.estudiante.apellidos, n.estudiante.nombres,
+                                      n.actividad.nombre, float(n.valor), n.observacion], 1):
+                c = wso.cell(row=fi, column=ci, value=val)
+                c.border = border
+                c.alignment = Alignment(vertical="center", wrap_text=(ci == 6))
+        for i_, w in enumerate([10, 20, 20, 22, 8, 60], 1):
+            wso.column_dimensions[get_column_letter(i_)].width = w
+        wso.freeze_panes = "A2"
 
     # ── Hoja 4: Año completo (definitiva de cada periodo y del año) ───
     periodos_anio, datos_anio = calcular_periodos([e.id for e in estudiantes_grupo], periodo.anio, _periodos)

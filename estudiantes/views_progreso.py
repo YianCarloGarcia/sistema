@@ -231,14 +231,15 @@ def mi_proceso(request):
     cur = d['periodos'][actual.id]
 
     # Actividades del periodo en curso con la nota del estudiante.
-    notas = {n.actividad_id: n.valor for n in NotaActividad.objects.filter(
+    notas_obj = {n.actividad_id: n for n in NotaActividad.objects.filter(
         estudiante=est, actividad__periodo=actual)}
+    notas = {k: n.valor for k, n in notas_obj.items()}
     actividades = []
     for a in Actividad.objects.filter(linea=est.linea, jornada=est.jornada, periodo=actual):
         valor = notas.get(a.id)
         _k, etiqueta, color = nivel_desempeno(valor) if valor is not None else ('', '', '#94a3b8')
         actividades.append({
-            'nombre': a.nombre, 'tipo': a.get_tipo_display() if a.tipo != 'GEN' else '', 'valor': _num(valor), 'pct': _pct(valor) if valor is not None else 8,
+            'observacion': notas_obj[a.id].observacion if a.id in notas_obj else '', 'nombre': a.nombre, 'tipo': a.get_tipo_display() if a.tipo != 'GEN' else '', 'valor': _num(valor), 'pct': _pct(valor) if valor is not None else 8,
             'calificada': valor is not None, 'color': color, 'etiqueta': etiqueta,
         })
 

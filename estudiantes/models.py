@@ -405,6 +405,8 @@ class NotaActividad(models.Model):
     estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE, related_name='notas_actividades')
     actividad = models.ForeignKey(Actividad, on_delete=models.CASCADE, related_name='notas')
     valor = models.DecimalField(max_digits=4, decimal_places=2, verbose_name='Nota (0.0 a 5.0)')
+    observacion = models.CharField(max_length=300, blank=True, default='', verbose_name='Observación',
+                                   help_text='Opcional: causa o comentario sobre esta calificación.')
     registrado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='notas_registradas',

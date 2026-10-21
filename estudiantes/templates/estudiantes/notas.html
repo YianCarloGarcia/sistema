@@ -52,6 +52,12 @@
     font-size: .75rem; font-weight: 800; line-height: 1; cursor: pointer; flex-shrink: 0;
   }
   .btn-borrar-nota.activo { background: #991b1b; color: #fff; }
+  .btn-obs {
+    border: none; background: transparent; color: #cbd5e1; border-radius: 6px; width: 20px; height: 20px;
+    font-size: .8rem; line-height: 1; cursor: pointer; flex-shrink: 0; padding: 0;
+  }
+  .btn-obs:hover { color: #64748b; }
+  .btn-obs.con-obs { color: #f59e0b; }
   .celda-promedio { font-weight: 800; color: #1a3a6e; }
   .celda-puntos { font-weight: 700; }
   .celda-puntos.neg { color: #b91c1c; }
@@ -205,6 +211,10 @@
                      id="nota_{{ est.id }}_{{ act.id }}"
                      name="nota_{{ est.id }}_{{ act.id }}"
                      value="{{ notas_grid|get_item:est.id|get_item:act.id|default_if_none:''|unlocalize }}">
+              <input type="hidden" id="obs_{{ est.id }}_{{ act.id }}" name="obs_{{ est.id }}_{{ act.id }}" value="{{ obs_grid|get_item:est.id|get_item:act.id|default:'' }}">
+              <button type="button" class="btn-obs {% if obs_grid|get_item:est.id|get_item:act.id %}con-obs{% endif %}"
+                      id="btnobs_{{ est.id }}_{{ act.id }}" title="{{ obs_grid|get_item:est.id|get_item:act.id|default:'Agregar observación (opcional)' }}"
+                      onclick="abrirObs('{{ est.id }}', '{{ act.id }}', '{{ est.apellidos|escapejs }} {{ est.nombres|escapejs }}', '{{ act.nombre|escapejs }}')"><i class="bi bi-chat-left-text"></i></button>
               <input type="checkbox" class="d-none" id="borrar_{{ est.id }}_{{ act.id }}" name="borrar_{{ est.id }}_{{ act.id }}">
               {% if notas_grid|get_item:est.id|get_item:act.id is not None %}
               <button type="button" class="btn-borrar-nota" title="Borrar esta nota"
@@ -237,7 +247,44 @@
 <p class="text-muted">Selecciona una línea arriba para ver sus notas.</p>
 {% endif %}
 
+<div class="modal fade" id="modalObs" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title mb-0">Observación de la nota</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="small text-muted mb-2" id="obsContexto"></div>
+        <textarea id="obsTexto" class="form-control" rows="3" maxlength="300" placeholder="Opcional: causa o comentario sobre esta calificación"></textarea>
+        <div class="small text-muted mt-1">Se guarda al pulsar «Guardar notas». La observación necesita que la casilla tenga una nota.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-primary" id="obsAceptar">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+let obsActual = null;
+function abrirObs(estId, actId, estudiante, actividad) {
+  obsActual = {estId: estId, actId: actId};
+  document.getElementById('obsContexto').textContent = estudiante + ' · ' + actividad;
+  document.getElementById('obsTexto').value = document.getElementById('obs_' + estId + '_' + actId).value;
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalObs')).show();
+}
+document.getElementById('obsAceptar').addEventListener('click', function () {
+  if (!obsActual) return;
+  const texto = document.getElementById('obsTexto').value.trim();
+  const campo = document.getElementById('obs_' + obsActual.estId + '_' + obsActual.actId);
+  const boton = document.getElementById('btnobs_' + obsActual.estId + '_' + obsActual.actId);
+  campo.value = texto;
+  boton.classList.toggle('con-obs', texto !== '');
+  boton.title = texto || 'Agregar observación (opcional)';
+  bootstrap.Modal.getInstance(document.getElementById('modalObs')).hide();
+});
 function borrarNota(estId, actId) {
   const input = document.getElementById('nota_' + estId + '_' + actId);
   const flag = document.getElementById('borrar_' + estId + '_' + actId);

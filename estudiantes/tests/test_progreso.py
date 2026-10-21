@@ -343,3 +343,66 @@ class PorcentajesTests(BaseTestCase):
         self.client.login(username='docente1', password=CLAVE_PRUEBA)
         self.client.post(reverse('notas'), {'nueva_actividad': 'Rara', 'tipo_actividad': 'XXX'})
         self.assertEqual(Actividad.objects.get(nombre='Rara').tipo, 'GEN')
+
+
+class ObservacionNotaTests(BaseTestCase):
+    def setUp(self):
+        from estudiantes.models import Actividad
+        self.docente = self.crear_docente(linea='ROB', jornada='JM')
+        self.est = self.crear_estudiante_con_acceso(linea='ROB', jornada='JM')
+        self.act = Actividad.objects.create(linea='ROB', jornada='JM', nombre='Taller')
+        self.client.login(username='docente1', password=CLAVE_PRUEBA)
+        self.url = reverse('notas')
+        self.campo = f'nota_{self.est.id}_{self.act.id}'
+        self.obs = f'obs_{self.est.id}_{self.act.id}'
+
+    def _nota(self):
+        from estudiantes.models import NotaActividad
+        return NotaActividad.objects.get(estudiante=self.est, actividad=self.act)
+
+    def test_nota_sin_observacion_sigue_funcionando(self):
+        self.client.post(self.url, {self.campo: '4'})
+        self.assertEqual(self._nota().observacion, '')
+
+    def test_guardar_nota_con_observacion(self):
+        self.client.post(self.url, {self.campo: '2,5', self.obs: '  No entregó el informe  '})
+        n = self._nota()
+        self.assertEqual((n.valor, n.observacion), (Decimal('2.50'), 'No entregó el informe'))
+
+    def test_editar_solo_la_observacion_con_casilla_vacia(self):
+        self.client.post(self.url, {self.campo: '3', self.obs: 'a'})
+        self.client.post(self.url, {self.campo: '', self.obs: 'b'})
+        n = self._nota()
+        self.assertEqual((n.valor, n.observacion), (Decimal('3.00'), 'b'))
+
+    def test_enviar_sin_campo_obs_no_borra_la_observacion(self):
+        self.client.post(self.url, {self.campo: '3', self.obs: 'importante'})
+        self.client.post(self.url, {self.campo: '4'})
+        n = self._nota()
+        self.assertEqual((n.valor, n.observacion), (Decimal('4.00'), 'importante'))
+
+    def test_se_puede_borrar_la_observacion(self):
+        self.client.post(self.url, {self.campo: '3', self.obs: 'x'})
+        self.client.post(self.url, {self.campo: '3', self.obs: ''})
+        self.assertEqual(self._nota().observacion, '')
+
+    def test_observacion_sin_nota_se_ignora_con_aviso(self):
+        from estudiantes.models import NotaActividad
+        r = self.client.post(self.url, {self.campo: '', self.obs: 'sin nota'}, follow=True)
+        self.assertFalse(NotaActividad.objects.exists())
+        self.assertContains(r, 'no se guardaron')
+
+    def test_largo_maximo_300(self):
+        self.client.post(self.url, {self.campo: '3', self.obs: 'x' * 500})
+        self.assertEqual(len(self._nota().observacion), 300)
+
+    def test_pantalla_muestra_observacion_y_estudiante_la_ve(self):
+        from datetime import date
+        from unittest import mock
+        self.client.post(self.url, {self.campo: '2', self.obs: 'Faltó el prototipo'})
+        r = self.client.get(self.url)
+        self.assertContains(r, 'Faltó el prototipo')
+        self.client.logout()
+        self.client.login(username=self.est.usuario.username, password=self.est.documento)
+        r = self.client.get(reverse('mi_proceso'))
+        self.assertContains(r, 'Faltó el prototipo')
