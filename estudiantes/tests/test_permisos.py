@@ -136,3 +136,41 @@ class PermisosDirectivoTests(BaseTestCase):
         ids_tps = {e.id for e in respuesta_tps.context['estudiantes_grupo']}
         self.assertIn(est_tps.id, ids_tps)
         self.assertNotIn(est_rob.id, ids_tps)
+
+
+class AsignacionLineaDocenteTests(BaseTestCase):
+    def test_perfil_creado_fuera_del_panel_da_acceso_y_grupo(self):
+        from django.contrib.auth.models import User
+        from estudiantes.models import DocentePerfil
+        u = User.objects.create_user('adm', 'a@b.co', CLAVE_PRUEBA)   # como desde el admin de Django
+        DocentePerfil.objects.create(usuario=u, linea='ROB', jornada='JM')
+        self.assertTrue(u.groups.filter(name='docente').exists())
+        self.client.login(username='adm', password=CLAVE_PRUEBA)
+        for nombre in ('planilla', 'notas', 'actividad_linea'):
+            self.assertEqual(self.client.get(reverse(nombre)).status_code, 200, nombre)
+
+    def test_docente_sin_linea_ve_aviso_en_inicio(self):
+        from django.contrib.auth.models import User, Group
+        u = User.objects.create_user('sinlinea', 'a@b.co', CLAVE_PRUEBA)
+        u.groups.add(Group.objects.get_or_create(name='docente')[0])
+        self.client.login(username='sinlinea', password=CLAVE_PRUEBA)
+        r = self.client.get(reverse('inicio'))
+        self.assertContains(r, 'aún no tiene línea asignada')
+        self.assertEqual(self.client.get(reverse('notas')).status_code, 302)
+
+    def test_docente_con_linea_solo_ve_su_grupo(self):
+        self.crear_docente(linea='ROB', jornada='JM')
+        propio = self.crear_estudiante(linea='ROB', jornada='JM', apellidos='Propio')
+        ajeno = self.crear_estudiante(linea='BIO', jornada='JM', apellidos='Ajeno')
+        self.client.login(username='docente1', password=CLAVE_PRUEBA)
+        r = self.client.get(reverse('notas'), {'linea': 'BIO', 'jornada': 'JM'})
+        ids = [e.id for e in r.context['estudiantes_grupo']]
+        self.assertIn(propio.id, ids)
+        self.assertNotIn(ajeno.id, ids)
+        self.assertContains(self.client.get(reverse('inicio')), reverse('planilla'))
+
+    def test_admin_de_usuarios_permite_asignar_linea(self):
+        from django.contrib.auth.models import User
+        User.objects.create_superuser('root', 'r@b.co', CLAVE_PRUEBA)
+        self.client.login(username='root', password=CLAVE_PRUEBA)
+        self.assertEqual(self.client.get('/admin/auth/user/add/').status_code, 200)

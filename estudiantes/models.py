@@ -139,6 +139,13 @@ class DocentePerfil(models.Model):
         verbose_name = 'Docente — grupo asignado'
         verbose_name_plural = 'Docentes — grupos asignados'
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Asignar una línea convierte a la cuenta en docente: se mantiene el grupo sincronizado.
+        from django.contrib.auth.models import Group
+        grupo, _ = Group.objects.get_or_create(name='docente')
+        self.usuario.groups.add(grupo)
+
     def __str__(self):
         return f"{self.usuario.get_full_name() or self.usuario.username} — {self.get_linea_display()} ({self.get_jornada_display()})"
 

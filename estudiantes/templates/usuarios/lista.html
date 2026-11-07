@@ -60,6 +60,8 @@
               <span class="badge-rol rol-directivo">&#11088; Directivo</span>
             {% else %}
               <span class="badge-rol rol-docente">&#128203; Docente</span>
+              {% if u.docente_perfil %}<span class="small text-muted">{{ u.docente_perfil.get_linea_display }} · {{ u.docente_perfil.get_jornada_display }}</span>
+              {% else %}<span class="badge-rol" style="background:#fef3c7;color:#92400e;">Sin línea asignada</span>{% endif %}
             {% endif %}
           </td>
           <td>

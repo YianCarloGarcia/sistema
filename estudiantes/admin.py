@@ -554,3 +554,33 @@ class ConfiguracionPorcentajesAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+# ── Asignar línea y jornada al docente desde el propio formulario de usuario ──
+from django.contrib.auth.admin import UserAdmin as _BaseUserAdmin
+
+
+class DocentePerfilInline(admin.StackedInline):
+    model = DocentePerfil
+    can_delete = True
+    max_num = 1
+    extra = 0
+    verbose_name = 'Línea y jornada del docente'
+    verbose_name_plural = 'Línea y jornada del docente (le da acceso a Planilla, Notas y Actividad de línea)'
+
+
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass
+
+
+@admin.register(User)
+class UserAdmin(_BaseUserAdmin):
+    inlines = [DocentePerfilInline]
+    list_display = ('username', 'first_name', 'last_name', 'is_active', 'linea_asignada')
+
+    @admin.display(description='Línea asignada')
+    def linea_asignada(self, obj):
+        p = getattr(obj, 'docente_perfil', None)
+        return f"{p.get_linea_display()} · {p.get_jornada_display()}" if p else '—'
