@@ -27,6 +27,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--dry-run', action='store_true',
                             help='Muestra lo que se subiría, sin subir nada.')
+        parser.add_argument('--carpeta', default='',
+                            help='Carpeta donde están las fotos (por defecto, la carpeta "fotos" del proyecto).')
         parser.add_argument('--forzar', action='store_true',
                             help='Vuelve a subir las fotos que ya existan en el bucket.')
 
@@ -42,7 +44,10 @@ class Command(BaseCommand):
             )
 
         # Origen: el disco local, sin importar cuál sea el storage por defecto.
-        disco_local = FileSystemStorage(location=settings.MEDIA_ROOT)
+        base_fotos = opciones['carpeta'] or settings.MEDIA_ROOT
+        if not os.path.isdir(base_fotos):
+            raise CommandError(f'No existe la carpeta de fotos: {base_fotos}')
+        self.stdout.write(f'Buscando fotos en: {base_fotos}')
 
         con_foto = Estudiante.objects.exclude(foto='').exclude(foto__isnull=True)
         total = con_foto.count()
@@ -56,7 +61,14 @@ class Command(BaseCommand):
             # El campo guarda la ruta con el prefijo "fotos/", pero en disco
             # MEDIA_ROOT ya ES esa carpeta: se quita el prefijo para ubicarlo.
             ruta_relativa = nombre[len('fotos/'):] if nombre.startswith('fotos/') else nombre
-            ruta_absoluta = os.path.join(settings.MEDIA_ROOT, ruta_relativa)
+            # Django guarda las subidas en <carpeta>/fotos/<archivo>; otras veces las fotos están
+            # directamente en <carpeta>/<archivo>. Se prueban las dos y también solo el nombre.
+            candidatas = [
+                os.path.join(base_fotos, ruta_relativa),
+                os.path.join(base_fotos, nombre),
+                os.path.join(base_fotos, os.path.basename(nombre)),
+            ]
+            ruta_absoluta = next((c for c in candidatas if os.path.isfile(c)), candidatas[0])
 
             if not os.path.exists(ruta_absoluta):
                 faltantes += 1
