@@ -92,7 +92,28 @@ DB_PASSWORD = os.environ.get('DB_PASSWORD', '')
 DB_HOST     = os.environ.get('DB_HOST', 'localhost')
 DB_PORT     = os.environ.get('DB_PORT', '5432')
 
-if DB_NAME and DB_USER:
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+
+if DATABASE_URL:
+    # Forma corta (la que entrega Neon): postgresql://usuario:clave@servidor/base?sslmode=require
+    from urllib.parse import urlparse, unquote, parse_qsl
+    _u = urlparse(DATABASE_URL)
+    if _u.scheme not in ('postgres', 'postgresql'):
+        raise ValueError("DATABASE_URL debe empezar por postgresql://")
+    DATABASES = {
+        'default': {
+            'ENGINE':   'django.db.backends.postgresql',
+            'NAME':     unquote(_u.path.lstrip('/')),
+            'USER':     unquote(_u.username or ''),
+            'PASSWORD': unquote(_u.password or ''),
+            'HOST':     _u.hostname or '',
+            'PORT':     str(_u.port or 5432),
+            'CONN_MAX_AGE': 60,
+            'CONN_HEALTH_CHECKS': True,
+            'OPTIONS':  {k: v for k, v in parse_qsl(_u.query) if k in ('sslmode', 'channel_binding')},
+        }
+    }
+elif DB_NAME and DB_USER:
     DATABASES = {
         'default': {
             'ENGINE':   'django.db.backends.postgresql',

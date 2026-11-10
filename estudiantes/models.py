@@ -33,7 +33,7 @@ class Estudiante(models.Model):
     ]
     jornada = models.CharField(max_length=50, choices=JORNADA, verbose_name="Jornada", default='JM')
     tipo = models.CharField(max_length=5,choices=TIPOS_DOCUMENTO, verbose_name="Tipo", default='CC')
-    documento = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="Documento")
+    documento = models.CharField(max_length=30, unique=True, db_index=True, verbose_name="Documento")
     apellidos = models.CharField(max_length=100, verbose_name="Apellidos")
     nombres = models.CharField(max_length=100, verbose_name="Nombres")
     curso = models.CharField(max_length=100, verbose_name="Curso")
@@ -42,12 +42,12 @@ class Estudiante(models.Model):
         help_text="Se usa para filtrar por 10°/11° sin depender del formato del código de curso.",
     )
     linea = models.CharField(max_length=50,choices=LINEA_MEDIA, verbose_name="Línea", default='OT')
-    celular = models.CharField(max_length=20, verbose_name="Celular", null=True, blank=True)
+    celular = models.CharField(max_length=50, verbose_name="Celular", null=True, blank=True)
     email = models.EmailField(max_length=100, verbose_name="Email", null=True, blank=True)
     acudiente = models.CharField(max_length=100, verbose_name="Acudiente", null=True, blank=True)
     parentesco = models.CharField(max_length=50, verbose_name="Parentesco Acudiente", null=True, blank=True)
-    tel_acudiente = models.CharField(max_length=20, verbose_name="Teléfono Acudiente", null=True, blank=True)
-    tel2_acudiente = models.CharField(max_length=20, verbose_name="Teléfono 2 Acudiente", null=True, blank=True)
+    tel_acudiente = models.CharField(max_length=50, verbose_name="Teléfono Acudiente", null=True, blank=True)
+    tel2_acudiente = models.CharField(max_length=50, verbose_name="Teléfono 2 Acudiente", null=True, blank=True)
     direccion = models.CharField(max_length=200, verbose_name="Dirección", null=True, blank=True)
     ocupacion_acudiente = models.CharField(max_length=100, verbose_name="Ocupación Acudiente", null=True, blank=True)
     eps = models.CharField(max_length=100, verbose_name="EPS", null=True, blank=True)
@@ -138,6 +138,13 @@ class DocentePerfil(models.Model):
     class Meta:
         verbose_name = 'Docente — grupo asignado'
         verbose_name_plural = 'Docentes — grupos asignados'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Asignar una línea convierte a la cuenta en docente: se mantiene el grupo sincronizado.
+        from django.contrib.auth.models import Group
+        grupo, _ = Group.objects.get_or_create(name='docente')
+        self.usuario.groups.add(grupo)
 
     def __str__(self):
         return f"{self.usuario.get_full_name() or self.usuario.username} — {self.get_linea_display()} ({self.get_jornada_display()})"

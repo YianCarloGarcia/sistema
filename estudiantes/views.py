@@ -46,7 +46,8 @@ def _es_directivo(user):
 
 
 def _es_docente(user):
-    return user.groups.filter(name='docente').exists()
+    # Tener una línea asignada (DocentePerfil) basta para ser docente, aunque el grupo falte.
+    return user.groups.filter(name='docente').exists() or hasattr(user, 'docente_perfil')
 
 
 def _es_estudiante(user):
@@ -222,6 +223,9 @@ def inicio(request):
     contexto = {
         'es_directivo':  _es_directivo(request.user),
         'es_estudiante': _es_estudiante(request.user),
+        'docente_sin_linea': (_es_docente(request.user) and not _es_directivo(request.user)
+                              and _grupo_docente(request.user) is None),
+        'docente_con_linea': _grupo_docente(request.user) is not None,
     }
     if contexto['es_estudiante']:
         estudiante = request.user.estudiante_perfil
@@ -1252,7 +1256,7 @@ def editar_masivo(request):
 @login_required
 @solo_directivo
 def lista_usuarios(request):
-    usuarios = User.objects.exclude(is_superuser=True).select_related('estudiante_perfil').prefetch_related('groups').order_by('last_name', 'first_name')
+    usuarios = User.objects.exclude(is_superuser=True).select_related('estudiante_perfil', 'docente_perfil').prefetch_related('groups').order_by('last_name', 'first_name')
     return render(request, 'usuarios/lista.html', {
         'usuarios': usuarios,
         'es_directivo': True,

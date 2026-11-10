@@ -101,6 +101,17 @@
     </div>
 
     {% else %}
+    {% if docente_sin_linea %}
+    <div class="col-12"><div class="alert alert-warning mb-0">
+        <b>Su cuenta de docente aún no tiene línea asignada.</b> Pida a un directivo que le asigne su línea y jornada
+        (Usuarios → Editar) para habilitar Planilla, Notas y Actividad de línea.
+    </div></div>
+    {% endif %}
+    {% if docente_con_linea or es_directivo %}
+    <div class="col-md-4"><a href="{% url 'planilla' %}" class="text-decoration-none"><div class="card h-100 border-0 shadow-sm" style="border-radius: 14px;"><div class="card-body text-center p-4"><div style="font-size:2.5rem;margin-bottom:.75rem;">&#128203;</div><h5 class="fw-bold mb-1">Planilla</h5><p class="text-muted small mb-0">Asistencia y novedades de su grupo</p></div></div></a></div>
+    <div class="col-md-4"><a href="{% url 'notas' %}" class="text-decoration-none"><div class="card h-100 border-0 shadow-sm" style="border-radius: 14px;"><div class="card-body text-center p-4"><div style="font-size:2.5rem;margin-bottom:.75rem;">&#9998;&#65039;</div><h5 class="fw-bold mb-1">Notas</h5><p class="text-muted small mb-0">Calificar por periodo</p></div></div></a></div>
+    <div class="col-md-4"><a href="{% url 'actividad_linea' %}" class="text-decoration-none"><div class="card h-100 border-0 shadow-sm" style="border-radius: 14px;"><div class="card-body text-center p-4"><div style="font-size:2.5rem;margin-bottom:.75rem;">&#127919;</div><h5 class="fw-bold mb-1">Actividad de línea</h5><p class="text-muted small mb-0">Calificar la actividad de su línea</p></div></div></a></div>
+    {% endif %}
     <!-- Tarjetas de acceso rapido -->
     <div class="col-md-4">
         <a href="{% url 'estudiantes' %}" class="text-decoration-none">
