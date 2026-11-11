@@ -406,7 +406,14 @@ def _resolver_grupo(request):
     estudiantes_grupo = Estudiante.objects.none()
     grados_disponibles = []
     if linea and jornada:
-        estudiantes_grupo = Estudiante.objects.filter(linea=linea, jornada=jornada)
+        # Los estudiantes sin línea asignada (OT) los ven y evalúan los docentes de todas las líneas
+        # (de la misma jornada); al asignarles una línea dejan de aparecer en las demás.
+        if linea == 'OT':
+            estudiantes_grupo = Estudiante.objects.filter(linea='OT', jornada=jornada)
+        else:
+            estudiantes_grupo = Estudiante.objects.filter(
+                Q(linea=linea) | Q(linea='OT'), jornada=jornada,
+            )
         grados_disponibles = sorted(
             g for g in estudiantes_grupo.exclude(grado='').values_list('grado', flat=True).distinct() if g
         )

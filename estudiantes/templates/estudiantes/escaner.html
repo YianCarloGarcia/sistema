@@ -169,6 +169,11 @@
                     <div id="reader"></div>
 
                     <p class="scan-hint">Apunte la cámara al código QR del carnet</p>
+                    <div class="text-center mb-2">
+                        <button type="button" id="btn-cambiar-camara" class="btn btn-sm btn-outline-secondary" onclick="cambiarCamara()">
+                            <i class="bi bi-camera-reverse"></i> Cambiar cámara
+                        </button>
+                    </div>
                 </div>
 
                 <div class="panel" id="panel-manual">
@@ -226,33 +231,62 @@ let procesando    = false;  // bloqueo mientras se procesa el AJAX
 const CSRF_TOKEN = document.cookie.split('; ')
     .find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
 
+const CONFIG_ESCANER = { fps: 15, qrbox: { width: 280, height: 280 }, aspectRatio: 1.333,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true } };
+const RE_TRASERA = /back|rear|trasera|posterior|environment|traseira|arri/i;
+let listaCamaras = [];
+let indiceCamara = -1;
+
+function iniciarConCamara(camara) {
+    return html5QrCode.start(camara, CONFIG_ESCANER, onScanSuccess, () => {})
+        .then(() => { scannerActive = true; });
+}
+
 function startScanner() {
     if (scannerActive) return;
     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
+    // 1) Preferir SIEMPRE la cámara trasera: el navegador del celular la elige solo con facingMode.
+    iniciarConCamara({ facingMode: { exact: "environment" } })
+        .then(() => cargarListaCamaras())
+        .catch(() => {
+            // 2) Sin cámara trasera declarada (PC o equipos antiguos): buscar por nombre.
+            Html5Qrcode.getCameras().then(cameras => {
+                if (!cameras || cameras.length === 0) return;
+                listaCamaras = cameras;
+                let idx = cameras.findIndex(c => RE_TRASERA.test(c.label || ''));
+                if (idx < 0) {
+                    // En PC: la primera webcam real, no las virtuales
+                    idx = cameras.findIndex(c => !/virtual|obs|snap/i.test(c.label || ''));
+                    if (idx < 0) idx = 0;
+                }
+                indiceCamara = idx;
+                return iniciarConCamara(cameras[idx].id);
+            }).catch(err => console.warn("Error iniciando escáner:", err));
+        });
+}
+
+function cargarListaCamaras() {
     Html5Qrcode.getCameras().then(cameras => {
-        if (!cameras || cameras.length === 0) return;
+        listaCamaras = cameras || [];
+        // La trasera ya está activa; se deja el índice en la que coincide con su nombre.
+        indiceCamara = listaCamaras.findIndex(c => RE_TRASERA.test(c.label || ''));
+    }).catch(() => {});
+}
 
-        // En PC preferir webcam real sobre cámaras virtuales
-        let camId = cameras[cameras.length - 1].id;
-        for (const cam of cameras) {
-            const nombre = (cam.label || '').toLowerCase();
-            if (!nombre.includes('virtual') && !nombre.includes('obs') && !nombre.includes('snap')) {
-                camId = cam.id;
-                break;
-            }
-        }
-
-        html5QrCode.start(
-            camId,
-            { fps: 15, qrbox: { width: 280, height: 280 }, aspectRatio: 1.333,
-              experimentalFeatures: { useBarCodeDetectorIfSupported: true } },
-            onScanSuccess,
-            () => {}
-        ).then(() => { scannerActive = true; })
-         .catch(err => console.warn("Error iniciando escáner:", err));
-
-    }).catch(err => console.warn("Error obteniendo cámaras:", err));
+// Botón «Cambiar cámara»: alterna entre las cámaras disponibles.
+function cambiarCamara() {
+    const siguiente = () => {
+        if (!listaCamaras.length) return;
+        indiceCamara = (indiceCamara + 1) % listaCamaras.length;
+        iniciarConCamara(listaCamaras[indiceCamara].id).catch(err => console.warn("No se pudo cambiar de cámara:", err));
+    };
+    if (!html5QrCode) { startScanner(); return; }
+    if (scannerActive) {
+        html5QrCode.stop().then(() => { scannerActive = false; siguiente(); }).catch(() => {});
+    } else {
+        siguiente();
+    }
 }
 
 function stopScanner() {

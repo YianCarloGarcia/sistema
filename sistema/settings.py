@@ -30,6 +30,11 @@ _railway_host = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '').strip()
 if _railway_host and _railway_host not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_railway_host)
 
+# Render también expone su dominio asignado; se agrega solo.
+_render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '').strip()
+if _render_host and _render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_host)
+
 # Django 4+ exige declarar el origen completo (con https://) para validar CSRF.
 CSRF_TRUSTED_ORIGINS = [
     f'https://{h}' for h in ALLOWED_HOSTS if h not in ('localhost', '127.0.0.1', 'testserver')

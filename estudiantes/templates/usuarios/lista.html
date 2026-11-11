@@ -30,7 +30,10 @@
     <h5>&#128100; Gestión de usuarios</h5>
     <span style="font-size:.82rem;color:#64748b;">{{ usuarios|length }} usuario{{ usuarios|length|pluralize:"s" }} registrado{{ usuarios|length|pluralize:"s" }}</span>
   </div>
-  <a href="{% url 'crear_usuario' %}" class="btn-nuevo">&#43; Crear usuario</a>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'usuarios_masivo' %}" class="btn-nuevo" style="background:#0f766e;">&#128101; Crear masivamente</a>
+    <a href="{% url 'crear_usuario' %}" class="btn-nuevo">&#43; Crear usuario</a>
+  </div>
 </div>
 
 <div class="tabla-card">

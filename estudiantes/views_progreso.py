@@ -235,7 +235,9 @@ def mi_proceso(request):
         estudiante=est, actividad__periodo=actual)}
     notas = {k: n.valor for k, n in notas_obj.items()}
     actividades = []
-    for a in Actividad.objects.filter(linea=est.linea, jornada=est.jornada, periodo=actual):
+    # Un estudiante sin línea (OT) es evaluado por los docentes de todas las líneas de su jornada.
+    filtro_act = {'jornada': est.jornada} if est.linea == 'OT' else {'linea': est.linea, 'jornada': est.jornada}
+    for a in Actividad.objects.filter(periodo=actual, **filtro_act).order_by('linea', 'orden', 'id'):
         valor = notas.get(a.id)
         _k, etiqueta, color = nivel_desempeno(valor) if valor is not None else ('', '', '#94a3b8')
         actividades.append({

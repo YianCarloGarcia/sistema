@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, views_progreso
+from . import views, views_progreso, views_masivo
 from django.conf import settings
 from django.contrib.staticfiles.urls import static
 
@@ -42,6 +42,11 @@ urlpatterns = [
 
     # Gestión de usuarios (solo Directivos)
     path('usuarios/', views.lista_usuarios, name='lista_usuarios'),
+    path('usuarios/masivo/', views_masivo.usuarios_masivo, name='usuarios_masivo'),
+    path('usuarios/masivo/pendientes/', views_masivo.contar_pendientes, name='masivo_pendientes'),
+    path('usuarios/masivo/estudiantes/', views_masivo.crear_estudiantes_lote, name='masivo_estudiantes'),
+    path('usuarios/masivo/docentes/', views_masivo.crear_docentes_archivo, name='masivo_docentes'),
+    path('usuarios/masivo/plantilla-docentes/', views_masivo.plantilla_docentes, name='plantilla_docentes'),
     path('usuarios/crear/', views.crear_usuario, name='crear_usuario'),
     path('usuarios/editar/<int:id>/', views.editar_usuario, name='editar_usuario'),
     path('usuarios/eliminar/<int:id>/', views.eliminar_usuario, name='eliminar_usuario'),
