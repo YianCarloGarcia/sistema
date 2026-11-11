@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, views_progreso, views_masivo
+from . import views, views_progreso, views_masivo, views_perfil
 from django.conf import settings
 from django.contrib.staticfiles.urls import static
 
@@ -20,6 +20,7 @@ urlpatterns = [
     path('cambiar-clave/', views.cambiar_clave_obligatorio, name='cambiar_clave_obligatorio'),
     path('mi-progreso/', views_progreso.mi_progreso, name='mi_progreso'),
     path('mi-proceso/', views_progreso.mi_proceso, name='mi_proceso'),
+    path('mi-perfil/', views_perfil.mi_perfil, name='mi_perfil'),
     path('actividad-linea/', views_progreso.actividad_linea, name='actividad_linea'),
     path('planilla/', views.planilla_grupo, name='planilla'),
     path('notas/', views.notas_grupo, name='notas'),

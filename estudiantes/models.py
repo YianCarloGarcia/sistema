@@ -61,7 +61,7 @@ class Estudiante(models.Model):
         ('SECRETARIA', 'Secretaría'),
         ('BIBLIOTECA', 'Biblioteca'),
         ('COORD_MED', 'Coordinación de Media'),
-                        ('OTRO', 'Otro'),
+        ('OTRO', 'Otro'),
     ]
     en_practica = models.BooleanField(default=False, verbose_name="¿Está haciendo práctica?")
     fecha_inicio_practica = models.DateField(verbose_name="Fecha de inicio de práctica", null=True, blank=True)
@@ -134,6 +134,7 @@ class DocentePerfil(models.Model):
     )
     linea = models.CharField(max_length=50, choices=Estudiante.LINEA_MEDIA, verbose_name='Línea')
     jornada = models.CharField(max_length=50, choices=Estudiante.JORNADA, verbose_name='Jornada')
+    foto = models.ImageField(upload_to='fotos_docentes/', null=True, blank=True, verbose_name='Fotografía')
 
     class Meta:
         verbose_name = 'Docente — grupo asignado'

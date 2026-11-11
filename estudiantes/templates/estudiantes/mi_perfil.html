@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block Titulo %}Mi perfil{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center g-4">
+  <div class="col-12 col-lg-8">
+
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          {% if perfil and perfil.foto %}
+            <img src="{{ perfil.foto.url }}" alt="Mi fotografía" style="width:84px;height:84px;border-radius:50%;object-fit:cover;">
+          {% else %}
+            <div style="font-size:4.5rem;line-height:1;color:#94a3b8;"><i class="bi bi-person-circle"></i></div>
+          {% endif %}
+          <div>
+            <h5 class="fw-bold mb-0">{{ request.user.get_full_name|default:request.user.username }}</h5>
+            <div class="text-muted small">Usuario: {{ request.user.username }}{% if perfil %} · {{ perfil.get_linea_display }} ({{ perfil.get_jornada_display }}){% endif %}</div>
+          </div>
+        </div>
+
+        <h6 class="fw-bold">Datos personales</h6>
+        <form method="post" novalidate>
+          {% csrf_token %}<input type="hidden" name="accion" value="datos">
+          <div class="row g-3">
+            {% for campo in datos %}
+            <div class="col-12 col-md-{% if campo.name == 'email' %}12{% else %}6{% endif %}">
+              <label class="form-label">{{ campo.label }}</label>
+              {{ campo }}
+              {% if campo.errors %}<div class="text-danger small mt-1">{{ campo.errors|join:", " }}</div>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          <button class="btn btn-primary mt-3">Guardar datos</button>
+        </form>
+      </div>
+    </div>
+
+    {% if perfil %}
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+      <div class="card-body p-4">
+        <h6 class="fw-bold">Fotografía</h6>
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}<input type="hidden" name="accion" value="foto">
+          {{ foto_form.foto }}
+          {% if foto_form.foto.errors %}<div class="text-danger small mt-1">{{ foto_form.foto.errors|join:", " }}</div>{% endif %}
+          <div class="form-text">Imagen JPG o PNG, máximo {{ foto_max }} MB.</div>
+          {% if perfil.foto %}
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="quitar" id="quitar">
+            <label class="form-check-label" for="quitar">Quitar mi fotografía actual</label>
+          </div>
+          {% endif %}
+          <button class="btn btn-primary mt-3">Guardar fotografía</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm" style="border-radius:16px;">
+      <div class="card-body p-4">
+        <h6 class="fw-bold">Cambiar contraseña</h6>
+        <form method="post" novalidate>
+          {% csrf_token %}<input type="hidden" name="accion" value="clave">
+          {% for campo in clave %}
+          <div class="mb-3">
+            <label class="form-label">{{ campo.label }}</label>
+            {{ campo }}
+            {% if campo.errors %}<div class="text-danger small mt-1">{{ campo.errors|join:", " }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          <button class="btn btn-primary">Cambiar contraseña</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
