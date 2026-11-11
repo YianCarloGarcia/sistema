@@ -61,7 +61,7 @@ class Estudiante(models.Model):
         ('SECRETARIA', 'Secretaría'),
         ('BIBLIOTECA', 'Biblioteca'),
         ('COORD_MED', 'Coordinación de Media'),
-        ('OTRO', 'Otro'),
+                        ('OTRO', 'Otro'),
     ]
     en_practica = models.BooleanField(default=False, verbose_name="¿Está haciendo práctica?")
     fecha_inicio_practica = models.DateField(verbose_name="Fecha de inicio de práctica", null=True, blank=True)
