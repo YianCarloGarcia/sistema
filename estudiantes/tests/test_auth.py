@@ -30,17 +30,21 @@ class LoginTests(BaseTestCase):
 
 class CambioClaveObligatorioTests(BaseTestCase):
 
-    def test_cuenta_nueva_es_redirigida_a_cambiar_clave(self):
+    def test_cuenta_nueva_NO_es_forzada_a_cambiar_clave(self):
+        """El cambio de contraseña es opcional: la cuenta nueva navega con normalidad."""
         estudiante = self.crear_estudiante_con_acceso(debe_cambiar_clave=True)
         self.client.login(username=estudiante.usuario.username, password=estudiante.documento)
 
-        # Cualquier página del sistema debe rebotar a cambiar-clave, no solo el inicio
-        for nombre_url in ['inicio', 'mi_historial']:
-            respuesta = self.client.get(reverse(nombre_url), follow=False)
-            self.assertEqual(respuesta.status_code, 302)
-            self.assertIn(reverse('cambiar_clave_obligatorio'), respuesta.url)
+        respuesta = self.client.get(reverse('mi_historial'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, reverse('cambiar_clave_obligatorio'))  # aviso + enlace
 
-    def test_cambiar_clave_correctamente_libera_el_acceso(self):
+    def test_estudiante_puede_cambiar_clave_aunque_no_este_marcado(self):
+        estudiante = self.crear_estudiante_con_acceso(debe_cambiar_clave=False)
+        self.client.login(username=estudiante.usuario.username, password=estudiante.documento)
+        self.assertEqual(self.client.get(reverse('cambiar_clave_obligatorio')).status_code, 200)
+
+    def test_cambiar_clave_correctamente_quita_el_aviso(self):
         estudiante = self.crear_estudiante_con_acceso(debe_cambiar_clave=True)
         self.client.login(username=estudiante.usuario.username, password=estudiante.documento)
 

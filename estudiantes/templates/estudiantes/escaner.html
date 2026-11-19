@@ -169,6 +169,11 @@
                     <div id="reader"></div>
 
                     <p class="scan-hint">Apunte la cámara al código QR del carnet</p>
+                    <div class="text-center mb-2">
+                        <button type="button" id="btn-cambiar-camara" class="btn btn-sm btn-outline-secondary" onclick="cambiarCamara()">
+                            <i class="bi bi-camera-reverse"></i> Cambiar cámara
+                        </button>
+                    </div>
                 </div>
 
                 <div class="panel" id="panel-manual">
@@ -215,7 +220,8 @@ function switchTab(mode) {
         stopScanner();
         setTimeout(() => document.getElementById('doc-manual').focus(), 150);
     } else {
-        startScanner();
+        // Si la cámara aún se está deteniendo, esperar antes de volver a abrirla.
+        Promise.resolve(deteniendo).then(() => pausa(250)).then(startScanner);
     }
 }
 
@@ -226,39 +232,110 @@ let procesando    = false;  // bloqueo mientras se procesa el AJAX
 const CSRF_TOKEN = document.cookie.split('; ')
     .find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
 
+const CONFIG_ESCANER = { fps: 15, qrbox: { width: 280, height: 280 }, aspectRatio: 1.333,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true } };
+const RE_TRASERA = /back|rear|trasera|posterior|environment|traseira|arri/i;
+let listaCamaras = [];
+let indiceCamara = -1;
+
+function iniciarConCamara(camara) {
+    return html5QrCode.start(camara, CONFIG_ESCANER, onScanSuccess, () => {})
+        .then(() => { scannerActive = true; });
+}
+
 function startScanner() {
     if (scannerActive) return;
     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
-    Html5Qrcode.getCameras().then(cameras => {
-        if (!cameras || cameras.length === 0) return;
-
-        // En PC preferir webcam real sobre cámaras virtuales
-        let camId = cameras[cameras.length - 1].id;
-        for (const cam of cameras) {
-            const nombre = (cam.label || '').toLowerCase();
-            if (!nombre.includes('virtual') && !nombre.includes('obs') && !nombre.includes('snap')) {
-                camId = cam.id;
-                break;
-            }
-        }
-
-        html5QrCode.start(
-            camId,
-            { fps: 15, qrbox: { width: 280, height: 280 }, aspectRatio: 1.333,
-              experimentalFeatures: { useBarCodeDetectorIfSupported: true } },
-            onScanSuccess,
-            () => {}
-        ).then(() => { scannerActive = true; })
-         .catch(err => console.warn("Error iniciando escáner:", err));
-
-    }).catch(err => console.warn("Error obteniendo cámaras:", err));
+    // 1) Preferir SIEMPRE la cámara trasera: el navegador del celular la elige solo con facingMode.
+    iniciarConCamara({ facingMode: { exact: facingActual } })
+        .then(() => cargarListaCamaras())
+        .catch(() => {
+            // 2) Sin cámara trasera declarada (PC o equipos antiguos): buscar por nombre.
+            Html5Qrcode.getCameras().then(cameras => {
+                if (!cameras || cameras.length === 0) return;
+                listaCamaras = cameras;
+                let idx = cameras.findIndex(c => RE_TRASERA.test(c.label || ''));
+                if (idx < 0) {
+                    // En PC: la primera webcam real, no las virtuales
+                    idx = cameras.findIndex(c => !/virtual|obs|snap/i.test(c.label || ''));
+                    if (idx < 0) idx = 0;
+                }
+                indiceCamara = idx;
+                return iniciarConCamara(cameras[idx].id);
+            }).catch(err => console.warn("Error iniciando escáner:", err));
+        });
 }
 
+function cargarListaCamaras() {
+    Html5Qrcode.getCameras().then(cameras => {
+        listaCamaras = cameras || [];
+        // La trasera ya está activa; se deja el índice en la que coincide con su nombre.
+        indiceCamara = listaCamaras.findIndex(c => RE_TRASERA.test(c.label || ''));
+    }).catch(() => {});
+}
+
+// Botón «Cambiar cámara»: alterna entre trasera y delantera sin recargar la página.
+// En celulares el cambio por «id de dispositivo» falla (ids vacíos o la cámara aún ocupada),
+// por eso se alterna con facingMode, se espera a que la cámara se libere y, si algo falla,
+// se vuelve a la cámara anterior para no dejar la pantalla en negro.
+let facingActual = 'environment';
+let cambiandoCamara = false;
+const RE_FRONTAL = /front|user|frontal|delantera|facetime/i;
+const pausa = ms => new Promise(r => setTimeout(r, ms));
+
+async function cambiarCamara() {
+    if (cambiandoCamara) return;
+    if (!html5QrCode) { startScanner(); return; }
+    cambiandoCamara = true;
+    const btn = document.getElementById('btn-cambiar-camara');
+    if (btn) btn.disabled = true;
+    const anterior = facingActual;
+    const destino  = anterior === 'environment' ? 'user' : 'environment';
+    try {
+        if (scannerActive) {
+            try { await html5QrCode.stop(); } catch (e) { /* ya estaba detenido */ }
+            scannerActive = false;
+        }
+        await pausa(400);   // dar tiempo a que el celular libere la cámara
+
+        const intentos = [
+            () => iniciarConCamara({ facingMode: { exact: destino } }),
+            () => iniciarConCamara({ facingMode: destino }),
+            async () => {
+                const cams = await Html5Qrcode.getCameras();
+                const buscada = destino === 'user' ? RE_FRONTAL : RE_TRASERA;
+                const cam = (cams || []).find(c => buscada.test(c.label || ''));
+                if (!cam) throw new Error('sin cámara ' + destino);
+                return iniciarConCamara(cam.id);
+            },
+        ];
+        let logrado = false;
+        for (const intento of intentos) {
+            try { await intento(); logrado = true; break; }
+            catch (e) { scannerActive = false; await pausa(250); }
+        }
+        if (logrado) {
+            facingActual = destino;
+        } else {
+            // No hay otra cámara (PC con una sola webcam): se restablece la anterior.
+            try { await iniciarConCamara({ facingMode: anterior }); }
+            catch (e) { try { await iniciarConCamara({ facingMode: 'environment' }); } catch (e2) {} }
+            alert('No se pudo cambiar de cámara en este dispositivo.');
+        }
+    } finally {
+        cambiandoCamara = false;
+        if (btn) btn.disabled = false;
+    }
+}
+
+let deteniendo = null;
 function stopScanner() {
     if (html5QrCode && scannerActive) {
-        html5QrCode.stop().then(() => { scannerActive = false; }).catch(() => {});
+        deteniendo = html5QrCode.stop().catch(() => {}).then(() => { scannerActive = false; deteniendo = null; });
+        return deteniendo;
     }
+    return Promise.resolve();
 }
 function pararEscaner() { stopScanner(); }
 

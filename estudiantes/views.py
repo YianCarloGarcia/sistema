@@ -322,21 +322,21 @@ def detalle(request, id):
 
 @login_required
 def cambiar_clave_obligatorio(request):
+    """Cambio de contraseña VOLUNTARIO del estudiante (ya no se exige al primer ingreso)."""
     if not _es_estudiante(request.user):
         return redirect('inicio')
 
     estudiante = request.user.estudiante_perfil
-    if not estudiante.debe_cambiar_clave:
-        return redirect('mi_historial')
 
     if request.method == 'POST':
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
-            estudiante.debe_cambiar_clave = False
-            estudiante.save(update_fields=['debe_cambiar_clave'])
+            if estudiante.debe_cambiar_clave:
+                estudiante.debe_cambiar_clave = False
+                estudiante.save(update_fields=['debe_cambiar_clave'])
             update_session_auth_hash(request, user)  # no cerrar la sesión al cambiar la clave
-            messages.success(request, "Contraseña actualizada. Ya puede continuar.")
+            messages.success(request, "Contraseña actualizada.")
             return redirect('mi_historial')
     else:
         form = PasswordChangeForm(request.user)
@@ -344,7 +344,7 @@ def cambiar_clave_obligatorio(request):
     for campo in form.fields.values():
         campo.widget.attrs['class'] = 'form-control'
 
-    return render(request, 'estudiantes/cambiar_clave.html', {'form': form})
+    return render(request, 'estudiantes/cambiar_clave.html', {'form': form, 'estudiante': estudiante})
 
 
 # ── Historial del estudiante (cuenta individual) ─────────────
@@ -406,7 +406,14 @@ def _resolver_grupo(request):
     estudiantes_grupo = Estudiante.objects.none()
     grados_disponibles = []
     if linea and jornada:
-        estudiantes_grupo = Estudiante.objects.filter(linea=linea, jornada=jornada)
+        # Los estudiantes sin línea asignada (OT) los ven y evalúan los docentes de todas las líneas
+        # (de la misma jornada); al asignarles una línea dejan de aparecer en las demás.
+        if linea == 'OT':
+            estudiantes_grupo = Estudiante.objects.filter(linea='OT', jornada=jornada)
+        else:
+            estudiantes_grupo = Estudiante.objects.filter(
+                Q(linea=linea) | Q(linea='OT'), jornada=jornada,
+            )
         grados_disponibles = sorted(
             g for g in estudiantes_grupo.exclude(grado='').values_list('grado', flat=True).distinct() if g
         )

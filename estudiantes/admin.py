@@ -539,9 +539,24 @@ class CalificacionLineaAdmin(admin.ModelAdmin):
 
 @admin.register(Periodo)
 class PeriodoAdmin(admin.ModelAdmin):
-    list_display = ('anio', 'numero', 'fecha_inicio', 'fecha_fin')
+    """Aquí se define cuándo inicia y termina cada periodo. Cada periodo debe tener 13 semanas:
+    el reporte de asistencia del estudiante se calcula semana a semana con estas fechas."""
+    list_display = ('anio', 'numero', 'fecha_inicio', 'fecha_fin', 'semanas_calculadas')
     list_editable = ('fecha_inicio', 'fecha_fin')
     list_filter = ('anio',)
+    actions = ['fijar_fin_a_13_semanas']
+
+    @admin.display(description='Semanas')
+    def semanas_calculadas(self, obj):
+        n = obj.semanas
+        return f"{n} ✔" if n == Periodo.SEMANAS_ESPERADAS else f"{n} (se esperan {Periodo.SEMANAS_ESPERADAS})"
+
+    @admin.action(description='Fijar la fecha de fin a 13 semanas después del inicio')
+    def fijar_fin_a_13_semanas(self, request, queryset):
+        for p in queryset:
+            p.fecha_fin = Periodo.fin_a_13_semanas(p.fecha_inicio)
+            p.save(update_fields=['fecha_fin'])
+        self.message_user(request, f"{queryset.count()} periodo(s) ajustado(s) a 13 semanas.")
 
 
 @admin.register(ConfiguracionPorcentajes)

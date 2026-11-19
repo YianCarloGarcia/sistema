@@ -12,11 +12,11 @@
     display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
   }
   .hist-header .foto-mini {
-    width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
+    width: 60px; height: 80px; border-radius: 10px; object-fit: cover; object-position: center top;
     border: 3px solid rgba(255,255,255,.6);
   }
   .hist-header .foto-mini-placeholder {
-    width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,.15);
+    width: 60px; height: 80px; border-radius: 10px; background: rgba(255,255,255,.15);
     display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
     border: 3px solid rgba(255,255,255,.4);
   }
@@ -49,6 +49,12 @@
   }
 </style>
 
+{% if estudiante.debe_cambiar_clave %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+  Su contraseña es la inicial. Si lo desea, puede <a href="{% url 'cambiar_clave_obligatorio' %}" class="alert-link">cambiarla ahora</a>.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
 <div class="hist-header">
   {% if estudiante.foto %}
     <img src="{{ estudiante.foto.url }}" class="foto-mini" alt="Foto">

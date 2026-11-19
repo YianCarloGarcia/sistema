@@ -12,10 +12,9 @@
 
         <div class="text-center mb-3">
           <div style="font-size: 2rem;">&#128274;</div>
-          <h5 class="fw-bold mb-1">Debe cambiar su contraseña</h5>
+          <h5 class="fw-bold mb-1">Cambiar mi contraseña</h5>
           <p class="text-muted small mb-0">
-            Por seguridad, antes de continuar debe definir una nueva contraseña
-            distinta a la que le asignaron inicialmente.
+            {% if estudiante.debe_cambiar_clave %}Su contraseña es la inicial (su documento). Le recomendamos cambiarla, pero puede hacerlo cuando quiera.{% else %}Defina una nueva contraseña para su cuenta.{% endif %}
           </p>
         </div>
 
@@ -52,6 +51,7 @@
 
           <div class="d-grid mt-4">
             <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+            <a href="{% url 'mi_historial' %}" class="btn btn-link text-muted mt-1">Ahora no, volver</a>
           </div>
         </form>
 

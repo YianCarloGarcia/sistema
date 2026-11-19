@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block Titulo %}Resultado de la carga{% endblock %}
+{% block contenido %}
+<div class="container py-4" style="max-width:900px;">
+  <h4 class="fw-bold mb-3">Resultado: docentes</h4>
+  {% if creados %}
+  <div class="alert alert-warning"><b>Guarde estas contraseñas ahora.</b> Por seguridad no se vuelven a mostrar. Si se pierden, restablézcalas editando el usuario.</div>
+  <div class="card border-0 shadow-sm mb-3" style="border-radius:14px;"><div class="table-responsive">
+    <table class="table mb-0" id="tabla-creados">
+      <thead><tr><th>Nombre</th><th>Usuario</th><th>Contraseña temporal</th><th>Línea</th><th>Jornada</th></tr></thead>
+      <tbody>{% for c in creados %}<tr><td>{{ c.nombre }}</td><td><code>{{ c.usuario }}</code></td><td><code>{{ c.clave }}</code></td><td>{{ c.linea }}</td><td>{{ c.jornada }}</td></tr>{% endfor %}</tbody>
+    </table></div></div>
+  <button class="btn btn-primary mb-4" onclick="descargar()">&#11015; Descargar credenciales (CSV)</button>
+  {% else %}<div class="alert alert-secondary">No se creó ningún docente.</div>{% endif %}
+
+  {% if rechazados %}
+  <h6 class="fw-bold">Filas no procesadas ({{ rechazados|length }})</h6>
+  <ul class="small">{% for fila, nombre, motivo in rechazados %}<li>Fila {{ fila }} — {{ nombre }}: {{ motivo }}</li>{% endfor %}</ul>
+  <p class="small text-muted">Corrija esas filas en el archivo y súbalo de nuevo con solo ellas.</p>
+  {% endif %}
+  <a href="{% url 'usuarios_masivo' %}" class="btn btn-outline-secondary">Volver</a>
+  <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-secondary">Ver usuarios</a>
+</div>
+<script>
+function descargar() {
+  const filas = [['Nombre','Usuario','Contraseña temporal','Línea','Jornada']];
+  document.querySelectorAll('#tabla-creados tbody tr').forEach(tr =>
+    filas.push([...tr.children].map(td => '"' + td.textContent.replace(/"/g, '""') + '"')));
+  const csv = '﻿' + filas.map(f => f.join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
+  a.download = 'credenciales_docentes.csv'; a.click();
+}
+</script>
+{% endblock %}

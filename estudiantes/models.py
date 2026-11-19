@@ -134,6 +134,7 @@ class DocentePerfil(models.Model):
     )
     linea = models.CharField(max_length=50, choices=Estudiante.LINEA_MEDIA, verbose_name='Línea')
     jornada = models.CharField(max_length=50, choices=Estudiante.JORNADA, verbose_name='Jornada')
+    foto = models.ImageField(upload_to='fotos_docentes/', null=True, blank=True, verbose_name='Fotografía')
 
     class Meta:
         verbose_name = 'Docente — grupo asignado'
@@ -290,6 +291,8 @@ class Periodo(models.Model):
     fecha_inicio = models.DateField(verbose_name='Fecha de inicio')
     fecha_fin = models.DateField(verbose_name='Fecha de fin')
 
+    SEMANAS_ESPERADAS = 13   # cada periodo académico se compone de 13 semanas
+
     # Fechas iniciales (editables en el admin): tres bloques de cuatro meses.
     FECHAS_POR_DEFECTO = {1: ((1, 1), (4, 30)), 2: ((5, 1), (8, 31)), 3: ((9, 1), (12, 31))}
 
@@ -305,6 +308,29 @@ class Periodo(models.Model):
     @property
     def nombre(self):
         return f"Periodo {self.numero}"
+
+    @property
+    def semanas(self):
+        """Número de semanas que abarca el periodo según sus fechas (inicio y fin incluidos)."""
+        if not self.fecha_inicio or not self.fecha_fin:
+            return 0
+        return -(-((self.fecha_fin - self.fecha_inicio).days + 1) // 7)
+
+    @classmethod
+    def fin_a_13_semanas(cls, inicio):
+        import datetime as _dt
+        return inicio + _dt.timedelta(days=cls.SEMANAS_ESPERADAS * 7 - 1)
+
+    def semana_de(self, fecha):
+        """Semana (1..n) del periodo a la que pertenece `fecha`; None si queda fuera."""
+        if fecha < self.fecha_inicio or fecha > self.fecha_fin:
+            return None
+        return (fecha - self.fecha_inicio).days // 7 + 1
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.fecha_inicio and self.fecha_fin and self.fecha_fin <= self.fecha_inicio:
+            raise ValidationError({'fecha_fin': 'La fecha de fin debe ser posterior a la de inicio.'})
 
     @classmethod
     def asegurar_anio(cls, anio):

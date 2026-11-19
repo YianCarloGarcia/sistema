@@ -60,7 +60,22 @@
   .delta.up { color:#16a34a; } .delta.down { color:#dc2626; }
   .mini { height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin-top:.6rem; }
   .mini > div { height:100%; width:0; border-radius:999px; transition:width 1.3s cubic-bezier(.2,.8,.2,1); }
-  @media (prefers-reduced-motion: reduce) { .ring-fg,.tiempo>div,.b,.medidor>div,.mini>div,.linea-svg .pto { transition:none; } }
+  .asis-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:.6rem; margin-bottom:1.1rem; }
+  .asis-tiles .t { background:#f1f5f9; border-radius:12px; padding:.7rem .4rem; text-align:center; }
+  .asis-tiles .t b { display:block; font-size:1.6rem; line-height:1.1; }
+  .asis-tiles .t small { color:#64748b; font-size:.72rem; }
+  .sem-wrap { display:flex; align-items:flex-end; gap:.35rem; height:170px; border-bottom:2px solid #cbd5e1; }
+  .sem-col { flex:1; min-width:0; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; }
+  .sem-bar { width:100%; max-width:34px; height:0; display:flex; flex-direction:column; border-radius:6px 6px 0 0; overflow:hidden; transition:height 1.2s cubic-bezier(.2,.8,.2,1); }
+  .sem-bar.vacia { background:#f1f5f9; }
+  .sem-n { font-size:.7rem; font-weight:700; margin-bottom:.15rem; color:#334155; }
+  .sem-et { display:flex; gap:.35rem; padding-top:.35rem; }
+  .sem-et div { flex:1; text-align:center; font-size:.68rem; font-weight:700; color:#64748b; min-width:0; }
+  .sem-et div.actual { color:#2563eb; text-decoration:underline; }
+  .sem-et div.futura { opacity:.45; }
+  .leyenda { display:flex; flex-wrap:wrap; gap:.9rem; font-size:.76rem; color:#475569; margin-top:.8rem; }
+  .leyenda i { display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:.3rem; vertical-align:-1px; }
+  @media (prefers-reduced-motion: reduce) { .sem-bar,.ring-fg,.tiempo>div,.b,.medidor>div,.mini>div,.linea-svg .pto { transition:none; } }
 </style>
 
 <div class="container py-4">
@@ -131,6 +146,40 @@
       </div>
     </div>
 
+    <div class="pc-card mb-3">
+      <div class="d-flex justify-content-between flex-wrap small mb-2">
+        <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Mi asistencia en el periodo</h5>
+        <span class="text-muted">{% if rep.semana_actual %}Semana {{ rep.semana_actual }} de {{ rep.periodo.semanas }}{% else %}{{ rep.periodo.semanas }} semanas{% endif %}</span>
+      </div>
+      <div class="asis-tiles">
+        <div class="t"><b style="color:#16a34a">{{ rep.total.A }}</b><small>Clases asistidas</small></div>
+        <div class="t"><b style="color:#dc2626">{{ rep.total.F }}</b><small>Fallas</small></div>
+        <div class="t"><b style="color:#0ea5e9">{{ rep.total.EX }}</b><small>Excusas</small></div>
+        <div class="t"><b style="color:#7c2d12">{{ rep.total.E }}</b><small>Evasiones</small></div>
+        <div class="t"><b style="color:#f59e0b">{{ rep.total.R }}</b><small>Llegadas tarde</small></div>
+        <div class="t"><b>{% if rep.porcentaje is not None %}{{ rep.porcentaje }}%{% else %}—{% endif %}</b><small>% de asistencia</small></div>
+      </div>
+      <div class="sem-wrap">
+        {% for s in rep.semanas %}
+        <div class="sem-col" title="Semana {{ s.numero }} ({{ s.inicio|date:'d/m' }}–{{ s.fin|date:'d/m' }}): {{ s.c.A }} asistidas, {{ s.c.F }} fallas, {{ s.c.EX }} excusas, {{ s.c.E }} evasiones">
+          {% if s.total %}<div class="sem-n">{{ s.total }}</div>{% endif %}
+          <div class="sem-bar{% if not s.total %} vacia{% endif %}" data-h="{% if s.total %}{{ s.alto }}{% else %}4{% endif %}">
+            {% if s.c.F %}<div style="flex:{{ s.c.F }};background:#dc2626"></div>{% endif %}
+            {% if s.c.E %}<div style="flex:{{ s.c.E }};background:#7c2d12"></div>{% endif %}
+            {% if s.c.EX %}<div style="flex:{{ s.c.EX }};background:#0ea5e9"></div>{% endif %}
+            {% if s.c.A %}<div style="flex:{{ s.c.A }};background:#16a34a"></div>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="sem-et">{% for s in rep.semanas %}<div class="{{ s.estado }}">S{{ s.numero }}</div>{% endfor %}</div>
+      <div class="leyenda">
+        <span><i style="background:#16a34a"></i>Asistió</span><span><i style="background:#dc2626"></i>Falla</span>
+        <span><i style="background:#0ea5e9"></i>Excusa</span><span><i style="background:#7c2d12"></i>Evasión</span>
+      </div>
+      <p class="small text-muted mb-0 mt-2">El % de asistencia = clases asistidas ÷ (asistidas + fallas + evasiones). Las excusas justificadas no cuentan en contra. Semanas contadas desde el {{ rep.periodo.fecha_inicio|date:"d/m/Y" }}.</p>
+    </div>
+
     <div class="pc-card">
       <h5>Mis actividades del periodo</h5>
       {% if actividades %}
@@ -193,10 +242,12 @@
           <div class="big" style="color:{{ p.color }}"><span class="count" data-n="{{ p.definitiva|stringformat:'.2f' }}" data-dec="2">0.00</span></div>
           {% if p.delta is not None %}<div class="delta {% if p.delta >= 0 %}up{% else %}down{% endif %}">{% if p.delta >= 0 %}▲ +{{ p.delta|stringformat:".2f" }}{% else %}▼ {{ p.delta|stringformat:".2f" }}{% endif %} vs periodo anterior</div>{% endif %}
           <div class="small text-muted mt-1">Actividades {{ p.promedio|stringformat:".2f" }} · Asistencia {{ p.puntos|stringformat:".2f" }}</div>
+          <div class="small text-muted">{% if p.asist_pct is not None %}Asistió {{ p.asist_pct }}% · {{ p.fallas }} falla{{ p.fallas|pluralize }}{% if p.excusas %} · {{ p.excusas }} excusa{{ p.excusas|pluralize }}{% endif %}{% else %}Sin registros de asistencia{% endif %}</div>
           <div class="mini"><div data-w="{{ p.pct|stringformat:'.1f' }}" style="background:{{ p.color }}"></div></div>
           {% else %}
           <div class="big text-muted">—</div>
           <div class="small text-muted mt-1">{% if p.estado == 'próximo' %}Aún no comienza{% else %}Sin notas registradas{% endif %}</div>
+          {% if p.asist_pct is not None %}<div class="small text-muted">Asistió {{ p.asist_pct }}% · {{ p.fallas }} falla{{ p.fallas|pluralize }}</div>{% endif %}
           <div class="mini"><div data-w="0"></div></div>
           {% endif %}
         </div>

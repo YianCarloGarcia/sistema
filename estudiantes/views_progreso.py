@@ -235,7 +235,9 @@ def mi_proceso(request):
         estudiante=est, actividad__periodo=actual)}
     notas = {k: n.valor for k, n in notas_obj.items()}
     actividades = []
-    for a in Actividad.objects.filter(linea=est.linea, jornada=est.jornada, periodo=actual):
+    # Un estudiante sin línea (OT) es evaluado por los docentes de todas las líneas de su jornada.
+    filtro_act = {'jornada': est.jornada} if est.linea == 'OT' else {'linea': est.linea, 'jornada': est.jornada}
+    for a in Actividad.objects.filter(periodo=actual, **filtro_act).order_by('linea', 'orden', 'id'):
         valor = notas.get(a.id)
         _k, etiqueta, color = nivel_desempeno(valor) if valor is not None else ('', '', '#94a3b8')
         actividades.append({
@@ -273,6 +275,9 @@ def mi_proceso(request):
         return nivel_desempeno(max(Decimal('0'), v)) if v is not None else ('', 'Sin nota', '#94a3b8')
 
     k, etq, col = nivel(cur['definitiva'])
+    from .reporte_asistencia import reporte_asistencia
+    asist = reporte_asistencia(est.id, periodos, hoy)
+    rep = asist[actual.id]
     lista_periodos, anterior = [], None
     for p in periodos:
         x = d['periodos'][p.id]
@@ -288,6 +293,8 @@ def mi_proceso(request):
             'promedio': _num(x['promedio']), 'puntos': _num(x['puntos']), 'definitiva': _num(x['definitiva']),
             'pct': _pct(x['definitiva']), 'delta': delta, 'n_notas': x['n_notas'],
             'color': nivel(x['definitiva'])[2],
+            'asist_pct': asist[p.id]['porcentaje'], 'asist_clases': asist[p.id]['clases'],
+            'fallas': asist[p.id]['total']['F'] + asist[p.id]['total']['E'], 'excusas': asist[p.id]['total']['EX'],
         })
     ka, etqa, cola = nivel(d['anio'])
 
@@ -300,6 +307,7 @@ def mi_proceso(request):
         'cur': {'promedio': _num(cur['promedio']), 'puntos': _num(cur['puntos']),
                 'definitiva': _num(cur['definitiva']), 'pct': _pct(cur['definitiva']),
                 'nivel': etq, 'color': col},
+        'rep': rep,
         'actividades': actividades, 'componentes': componentes, 'novedades': novedades, 'avance_tiempo': avance_tiempo,
         'dias_restantes': max((actual.fecha_fin - hoy).days, 0),
         'periodos': lista_periodos,

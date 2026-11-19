@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block Titulo %}Crear usuarios masivamente{% endblock %}
+{% block contenido %}
+<div class="container py-4" style="max-width:900px;">
+  <a href="{% url 'lista_usuarios' %}" class="small text-decoration-none">&larr; Volver a usuarios</a>
+  <h4 class="fw-bold mt-2 mb-3">Crear usuarios masivamente</h4>
+
+  <div class="card border-0 shadow-sm mb-4" style="border-radius:14px;">
+    <div class="card-body p-4">
+      <h5 class="fw-bold">&#127891; Estudiantes</h5>
+      <p class="text-muted small">Crea la cuenta de todos los estudiantes que aún no tienen acceso. <b>Usuario:</b> nombres y apellidos en minúscula, sin espacios ni tildes. <b>Contraseña:</b> el número de documento. Deberán cambiarla en su primer ingreso.</p>
+      <div class="row g-2 mb-3">
+        <div class="col-md-4"><label class="form-label small fw-bold">Línea</label>
+          <select id="f-linea" class="form-select form-select-sm"><option value="">Todas</option>
+            {% for c, n in lineas %}<option value="{{ c }}">{{ n }}</option>{% endfor %}</select></div>
+        <div class="col-md-4"><label class="form-label small fw-bold">Jornada</label>
+          <select id="f-jornada" class="form-select form-select-sm"><option value="">Todas</option>
+            {% for c, n in jornadas %}<option value="{{ c }}">{{ n }}</option>{% endfor %}</select></div>
+        <div class="col-md-4"><label class="form-label small fw-bold">Grado</label>
+          <select id="f-grado" class="form-select form-select-sm"><option value="">Todos</option><option value="10">10°</option><option value="11">11°</option></select></div>
+      </div>
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <button id="btn-est" class="btn btn-primary" type="button">Crear cuentas</button>
+        <span>Sin cuenta con este filtro: <b id="pend">{{ pendientes }}</b></span>
+      </div>
+      <div class="progress mt-3 d-none" id="barra-wrap" style="height:14px;"><div class="progress-bar" id="barra" style="width:0%"></div></div>
+      <div class="small mt-2" id="estado-est"></div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm" style="border-radius:14px;">
+    <div class="card-body p-4">
+      <h5 class="fw-bold">&#128203; Docentes</h5>
+      <p class="text-muted small">Suba un archivo Excel (.xlsx) o CSV con las columnas <code>nombres, apellidos, correo, linea, jornada</code>. El correo es opcional. La línea puede ser el código (ROB) o el nombre; la jornada, JM/JT, Mañana o Tarde. Cada docente recibe una <b>contraseña temporal aleatoria</b> que se muestra <b>una sola vez</b> al terminar.</p>
+      <a href="{% url 'plantilla_docentes' %}" class="btn btn-sm btn-outline-secondary mb-3">&#11015; Descargar plantilla</a>
+      <form method="post" action="{% url 'masivo_docentes' %}" enctype="multipart/form-data" class="d-flex gap-2 flex-wrap">
+        {% csrf_token %}
+        <input type="file" name="archivo" accept=".xlsx,.csv" class="form-control" style="max-width:420px;" required>
+        <button class="btn btn-primary">Crear docentes</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const csrf = document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+  const $ = id => document.getElementById(id);
+  const filtros = () => new URLSearchParams({linea: $('f-linea').value, jornada: $('f-jornada').value, grado: $('f-grado').value});
+  async function contar() {
+    const r = await fetch("{% url 'masivo_pendientes' %}?" + filtros());
+    $('pend').textContent = (await r.json()).pendientes;
+  }
+  ['f-linea', 'f-jornada', 'f-grado'].forEach(i => $(i).addEventListener('change', contar));
+
+  $('btn-est').addEventListener('click', async function () {
+    const total = parseInt($('pend').textContent, 10);
+    if (!total) { $('estado-est').textContent = 'No hay estudiantes sin cuenta con este filtro.'; return; }
+    this.disabled = true; $('barra-wrap').classList.remove('d-none');
+    let hechos = 0, errores = 0, resto = total;
+    try {
+      while (resto > 0) {
+        const r = await fetch("{% url 'masivo_estudiantes' %}", {method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrf}, body: filtros().toString()});
+        if (!r.ok) throw new Error('Error ' + r.status);
+        const d = await r.json();
+        hechos += d.creados; errores += d.errores; resto = d.restantes;
+        $('barra').style.width = Math.min(100, Math.round(hechos / total * 100)) + '%';
+        $('estado-est').textContent = 'Creadas ' + hechos + ' de ' + total + (errores ? ' (con ' + errores + ' errores)' : '') + '…';
+        if (d.detener) break;
+      }
+      $('estado-est').innerHTML = '<span class="text-success fw-bold">Listo: ' + hechos + ' cuentas creadas.</span>' + (errores ? ' <span class="text-danger">' + errores + ' no se pudieron crear (revise sus datos).</span>' : '');
+    } catch (e) {
+      $('estado-est').innerHTML = '<span class="text-danger">Se interrumpió: ' + e.message + '. Pulse de nuevo; continúa donde quedó.</span>';
+    }
+    this.disabled = false; contar();
+  });
+})();
+</script>
+{% endblock %}
