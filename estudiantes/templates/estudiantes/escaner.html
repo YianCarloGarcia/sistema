@@ -168,6 +168,13 @@
                 <div class="panel active" id="panel-qr">
                     <div id="reader"></div>
 
+                    <div id="camara-error" class="alert alert-warning small d-none" role="alert">
+                        <div id="camara-error-msg" class="fw-bold"></div>
+                        <div id="camara-error-detalle" class="text-muted mt-1" style="font-size:.75rem"></div>
+                        <button type="button" class="btn btn-sm btn-warning mt-2" onclick="reintentarCamara()">
+                            <i class="bi bi-arrow-clockwise"></i> Reintentar cámara
+                        </button>
+                    </div>
                     <p class="scan-hint">Apunte la cámara al código QR del carnet</p>
                     <div class="text-center mb-2">
                         <button type="button" id="btn-cambiar-camara" class="btn btn-sm btn-outline-secondary" onclick="cambiarCamara()">
@@ -243,58 +250,83 @@ function iniciarConCamara(camara) {
         .then(() => { scannerActive = true; });
 }
 
+let iniciando = false;
+
+function mensajeErrorCamara(err) {
+    const nombre = (err && (err.name || err.message)) ? String(err.name || err.message) : String(err || '');
+    const texto = String((err && err.message) || err || '');
+    if (!window.isSecureContext)
+        return 'La cámara solo funciona en una conexión segura (https). Abra la dirección que empieza por https://';
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+        return 'Este navegador no permite usar la cámara. Pruebe con Chrome o Safari actualizado.';
+    if (/NotAllowed|PermissionDenied|Permission/i.test(nombre + texto))
+        return 'No hay permiso para usar la cámara. Toque el candado junto a la dirección, elija Permisos → Cámara → Permitir y pulse Reintentar.';
+    if (/NotReadable|TrackStart|Could not start|in use/i.test(nombre + texto))
+        return 'La cámara está ocupada por otra aplicación o pestaña. Ciérrelas y pulse Reintentar.';
+    if (/NotFound|DevicesNotFound|no camera|Overconstrained/i.test(nombre + texto))
+        return 'No se encontró una cámara disponible en este dispositivo.';
+    return 'No se pudo iniciar la cámara. Pulse Reintentar.';
+}
+
+function mostrarErrorCamara(err) {
+    console.warn('Error de cámara:', err);
+    const caja = document.getElementById('camara-error');
+    if (!caja) return;
+    document.getElementById('camara-error-msg').textContent = mensajeErrorCamara(err);
+    document.getElementById('camara-error-detalle').textContent =
+        'Detalle técnico: ' + String((err && (err.name ? err.name + ' — ' : '') + (err.message || '')) || err || 'sin detalle');
+    caja.classList.remove('d-none');
+}
+
+function ocultarErrorCamara() {
+    const caja = document.getElementById('camara-error');
+    if (caja) caja.classList.add('d-none');
+}
+
+async function reintentarCamara() {
+    ocultarErrorCamara();
+    try { if (html5QrCode && scannerActive) await html5QrCode.stop(); } catch (e) {}
+    scannerActive = false;
+    iniciando = false;
+    await pausa(300);
+    startScanner();
+}
+
 function startScanner() {
-    if (scannerActive) return;
+    if (scannerActive || iniciando) return;
+    if (!window.isSecureContext || !navigator.mediaDevices) {
+        mostrarErrorCamara(null);
+        return;
+    }
+    if (typeof Html5Qrcode === 'undefined') {
+        mostrarErrorCamara(new Error('No se cargó la librería del escáner. Recargue la página.'));
+        return;
+    }
+    iniciando = true;
     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
-    // 1) Preferir SIEMPRE la cámara trasera: el navegador del celular la elige solo con facingMode.
-<<<<<<< HEAD
+    // 1) Preferir la cámara indicada (trasera por defecto): el navegador del celular la elige con facingMode.
     iniciarConCamara({ facingMode: { exact: facingActual } })
-=======
-    iniciarConCamara({ facingMode: { exact: "environment" } })
->>>>>>> a22e8e4060faf748ffc60080b9f234bbf0b8bd7a
-        .then(() => cargarListaCamaras())
-        .catch(() => {
-            // 2) Sin cámara trasera declarada (PC o equipos antiguos): buscar por nombre.
-            Html5Qrcode.getCameras().then(cameras => {
-                if (!cameras || cameras.length === 0) return;
-                listaCamaras = cameras;
-                let idx = cameras.findIndex(c => RE_TRASERA.test(c.label || ''));
-                if (idx < 0) {
-                    // En PC: la primera webcam real, no las virtuales
-                    idx = cameras.findIndex(c => !/virtual|obs|snap/i.test(c.label || ''));
-                    if (idx < 0) idx = 0;
-                }
-                indiceCamara = idx;
-                return iniciarConCamara(cameras[idx].id);
-            }).catch(err => console.warn("Error iniciando escáner:", err));
-        });
-<<<<<<< HEAD
-=======
-}
-
-function cargarListaCamaras() {
-    Html5Qrcode.getCameras().then(cameras => {
-        listaCamaras = cameras || [];
-        // La trasera ya está activa; se deja el índice en la que coincide con su nombre.
-        indiceCamara = listaCamaras.findIndex(c => RE_TRASERA.test(c.label || ''));
-    }).catch(() => {});
-}
-
-// Botón «Cambiar cámara»: alterna entre las cámaras disponibles.
-function cambiarCamara() {
-    const siguiente = () => {
-        if (!listaCamaras.length) return;
-        indiceCamara = (indiceCamara + 1) % listaCamaras.length;
-        iniciarConCamara(listaCamaras[indiceCamara].id).catch(err => console.warn("No se pudo cambiar de cámara:", err));
-    };
-    if (!html5QrCode) { startScanner(); return; }
-    if (scannerActive) {
-        html5QrCode.stop().then(() => { scannerActive = false; siguiente(); }).catch(() => {});
-    } else {
-        siguiente();
-    }
->>>>>>> a22e8e4060faf748ffc60080b9f234bbf0b8bd7a
+        .then(() => { ocultarErrorCamara(); cargarListaCamaras(); })
+        .catch(err1 => {
+            // 2) Sin esa cámara declarada (PC o equipos antiguos): probar facingMode simple y luego por nombre.
+            return iniciarConCamara({ facingMode: facingActual })
+                .then(() => ocultarErrorCamara())
+                .catch(() => Html5Qrcode.getCameras().then(cameras => {
+                    if (!cameras || cameras.length === 0) throw err1;
+                    listaCamaras = cameras;
+                    let idx = cameras.findIndex(c => RE_TRASERA.test(c.label || ''));
+                    if (idx < 0) {
+                        // En PC: la primera webcam real, no las virtuales
+                        idx = cameras.findIndex(c => !/virtual|obs|snap/i.test(c.label || ''));
+                        if (idx < 0) idx = 0;
+                    }
+                    indiceCamara = idx;
+                    return iniciarConCamara(cameras[idx].id).then(() => ocultarErrorCamara());
+                }));
+        })
+        .catch(err => mostrarErrorCamara(err))
+        .finally(() => { iniciando = false; });
 }
 
 function cargarListaCamaras() {
@@ -315,8 +347,9 @@ const RE_FRONTAL = /front|user|frontal|delantera|facetime/i;
 const pausa = ms => new Promise(r => setTimeout(r, ms));
 
 async function cambiarCamara() {
-    if (cambiandoCamara) return;
+    if (cambiandoCamara || iniciando) return;
     if (!html5QrCode) { startScanner(); return; }
+    ocultarErrorCamara();
     cambiandoCamara = true;
     const btn = document.getElementById('btn-cambiar-camara');
     if (btn) btn.disabled = true;
@@ -340,18 +373,20 @@ async function cambiarCamara() {
                 return iniciarConCamara(cam.id);
             },
         ];
-        let logrado = false;
+        let logrado = false, ultimoError = null;
         for (const intento of intentos) {
             try { await intento(); logrado = true; break; }
-            catch (e) { scannerActive = false; await pausa(250); }
+            catch (e) { ultimoError = e; scannerActive = false; await pausa(250); }
         }
         if (logrado) {
             facingActual = destino;
         } else {
             // No hay otra cámara (PC con una sola webcam): se restablece la anterior.
+            let restaurada = true;
             try { await iniciarConCamara({ facingMode: anterior }); }
-            catch (e) { try { await iniciarConCamara({ facingMode: 'environment' }); } catch (e2) {} }
-            alert('No se pudo cambiar de cámara en este dispositivo.');
+            catch (e) { try { await iniciarConCamara({ facingMode: 'environment' }); } catch (e2) { restaurada = false; ultimoError = e2; } }
+            if (restaurada) alert('No se pudo cambiar de cámara en este dispositivo.');
+            else mostrarErrorCamara(ultimoError);
         }
     } finally {
         cambiandoCamara = false;
