@@ -43,6 +43,9 @@
     {% if not es_directivo %}<input type="hidden" name="linea" value="{{ linea }}"><input type="hidden" name="jornada" value="{{ jornada }}">{% endif %}
   </form>
 
+  {% if linea_ot %}
+  <div class="alert alert-info">La línea «Otro» (OT) no tiene actividad propia. Los estudiantes OT aparecen en la lista de cada línea, marcados con la etiqueta <b>OT</b>; elija una línea{% if es_directivo %} arriba{% endif %} para calificarlos.</div>
+  {% endif %}
   {% if linea %}
   <div class="row g-2 mb-3">
     <div class="col-6 col-md-3"><div class="al-stat"><b>{{ resumen.total }}</b><span class="small text-muted">Estudiantes</span></div></div>
@@ -68,7 +71,7 @@
         <tbody>
         {% for f in filas %}
           <tr>
-            <td>{{ f.estudiante.apellidos }} {{ f.estudiante.nombres }}</td>
+            <td>{{ f.estudiante.apellidos }} {{ f.estudiante.nombres }}{% if f.estudiante.linea == 'OT' %} <span class="badge text-bg-secondary" title="Sin línea asignada: lo evalúan los docentes de todas las líneas">OT</span>{% endif %}</td>
             <td>{{ f.estudiante.curso }}</td>
             <td><input type="text" inputmode="decimal" name="nota_{{ f.estudiante.id }}" class="form-control nota-in"
                        value="{% if f.calificacion %}{{ f.calificacion.valor|stringformat:'.2f' }}{% endif %}" placeholder="—"></td>

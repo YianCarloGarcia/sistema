@@ -54,3 +54,35 @@ class EstudiantesOTTests(BaseTestCase):
         self.client.login(username=f'est{est.documento}', password=est.documento)
         r = self.client.get(reverse('mi_proceso'), follow=True)
         self.assertContains(r, 'Taller 1')
+
+
+class ActividadLineaOTTests(BaseTestCase):
+    """Actividad de línea: los estudiantes OT se ven y se califican dentro de cada línea."""
+
+    def setUp(self):
+        self.ot = self.crear_estudiante(apellidos='SinLinea', linea='OT')
+
+    def test_docente_ve_y_califica_ot(self):
+        from estudiantes.models import CalificacionLinea
+        self.crear_docente(linea='ROB', jornada='JM')
+        self.client.login(username='docente1', password=CLAVE_PRUEBA)
+        r = self.client.get(reverse('actividad_linea'))
+        self.assertIn(self.ot.id, {f['estudiante'].id for f in r.context['filas']})
+        self.assertContains(r, 'OT</span>')
+        self.client.post(reverse('actividad_linea'), {
+            'linea': 'ROB', 'jornada': 'JM', f'nota_{self.ot.id}': '4.5'})
+        self.assertEqual(CalificacionLinea.objects.get(estudiante=self.ot, linea='ROB').valor, Decimal('4.50'))
+
+    def test_directivo_ve_ot_aunque_la_linea_no_tenga_estudiantes_propios(self):
+        self.crear_directivo()
+        self.client.login(username='directivo1', password=CLAVE_PRUEBA)
+        r = self.client.get(reverse('actividad_linea'), {'linea': 'BIO', 'jornada': 'JM'})
+        self.assertIn(('BIO', 'JM'), r.context['grupos_disponibles'])
+        self.assertIn(self.ot.id, {f['estudiante'].id for f in r.context['filas']})
+
+    def test_linea_ot_muestra_aviso_y_no_falla(self):
+        self.crear_directivo()
+        self.client.login(username='directivo1', password=CLAVE_PRUEBA)
+        r = self.client.get(reverse('actividad_linea'), {'linea': 'OT', 'jornada': 'JM'})
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'no tiene actividad propia')

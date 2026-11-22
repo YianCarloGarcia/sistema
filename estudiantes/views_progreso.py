@@ -50,8 +50,10 @@ def actividad_linea(request):
     (es_directivo, linea, jornada, grado_filtro, grupos_disponibles,
      grados_disponibles, estudiantes_grupo) = _resolver_grupo(request)
 
+    linea_ot = linea == 'OT'
     if linea not in CODIGOS_LINEAS:
-        # «Otro» (OT) o vacío no tiene actividad: el directivo elige una línea válida.
+        # «Otro» (OT) o vacío no tiene actividad propia: la nota de un estudiante OT se registra
+        # dentro de una línea real (todos los OT aparecen en la lista de cada línea de su jornada).
         linea = ''
         estudiantes_grupo = Estudiante.objects.none()
 
@@ -123,7 +125,11 @@ def actividad_linea(request):
         'linea_nombre': dict(LINEAS_MEDIA).get(linea, ''),
         'jornada': jornada,
         'grado_filtro': grado_filtro,
-        'grupos_disponibles': [g for g in grupos_disponibles if g[0] in CODIGOS_LINEAS],
+        # El directivo puede elegir cualquiera de las líneas reales en cada jornada con estudiantes
+        # (los OT se listan dentro de la línea elegida), aunque esa línea aún no tenga estudiantes propios.
+        'grupos_disponibles': [(l, j) for l in CODIGOS_LINEAS
+                               for j in sorted({g[1] for g in grupos_disponibles})] if es_directivo else [],
+        'linea_ot': linea_ot,
         'grados_disponibles': grados_disponibles,
         'actividad': actividad,
         'filas': filas,
