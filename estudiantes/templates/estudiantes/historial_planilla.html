@@ -34,7 +34,7 @@
   <div>
     <h4 class="fw-bold mb-1">Historial de sanciones</h4>
     {% if linea and jornada %}
-      <div class="opacity-90">{{ linea_display }} &middot; {{ jornada_display }}{% if grado_filtro %} &middot; {{ grado_filtro }}°{% endif %}</div>
+      <div class="opacity-90">{% if grado_filtro|slice:":2" == 'OT' %}Otro (OT){% else %}{{ linea_display }}{% endif %} &middot; {{ jornada_display }}{% if grado_filtro %} &middot; {{ grado_filtro|etiqueta_grado }}{% endif %}</div>
     {% else %}
       <div class="opacity-90">Selecciona una línea para comenzar</div>
     {% endif %}
@@ -51,10 +51,10 @@
     <div class="col-12 col-md-4">
       <label class="form-label small fw-bold">Línea y jornada</label>
       <select name="grupo_combo" class="form-select form-select-sm" onchange="
-        const v = this.value.split('|'); this.form.linea.value=v[0]||''; this.form.jornada.value=v[1]||''; this.form.submit();">
+        const v = this.value.split('|'); if(v[0]!=='OT'){this.form.linea.value=v[0]||'';} this.form.jornada.value=v[1]||''; (function(f,x){var g=f.grado;if(x&&![].some.call(g.options,function(o){return o.value===x;})){g.add(new Option(x,x));}g.value=x;})(this.form,v[2]||''); this.form.submit();">
         <option value="">— Selecciona —</option>
         {% for g in grupos_disponibles %}
-          <option value="{{ g.0 }}|{{ g.1 }}" {% if g.0 == linea and g.1 == jornada %}selected{% endif %}>{{ g.0 }} ({{ g.1 }})</option>
+          <option value="{{ g.0 }}|{{ g.1 }}|{{ g.2 }}" {% if g.3 %}selected{% endif %}>{% if g.2 %}OT {% if g.1 == 'JM' %}Mañana{% else %}Tarde{% endif %}{% else %}{{ g.0 }} ({{ g.1 }}){% endif %}</option>
         {% endfor %}
       </select>
       <input type="hidden" name="linea" value="{{ linea }}">
@@ -63,13 +63,21 @@
     {% else %}
     <input type="hidden" name="linea" value="{{ linea }}">
     <input type="hidden" name="jornada" value="{{ jornada }}">
+    {% if grupos_disponibles|length > 1 %}
+    <div class="col-12 col-md-4">
+      <label class="form-label small fw-bold">Línea y jornada</label>
+      <select class="form-select form-select-sm" onchange="const v=this.value.split('|'); if(v[0]!=='OT'){this.form.linea.value=v[0];} this.form.jornada.value=v[1]; (function(f,x){var g=f.grado;if(x&&![].some.call(g.options,function(o){return o.value===x;})){g.add(new Option(x,x));}g.value=x;})(this.form,v[2]||''); this.form.submit();">
+        {% for g in grupos_disponibles %}<option value="{{ g.0 }}|{{ g.1 }}|{{ g.2 }}" {% if g.3 %}selected{% endif %}>{% if g.2 %}OT {% if g.1 == 'JM' %}Mañana{% else %}Tarde{% endif %}{% else %}{{ g.0 }} ({{ g.1 }}){% endif %}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
     {% endif %}
     <div class="col-6 col-md-2">
-      <label class="form-label small fw-bold">Grado (filtro)</label>
+      <label class="form-label small fw-bold">{% if grado_filtro|slice:":2" == 'OT' %}Curso{% else %}Grado (filtro){% endif %}</label>
       <select name="grado" class="form-select form-select-sm" onchange="this.form.submit();">
-        <option value="">Todos</option>
-        {% for g in grados_disponibles %}
-          <option value="{{ g }}" {% if g == grado_filtro %}selected{% endif %}>{{ g }}°</option>
+        {% if grado_filtro|slice:":2" != 'OT' %}<option value="">Todos</option>{% endif %}
+        {% for v, et in grados_disponibles %}
+          <option value="{{ v }}" {% if v == grado_filtro %}selected{% endif %}>{{ et }}</option>
         {% endfor %}
       </select>
     </div>

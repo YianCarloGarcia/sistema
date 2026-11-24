@@ -382,6 +382,9 @@ def mi_historial(request):
 
 # ── Planilla de asistencia por grupo (docentes/directivos) ───
 
+CODIGOS_LINEAS_REALES = [c[0] for c in Estudiante.LINEA_MEDIA if c[0] != 'OT']
+
+
 def _resolver_grupo(request):
     """Resuelve (es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles,
     estudiantes_grupo) para las vistas de planilla y notas, a partir del docente o de los filtros GET/POST.
@@ -397,29 +400,54 @@ def _resolver_grupo(request):
     if grupo_asignado and not es_directivo:
         linea, jornada = grupo_asignado
 
+    # Estudiantes OT (sin línea): se eligen con la opción «OT» de la lista «Línea y jornada», que
+    # llega como grado_filtro = 'OT' (todos) u 'OT-<curso>'. La línea sigue siendo la del docente
+    # (o la que elige el directivo): cada docente califica a los OT con SUS actividades de línea.
+    if linea == 'OT' and not es_directivo:
+        linea = grupo_asignado[0] if grupo_asignado else linea
+    ver_ot = grado_filtro == 'OT' or grado_filtro.startswith('OT-')
+    if linea == 'OT' and es_directivo:           # enlace antiguo: equivale a «OT» de esa jornada
+        ver_ot, grado_filtro = True, grado_filtro if grado_filtro.startswith('OT') else 'OT'
+    if ver_ot and es_directivo and linea not in CODIGOS_LINEAS_REALES:
+        linea = CODIGOS_LINEAS_REALES[0]         # el directivo califica a los OT en la línea que elija
+
+    # Lista «Línea y jornada»: (línea, jornada, '', seleccionada) = estudiantes de esa línea;
+    # ('OT', jornada, 'OT', seleccionada) = estudiantes OT de esa jornada (clasificados por curso).
+    # (Al guardar no hace falta: se redirige, y así no se suman consultas.)
     grupos_disponibles = []
-    if es_directivo:
-        grupos_disponibles = list(
-            Estudiante.objects.values_list('linea', 'jornada').distinct().order_by('linea', 'jornada')
-        )
+    hay_ot = set() if request.method == 'POST' else set(
+        Estudiante.objects.filter(linea='OT').values_list('jornada', flat=True).distinct())
+    if request.method == 'POST':
+        pass
+    elif es_directivo:
+        jornadas = sorted({j for j in Estudiante.objects.values_list('jornada', flat=True).distinct() if j})
+        grupos_disponibles = [(l, j, '', not ver_ot and (l, j) == (linea, jornada))
+                              for l in CODIGOS_LINEAS_REALES for j in jornadas]
+        # «OT Mañana» / «OT Tarde»: la línea de calificación se elige aparte (campo «Calificar en la línea»).
+        grupos_disponibles += [('OT', j, 'OT', ver_ot and j == jornada) for j in jornadas if j in hay_ot]
+    elif grupo_asignado:
+        grupos_disponibles = [(*grupo_asignado, '', not ver_ot)]
+        if grupo_asignado[1] in hay_ot and grupo_asignado[0] != 'OT':
+            # «OT Mañana» o «OT Tarde» según la jornada del docente; se califica con SU línea.
+            grupos_disponibles.append(('OT', grupo_asignado[1], 'OT', ver_ot))
 
     estudiantes_grupo = Estudiante.objects.none()
     grados_disponibles = []
     if linea and jornada:
-        # Los estudiantes sin línea asignada (OT) los ven y evalúan los docentes de todas las líneas
-        # (de la misma jornada); al asignarles una línea dejan de aparecer en las demás.
-        if linea == 'OT':
-            estudiantes_grupo = Estudiante.objects.filter(linea='OT', jornada=jornada)
+        if ver_ot:
+            base = Estudiante.objects.filter(linea='OT', jornada=jornada)
+            # Los OT se clasifican por jornada y curso (valor del filtro: «OT-<curso>»).
+            cursos = sorted(c for c in base.exclude(curso='').values_list('curso', flat=True).distinct() if c)
+            grados_disponibles = [('OT', 'Todos los cursos')] + [(f'OT-{c}', c) for c in cursos]
+            if grado_filtro.startswith('OT-'):
+                base = base.filter(curso=grado_filtro[3:])
         else:
-            estudiantes_grupo = Estudiante.objects.filter(
-                Q(linea=linea) | Q(linea='OT'), jornada=jornada,
-            )
-        grados_disponibles = sorted(
-            g for g in estudiantes_grupo.exclude(grado='').values_list('grado', flat=True).distinct() if g
-        )
-        if grado_filtro:
-            estudiantes_grupo = estudiantes_grupo.filter(grado=grado_filtro)
-        estudiantes_grupo = estudiantes_grupo.order_by('curso', 'apellidos', 'nombres')
+            base = Estudiante.objects.filter(linea=linea, jornada=jornada)
+            grados = sorted(g for g in base.exclude(grado='').values_list('grado', flat=True).distinct() if g)
+            grados_disponibles = [(g, f'{g}°') for g in grados]
+            if grado_filtro:
+                base = base.filter(grado=grado_filtro)
+        estudiantes_grupo = base.order_by('curso', 'apellidos', 'nombres')
 
     return es_directivo, linea, jornada, grado_filtro, grupos_disponibles, grados_disponibles, estudiantes_grupo
 

@@ -25,6 +25,7 @@ from .views import (
 
 LINEAS_MEDIA = [c for c in Estudiante.LINEA_MEDIA if c[0] != 'OT']
 CODIGOS_LINEAS = [c[0] for c in LINEAS_MEDIA]
+NOMBRES_LINEA = dict(LINEAS_MEDIA)
 
 
 def _parsear_nota(texto):
@@ -50,10 +51,7 @@ def actividad_linea(request):
     (es_directivo, linea, jornada, grado_filtro, grupos_disponibles,
      grados_disponibles, estudiantes_grupo) = _resolver_grupo(request)
 
-    linea_ot = linea == 'OT'
     if linea not in CODIGOS_LINEAS:
-        # «Otro» (OT) o vacío no tiene actividad propia: la nota de un estudiante OT se registra
-        # dentro de una línea real (todos los OT aparecen en la lista de cada línea de su jornada).
         linea = ''
         estudiantes_grupo = Estudiante.objects.none()
 
@@ -122,14 +120,10 @@ def actividad_linea(request):
     return render(request, 'estudiantes/actividad_linea.html', {
         'es_directivo': es_directivo,
         'linea': linea,
-        'linea_nombre': dict(LINEAS_MEDIA).get(linea, ''),
+        'linea_nombre': NOMBRES_LINEA.get(linea, ''),
         'jornada': jornada,
         'grado_filtro': grado_filtro,
-        # El directivo puede elegir cualquiera de las líneas reales en cada jornada con estudiantes
-        # (los OT se listan dentro de la línea elegida), aunque esa línea aún no tenga estudiantes propios.
-        'grupos_disponibles': [(l, j) for l in CODIGOS_LINEAS
-                               for j in sorted({g[1] for g in grupos_disponibles})] if es_directivo else [],
-        'linea_ot': linea_ot,
+        'grupos_disponibles': grupos_disponibles,
         'grados_disponibles': grados_disponibles,
         'actividad': actividad,
         'filas': filas,
@@ -247,7 +241,7 @@ def mi_proceso(request):
         valor = notas.get(a.id)
         _k, etiqueta, color = nivel_desempeno(valor) if valor is not None else ('', '', '#94a3b8')
         actividades.append({
-            'observacion': notas_obj[a.id].observacion if a.id in notas_obj else '', 'nombre': a.nombre, 'tipo': a.get_tipo_display() if a.tipo != 'GEN' else '', 'valor': _num(valor), 'pct': _pct(valor) if valor is not None else 8,
+            'observacion': notas_obj[a.id].observacion if a.id in notas_obj else '', 'nombre': f'{a.linea} · {a.nombre}' if est.linea == 'OT' else a.nombre, 'tipo': a.get_tipo_display() if a.tipo != 'GEN' else '', 'valor': _num(valor), 'pct': _pct(valor) if valor is not None else 8,
             'calificada': valor is not None, 'color': color, 'etiqueta': etiqueta,
         })
 

@@ -26,3 +26,14 @@ def es_directivo(usuario):
     """Aplica la misma verificación de permisos que usan las vistas (no adivina
     el rol mirando el primer grupo de la lista, que es un orden no garantizado)."""
     return _es_directivo(usuario)
+
+
+@register.filter
+def etiqueta_grado(valor):
+    """'10' -> '10°'; 'OT' -> 'Solo OT'; 'OT-1001' -> 'OT · curso 1001'."""
+    valor = str(valor or '')
+    if valor == 'OT':
+        return 'Solo OT (sin línea)'
+    if valor.startswith('OT-'):
+        return f'OT · curso {valor[3:]}'
+    return f'{valor}°' if valor else ''
