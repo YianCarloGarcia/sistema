@@ -24,6 +24,7 @@ from openpyxl.utils import get_column_letter
 
 from .models import Estudiante, Asistencia, DocentePerfil, RegistroPlanilla, Actividad, NotaActividad, Periodo
 from .periodos import calcular_periodos, promedio_de_estudiante
+from .notas_util import parsear_nota
 from .models import ConfiguracionPorcentajes
 from .forms import EstudianteForm, UsuarioCrearForm, UsuarioEditarForm
 
@@ -634,6 +635,7 @@ def notas_grupo(request):
                 ids_a_borrar = []
 
                 obs_ignoradas = 0
+                notas_invalidas = 0
                 for est in estudiantes_grupo:
                     for act in actividades:
                         clave = (est.id, act.id)
@@ -650,15 +652,13 @@ def notas_grupo(request):
                                 ids_a_borrar.append(existente.id)
                             continue
 
-                        valor_txt = request.POST.get(campo, '').strip().replace(',', '.')
+                        valor_txt = request.POST.get(campo, '').strip()
                         valor = None
                         if valor_txt != '':
-                            try:
-                                valor = Decimal(valor_txt)
-                            except InvalidOperation:
-                                valor = None
-                        if valor is not None:
-                            valor = max(Decimal('0.0'), min(Decimal('5.0'), valor)).quantize(Decimal('0.01'))
+                            valor = parsear_nota(valor_txt)
+                            if valor is None:
+                                notas_invalidas += 1      # fuera de 0–5 o no numérica: nunca se guarda
+                                continue
 
                         if valor is None:
                             # Casilla vacía: no borra la nota. Si ya existía, solo se actualiza su observación.
@@ -691,6 +691,8 @@ def notas_grupo(request):
                 if ids_a_borrar:
                     NotaActividad.objects.filter(id__in=ids_a_borrar).delete()
 
+                if notas_invalidas:
+                    messages.error(request, f"{notas_invalidas} nota(s) NO se guardaron porque no están entre 0,0 y 5,0 (o no son números). Revise las casillas e inténtelo de nuevo.")
                 if obs_ignoradas:
                     messages.warning(request, f"{obs_ignoradas} observación(es) no se guardaron porque esa casilla no tiene nota.")
                 borrados = len(ids_a_borrar)

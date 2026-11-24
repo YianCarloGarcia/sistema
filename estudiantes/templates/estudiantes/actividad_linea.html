@@ -12,6 +12,7 @@
   .al-stat { text-align:center; padding:.6rem; border-radius:12px; background:#f1f5f9; }
   .al-stat b { display:block; font-size:1.5rem; }
   .nota-in { width: 90px; text-align:center; font-weight:700; }
+  .nota-in.nota-invalida, .nota-in:invalid { border-color:#dc2626; background:#fef2f2; color:#b91c1c; }
 </style>
 
 <div class="container py-4">
@@ -87,7 +88,7 @@
           <tr>
             <td>{{ f.estudiante.apellidos }} {{ f.estudiante.nombres }}{% if f.estudiante.linea == 'OT' %} <span class="badge text-bg-secondary" title="Sin línea asignada: lo evalúan los docentes de todas las líneas">OT</span>{% endif %}</td>
             <td>{{ f.estudiante.curso }}</td>
-            <td><input type="text" inputmode="decimal" name="nota_{{ f.estudiante.id }}" class="form-control nota-in"
+            <td><input type="text" inputmode="decimal" name="nota_{{ f.estudiante.id }}" class="form-control nota-in" maxlength="4" autocomplete="off"
                        value="{% if f.calificacion %}{{ f.calificacion.valor|stringformat:'.2f' }}{% endif %}" placeholder="—"></td>
             <td><input type="text" name="obs_{{ f.estudiante.id }}" maxlength="200" class="form-control" value="{{ f.calificacion.observacion|default:'' }}"></td>
             <td>
@@ -108,4 +109,19 @@
   <div class="al-card text-muted">{% if es_directivo %}Elija una línea y jornada para calificar su actividad.{% else %}Su línea no tiene actividad calificable.{% endif %}</div>
   {% endif %}
 </div>
+<script>
+// Una nota solo puede estar entre 0 y 5: el campo se marca en rojo y el formulario no se envía.
+document.querySelectorAll('.nota-in').forEach(function (el) {
+  function validar() {
+    const t = el.value.trim().replace(',', '.');
+    const n = Number(t);
+    const mal = t !== '' && (t === '' || isNaN(n) || n < 0 || n > 5);
+    el.setCustomValidity(mal ? 'La nota debe estar entre 0,0 y 5,0.' : '');
+    el.classList.toggle('nota-invalida', mal);
+  }
+  el.addEventListener('input', validar);
+  el.addEventListener('blur', validar);
+  validar();
+});
+</script>
 {% endblock %}

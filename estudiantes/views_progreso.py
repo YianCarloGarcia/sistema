@@ -13,6 +13,7 @@ from django.db import transaction
 from django.db.models import Avg, Count
 from django.shortcuts import redirect, render
 
+from .notas_util import parsear_nota
 from .models import (
     Actividad, ActividadLinea, CalificacionLinea, Estudiante, NIVELES_DESEMPENO, NotaActividad,
     Periodo, RegistroPlanilla, nivel_desempeno,
@@ -28,15 +29,7 @@ CODIGOS_LINEAS = [c[0] for c in LINEAS_MEDIA]
 NOMBRES_LINEA = dict(LINEAS_MEDIA)
 
 
-def _parsear_nota(texto):
-    """Convierte '4,5' / '4.5' en Decimal acotado a 0–5 con dos decimales; None si es inválido."""
-    try:
-        valor = Decimal(str(texto).strip().replace(',', '.'))
-    except (InvalidOperation, ValueError):
-        return None
-    if not valor.is_finite():
-        return None
-    return max(Decimal('0'), min(Decimal('5'), valor)).quantize(Decimal('0.01'))
+_parsear_nota = parsear_nota   # alias: misma regla 0–5 que Notas (fuera de rango = no se guarda)
 
 
 # ── Docente / directivo ─────────────────────────────────────
@@ -101,8 +94,8 @@ def actividad_linea(request):
         if borradas:
             partes.append(f"{borradas} borrada(s)")
         if invalidas:
-            partes.append(f"{invalidas} valor(es) no válido(s) ignorado(s)")
-        messages.success(request, "Actividad guardada: " + ", ".join(partes) + ".")
+            partes.append(f"{invalidas} valor(es) NO guardado(s): deben ser números entre 0,0 y 5,0")
+        (messages.error if invalidas else messages.success)(request, "Actividad guardada: " + ", ".join(partes) + ".")
         query = f"?linea={linea}&jornada={jornada}" + (f"&grado={grado_filtro}" if grado_filtro else "")
         return redirect(f"{request.path}{query}")
 

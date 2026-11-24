@@ -55,15 +55,13 @@ class NotasTests(BaseTestCase):
         })
         self.assertFalse(NotaActividad.objects.filter(estudiante=self.estudiante, actividad=self.actividad).exists())
 
-    def test_nota_por_encima_de_5_se_recorta_a_5(self):
+    def test_nota_por_encima_de_5_no_se_guarda(self):
         self._guardar_nota('9.7')
-        nota = NotaActividad.objects.get(estudiante=self.estudiante, actividad=self.actividad)
-        self.assertEqual(nota.valor, Decimal('5.00'))
+        self.assertFalse(NotaActividad.objects.filter(estudiante=self.estudiante, actividad=self.actividad).exists())
 
-    def test_nota_negativa_se_recorta_a_0(self):
+    def test_nota_negativa_no_se_guarda(self):
         self._guardar_nota('-3')
-        nota = NotaActividad.objects.get(estudiante=self.estudiante, actividad=self.actividad)
-        self.assertEqual(nota.valor, Decimal('0.00'))
+        self.assertFalse(NotaActividad.objects.filter(estudiante=self.estudiante, actividad=self.actividad).exists())
 
     def test_valor_no_numerico_se_ignora_sin_error(self):
         respuesta = self._guardar_nota('abc')

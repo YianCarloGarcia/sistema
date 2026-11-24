@@ -32,9 +32,9 @@ class ActividadLineaDocenteTests(BaseTestCase):
         self.assertFalse(CalificacionLinea.objects.filter(estudiante=self.e2).exists())
         self.assertEqual(ActividadLinea.objects.get(linea='ROB').descripcion, 'Proyecto')
 
-    def test_nota_se_acota_y_texto_invalido_se_ignora(self):
+    def test_nota_fuera_de_rango_o_texto_invalido_no_se_guarda(self):
         self.client.post(self.url, {f'nota_{self.e1.id}': '9', f'nota_{self.e2.id}': 'abc'})
-        self.assertEqual(CalificacionLinea.objects.get(estudiante=self.e1).valor, Decimal('5.00'))
+        self.assertFalse(CalificacionLinea.objects.filter(estudiante=self.e1).exists())
         self.assertFalse(CalificacionLinea.objects.filter(estudiante=self.e2).exists())
 
     def test_casilla_vacia_no_borra_pero_borrar_explicito_si(self):

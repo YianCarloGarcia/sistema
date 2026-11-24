@@ -42,6 +42,7 @@
   table.tabla-notas th { font-size: .7rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b; }
   table.tabla-notas td:nth-child(2), table.tabla-notas th:nth-child(2) { text-align: left; }
   .fila-estudiante:hover { background: #f8fafc; }
+  .input-nota:invalid, .input-nota.nota-invalida { border-color:#dc2626 !important; background:#fef2f2 !important; color:#b91c1c; }
   .input-nota {
     width: 56px; text-align: center; border: 1px solid #e2e8f0; border-radius: 6px; padding: .25rem;
   }
@@ -300,6 +301,19 @@ document.getElementById('obsAceptar').addEventListener('click', function () {
   boton.classList.toggle('con-obs', texto !== '');
   boton.title = texto || 'Agregar observación (opcional)';
   bootstrap.Modal.getInstance(document.getElementById('modalObs')).hide();
+});
+// Una nota solo puede estar entre 0 y 5: el campo se marca en rojo y el formulario no se envía.
+document.querySelectorAll('.input-nota').forEach(function (el) {
+  function validar() {
+    const t = el.value.trim().replace(',', '.');
+    const n = parseFloat(t);
+    const mal = t !== '' && (isNaN(n) || n < 0 || n > 5);
+    el.setCustomValidity(mal ? 'La nota debe estar entre 0,0 y 5,0.' : '');
+    el.classList.toggle('nota-invalida', mal);
+  }
+  el.addEventListener('input', validar);
+  el.addEventListener('blur', validar);
+  validar();
 });
 function borrarNota(estId, actId) {
   const input = document.getElementById('nota_' + estId + '_' + actId);

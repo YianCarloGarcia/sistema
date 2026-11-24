@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.conf import settings
 from decimal import Decimal
@@ -437,7 +438,8 @@ class NotaActividad(models.Model):
     """Calificación (0.0 a 5.0) de un estudiante en una actividad."""
     estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE, related_name='notas_actividades')
     actividad = models.ForeignKey(Actividad, on_delete=models.CASCADE, related_name='notas')
-    valor = models.DecimalField(max_digits=4, decimal_places=2, verbose_name='Nota (0.0 a 5.0)')
+    valor = models.DecimalField(max_digits=4, decimal_places=2, verbose_name='Nota (0.0 a 5.0)',
+                                validators=[MinValueValidator(Decimal('0')), MaxValueValidator(Decimal('5'))])
     observacion = models.CharField(max_length=300, blank=True, default='', verbose_name='Observación',
                                    help_text='Opcional: causa o comentario sobre esta calificación.')
     registrado_por = models.ForeignKey(
@@ -448,7 +450,8 @@ class NotaActividad(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['estudiante', 'actividad'], name='unica_nota_estudiante_actividad')
+            models.UniqueConstraint(fields=['estudiante', 'actividad'], name='unica_nota_estudiante_actividad'),
+            models.CheckConstraint(condition=models.Q(valor__gte=0, valor__lte=5), name='nota_actividad_0_a_5'),
         ]
         verbose_name = 'Nota de actividad'
         verbose_name_plural = 'Notas de actividades'
@@ -504,7 +507,8 @@ class CalificacionLinea(models.Model):
     linea = models.CharField(
         max_length=50, choices=[c for c in Estudiante.LINEA_MEDIA if c[0] != 'OT'], verbose_name='Línea',
     )
-    valor = models.DecimalField(max_digits=3, decimal_places=2, verbose_name='Nota (0.0 a 5.0)')
+    valor = models.DecimalField(max_digits=3, decimal_places=2, verbose_name='Nota (0.0 a 5.0)',
+                                validators=[MinValueValidator(Decimal('0')), MaxValueValidator(Decimal('5'))])
     observacion = models.CharField(max_length=200, blank=True, verbose_name='Observación')
     registrado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
