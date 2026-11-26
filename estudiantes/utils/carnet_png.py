@@ -1,5 +1,6 @@
 from PIL import Image, ImageDraw, ImageFont
 import qrcode
+import io
 import os
 from django.conf import settings
 
@@ -42,6 +43,30 @@ CONFIG_JORNADA = {
 }
 
 BASE_CARNET = os.path.join(settings.BASE_DIR, 'static', 'carnet')
+
+
+FUENTES_ALTERNATIVAS = [
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+    '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+    'C:/Windows/Fonts/arialbd.ttf',
+    '/Library/Fonts/Arial Bold.ttf',
+]
+
+
+def _cargar_fuente(tamano):
+    """static/fonts/arialbd.ttf si existe; si no, una fuente del sistema; como último recurso la
+    fuente escalable de Pillow (así el texto del carnet nunca sale diminuto)."""
+    candidatas = [os.path.join(settings.BASE_DIR, 'static', 'fonts', 'arialbd.ttf')] + FUENTES_ALTERNATIVAS
+    for ruta in candidatas:
+        try:
+            return ImageFont.truetype(ruta, tamano)
+        except Exception:
+            continue
+    try:
+        return ImageFont.load_default(size=tamano)
+    except TypeError:                      # Pillow antiguo, sin parámetro size
+        return ImageFont.load_default()
 
 
 def _buscar_archivo(carpeta, nombre_base):
@@ -116,13 +141,7 @@ def generar_carnet_png(estudiante):
     draw = ImageDraw.Draw(img)
 
     # ── Fuentes ──────────────────────────────────────────────────────────────
-    font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'arialbd.ttf')
-    try:
-        font_nombre = ImageFont.truetype(font_path, 35)
-        font_doc    = ImageFont.truetype(font_path, 35)
-    except Exception:
-        font_nombre = ImageFont.load_default()
-        font_doc    = ImageFont.load_default()
+    font_nombre = font_doc = _cargar_fuente(35)
 
     # ── Texto ─────────────────────────────────────────────────────────────────
     oy  = cfg['texto_offset_y']
@@ -147,16 +166,18 @@ def generar_carnet_png(estudiante):
     # ── Foto ─────────────────────────────────────────────────────────────────
     if estudiante.foto and estudiante.foto.name:
         try:
-            foto_path = os.path.join(settings.MEDIA_ROOT, estudiante.foto.name)
-            if os.path.exists(foto_path):
-                MARCO_ANCHO = 240
-                MARCO_ALTO  = 290
-                foto = Image.open(foto_path).resize((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
-                foto = foto.rotate(0, expand=True)
-                foto.thumbnail((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
-                x = int(0.27 * PX_POR_CM + cfg['foto_x_offset'])
-                y = int(ALTO - (4.05 * PX_POR_CM) - foto.height + cfg['foto_y_offset'])
-                img.paste(foto, (x, y))
+            # Se lee con el almacenamiento de Django (disco local o Cloudflare R2), no con una ruta
+            # de archivo: en producción las fotos están en el bucket y no en el disco del servidor.
+            with estudiante.foto.storage.open(estudiante.foto.name, 'rb') as archivo:
+                foto = Image.open(io.BytesIO(archivo.read())).convert('RGBA')
+            MARCO_ANCHO = 240
+            MARCO_ALTO  = 290
+            foto = foto.resize((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
+            foto = foto.rotate(0, expand=True)
+            foto.thumbnail((MARCO_ANCHO, MARCO_ALTO), Image.LANCZOS)
+            x = int(0.27 * PX_POR_CM + cfg['foto_x_offset'])
+            y = int(ALTO - (4.05 * PX_POR_CM) - foto.height + cfg['foto_y_offset'])
+            img.paste(foto, (x, y))
         except Exception:
             pass  # Carnet se genera sin foto si hay problema de acceso
 

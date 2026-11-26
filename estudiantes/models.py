@@ -99,6 +99,17 @@ class Estudiante(models.Model):
                 self.grado = prefijo
         super().save(*args, **kwargs)
 
+    @property
+    def tiene_foto_real(self):
+        """True si el estudiante tiene una fotografía propia en el sistema.
+
+        A quien no tiene foto se le asigna un archivo cuyo nombre empieza por «foto_default»
+        (a veces con texto o sufijo adicional): eso NO cuenta como fotografía."""
+        if not (self.foto and self.foto.name):
+            return False
+        import os
+        return not os.path.basename(self.foto.name).strip().lower().startswith('foto_default')
+
     # Borrar imagen al eliminar registro
     def delete(self, using=None, keep_parents=False):
         if self.foto and self.foto.name:

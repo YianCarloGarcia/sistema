@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, views_progreso, views_masivo, views_perfil
+from . import views, views_progreso, views_masivo, views_perfil, views_carnet
 from django.conf import settings
 from django.contrib.staticfiles.urls import static
 
@@ -16,6 +16,8 @@ urlpatterns = [
     path('estudiantes/detalle/<int:id>/', views.detalle, name='detalle'),
 
     # Historial individual (cuenta de estudiante)
+    path('mi-carnet/', views_carnet.mi_carnet, name='mi_carnet'),
+    path('mi-carnet/imagen/', views_carnet.mi_carnet_png, name='mi_carnet_png'),
     path('mi-historial/', views.mi_historial, name='mi_historial'),
     path('cambiar-clave/', views.cambiar_clave_obligatorio, name='cambiar_clave_obligatorio'),
     path('mi-progreso/', views_progreso.mi_progreso, name='mi_progreso'),
